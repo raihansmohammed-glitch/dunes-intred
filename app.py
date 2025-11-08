@@ -491,34 +491,41 @@ def grant_exp(username, amount):
     return lvls_gained
 
 # -------------------------
-# Dungeon treasure persistence
+# Dungeon treasure persistence (SQLite-based now, but keep global for compatibility)
 # -------------------------
 def load_dungeon_treasure():
     global dungeon_treasure
-    if os.path.exists(DUNGEON_TREASURE_FILE):
-        try:
-            with open(DUNGEON_TREASURE_FILE, "r") as f:
-                data = json.load(f)
-                dungeon_treasure = int(data.get("treasure", 0))
-        except Exception:
-            dungeon_treasure = 0
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    # Create table if not exists
+    c.execute('''CREATE TABLE IF NOT EXISTS dungeon_treasure (
+        id INTEGER PRIMARY KEY,
+        treasure INTEGER DEFAULT 0
+    )''')
+    c.execute('SELECT treasure FROM dungeon_treasure WHERE id = 1')
+    result = c.fetchone()
+    if result:
+        dungeon_treasure = int(result[0])
     else:
-        dungeon_treasure = 0
+        dungeon_treasure = random.randint(200000, 1000000)
+        c.execute('INSERT INTO dungeon_treasure (id, treasure) VALUES (1, ?)', (dungeon_treasure,))
+        conn.commit()
 
     # If dungeon treasure is below 200,000, reroll to between 200,000 and 1,000,000
     if dungeon_treasure < 200000:
         dungeon_treasure = random.randint(200000, 1000000)
         save_dungeon_treasure()
 
+    conn.close()
+
 def save_dungeon_treasure():
     global dungeon_treasure
-    try:
-        with open(DUNGEON_TREASURE_FILE, "w") as f:
-            json.dump({"treasure": int(dungeon_treasure)}, f)
-        return True
-    except Exception as e:
-        print(f"Error saving dungeon treasure: {e}")
-        return False
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('UPDATE dungeon_treasure SET treasure = ? WHERE id = 1', (int(dungeon_treasure),))
+    conn.commit()
+    conn.close()
+    return True
 
 load_dungeon_treasure()
 
@@ -526,9 +533,8 @@ load_dungeon_treasure()
 # Autosave functions
 # -------------------------
 def save_all_data():
-    users_saved = save_users()
     treasure_saved = save_dungeon_treasure()
-    return users_saved and treasure_saved
+    return treasure_saved
 
 def autosave():
     """Perform autosave and show a brief notification"""
@@ -742,7 +748,7 @@ def default_player_data():
     }
 def choose_monster_for_area(area):
     # Filter monsters by area
-    area_monsters = [m for m in monsters if m.get("area", 1) == area and not m["is_boss"]]
+    area_monsters = [m for m in monsters if m.get("area", area) == area and not m["is_boss"]]
     if not area_monsters:
         # Fallback to any non-boss monster
         area_monsters = [m for m in monsters if not m["is_boss"]]
@@ -767,7 +773,7 @@ def choose_monster_for_area(area):
 
 def choose_boss_for_area(area):
     # Filter bosses by area
-    area_bosses = [m for m in monsters if m.get("area", 1) == area and m["is_boss"]]
+    area_bosses = [m for m in monsters if m.get("area", area) == area and m["is_boss"]]
     if not area_bosses:
         # Fallback to any boss
         area_bosses = [m for m in monsters if m["is_boss"]]
@@ -840,6 +846,21 @@ BOSSES = {
     "boss_ancient_dragon": {"name": "Elder Dragon", "hp": 520, "atk": 62, "def": 31, "exp": 520, "gold": 1040, "materials": ["star_dust", "soul_shard"]},
     "boss_god_of_dungeons": {"name": "Supreme Dungeon God", "hp": 600, "atk": 70, "def": 35, "exp": 600, "gold": 1200, "materials": ["moon_rock", "sun_stone", "transcendent_heart", "soul_shard"]}
 }
+
+# Define monsters list with required fields
+monsters = []
+for k, v in MONSTERS.items():
+    v_copy = v.copy()
+    v_copy["is_boss"] = False
+    v_copy["area"] = 1
+    v_copy["weight"] = 1
+    monsters.append(v_copy)
+for k, v in BOSSES.items():
+    v_copy = v.copy()
+    v_copy["is_boss"] = True
+    v_copy["area"] = 1
+    v_copy["weight"] = 1
+    monsters.append(v_copy)
 
 def get_leaderboard():
     """Get leaderboard from SQLite database"""
@@ -1022,6 +1043,365 @@ def combat(username, monster_key, is_boss=False):
 # -------------------------
 # Dungeon game function (needed for main menu)
 # -------------------------
+# Debug Console
+# -------------------------
+def debug_console(current_user, score, money, player_data, users_db_path='users.db'):
+    conn = sqlite3.connect(users_db_path)
+    c = conn.cursor()
+    print("\n--- Debug Console --- (Type 'help' for commands)")
+    while True:
+        cmd = input("Debug> ").strip().lower().split(" ", 1)
+        cmd_base = cmd[0] if cmd else ""
+        args = cmd[1] if len(cmd) > 1 else ""
+
+        if cmd_base == "help" or cmd_base == "h" or cmd_base == "?":
+            print("\n--- Debug Commands ---")
+            print("users - display all registered users (limited info)")
+            print("current - display current user and score")
+            print("numbers - display generated random numbers (if any)")
+            print("adduser <u> <p> - create a new user account with password")
+            print("deluser <u> - delete a user account")
+            print("reset - reset all users and highscores")
+            print("resetplayer <u> - reset a single user to default stats")
+            print("setdmoney <n> - set dungeon treasure amount to n")
+            print("setscore <u> <n> - set a user's score to n")
+            print("setmoney <u> <n> - set a user's money to n")
+            print("setexp <u> <n> - set a user's experience to n")
+            print("setlvl <u> <n> - set a user's level to n")
+            print("setdefeated <u> <type> <n> - set defeated count for type (monsters, bosses, etc.)")
+            print("set <u> <stat> <n> - set a user's stat to n (hp, mana, atk, def, etc.)")
+            print("showfull <u> - display full data for user u")
+            print("give <u> <item> [qty] - grant an item to user (saves automatically)")
+            print(" (items: potion, strong_potion, ultra_potion, etc.)")
+            print(" (upgrades: perm_strength_upgrade, perm_defense_upgrade, etc.)")
+            print(" (aliases: str, def, hp, mana, crit, etc.)")
+            print("ruinthefun <u> - grant all achievements, items (500x usable), max stats")
+            print("exit - close debug console")
+            print("-----------------------\n")
+        elif cmd_base == "users" or cmd_base == "usrs" or cmd_base == "u":
+            c.execute('SELECT username, score, money FROM users ORDER BY score DESC LIMIT 10')
+            results = c.fetchall()
+            print("\n--- Top 10 Users ---")
+            for uname, uscore, umoney in results:
+                print(f"{uname}: Score {uscore}, Money ${umoney}")
+            print("---\n")
+        elif cmd_base == "current" or cmd_base == "curr" or cmd_base == "c":
+            if current_user:
+                print(f"Current user: {current_user}, Score: {score}, Money: ${money}")
+            else:
+                print("No current user logged in.")
+        elif cmd_base == "numbers":
+            print("Random numbers generated this session: (not tracked)")
+        elif cmd_base == "adduser":
+            if args:
+                parts = args.split(" ", 1)
+                if len(parts) == 2:
+                    u, p = parts
+                    if signup(u, p):
+                        print(f"User {u} created.")
+                    else:
+                        print("Failed to create user.")
+                else:
+                    print("Usage: adduser <username> <password>")
+            else:
+                print("Usage: adduser <username> <password>")
+        elif cmd_base == "deluser":
+            if args:
+                u = args.strip()
+                c.execute('DELETE FROM users WHERE username = ?', (u,))
+                conn.commit()
+                if c.rowcount > 0:
+                    print(f"User {u} deleted.")
+                else:
+                    print("User not found.")
+            else:
+                print("Usage: deluser <username>")
+        elif cmd_base == "reset":
+            c.execute('DELETE FROM users')
+            conn.commit()
+            print("All users reset.")
+        elif cmd_base == "resetplayer":
+            if args:
+                u = args.strip()
+                c.execute('SELECT username FROM users WHERE username = ?', (u,))
+                if c.fetchone():
+                    player_data = default_player_data()
+                    c.execute('UPDATE users SET score = 0, money = 40, player_data = ? WHERE username = ?', (json.dumps(player_data), u))
+                    conn.commit()
+                    print(f"Player {u} reset to defaults.")
+                else:
+                    print("User not found.")
+            else:
+                print("Usage: resetplayer <username>")
+        elif cmd_base == "setdmoney":
+            if args:
+                try:
+                    global dungeon_treasure
+                    dungeon_treasure = int(args.strip())
+                    save_dungeon_treasure()
+                    print(f"Dungeon treasure set to ${dungeon_treasure}")
+                except ValueError:
+                    print("Invalid number.")
+            else:
+                print("Usage: setdmoney <n>")
+        elif cmd_base == "setscore":
+            if args:
+                parts = args.split(" ", 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        c.execute('UPDATE users SET score = ? WHERE username = ?', (n, u))
+                        conn.commit()
+                        if c.rowcount > 0:
+                            print(f"Score for {u} set to {n}.")
+                        else:
+                            print("User not found.")
+                    except ValueError:
+                        print("Invalid score.")
+                else:
+                    print("Usage: setscore <username> <score>")
+            else:
+                print("Usage: setscore <username> <score>")
+        elif cmd_base == "setmoney":
+            if args:
+                parts = args.split(" ", 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        c.execute('UPDATE users SET money = ? WHERE username = ?', (n, u))
+                        conn.commit()
+                        if c.rowcount > 0:
+                            print(f"Money for {u} set to ${n}.")
+                        else:
+                            print("User not found.")
+                    except ValueError:
+                        print("Invalid money.")
+                else:
+                    print("Usage: setmoney <username> <money>")
+            else:
+                print("Usage: setmoney <username> <money>")
+        elif cmd_base == "setexp":
+            if args:
+                parts = args.split(" ", 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
+                        result = c.fetchone()
+                        if result:
+                            player_data = json.loads(result[0])
+                            stats = player_data["stats"]
+                            stats["exp"] = n
+                            player_data["stats"] = stats
+                            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
+                            conn.commit()
+                            print(f"EXP for {u} set to {n}.")
+                        else:
+                            print("User not found.")
+                    except ValueError:
+                        print("Invalid EXP.")
+                else:
+                    print("Usage: setexp <username> <exp>")
+            else:
+                print("Usage: setexp <username> <exp>")
+        elif cmd_base == "setlvl":
+            if args:
+                parts = args.split(" ", 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
+                        result = c.fetchone()
+                        if result:
+                            player_data = json.loads(result[0])
+                            stats = player_data["stats"]
+                            stats["level"] = n
+                            player_data["stats"] = stats
+                            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
+                            conn.commit()
+                            print(f"Level for {u} set to {n}.")
+                        else:
+                            print("User not found.")
+                    except ValueError:
+                        print("Invalid level.")
+                else:
+                    print("Usage: setlvl <username> <level>")
+            else:
+                print("Usage: setlvl <username> <level>")
+        elif cmd_base == "setdefeated":
+            if args:
+                parts = args.split(" ", 2)
+                if len(parts) == 3:
+                    u, typ, n = parts
+                    try:
+                        n = int(n)
+                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
+                        result = c.fetchone()
+                        if result:
+                            player_data = json.loads(result[0])
+                            stats = player_data["stats"]
+                            if typ.lower() in ["monsters", "monster"]:
+                                stats["monsters_defeated"] = n
+                            elif typ.lower() in ["bosses", "boss"]:
+                                stats["bosses_defeated"] = n
+                            else:
+                                print(f"Invalid type: {typ}")
+                                continue
+                            player_data["stats"] = stats
+                            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
+                            conn.commit()
+                            print(f"{typ} defeated for {u} set to {n}.")
+                        else:
+                            print("User not found.")
+                    except ValueError:
+                        print("Invalid number.")
+                else:
+                    print("Usage: setdefeated <username> <type> <n>")
+            else:
+                print("Usage: setdefeated <username> <type> <n>")
+        elif cmd_base == "set":
+            if args:
+                parts = args.split(" ", 2)
+                if len(parts) == 3:
+                    u, stat, n = parts
+                    try:
+                        n = int(n)
+                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
+                        result = c.fetchone()
+                        if result:
+                            player_data = json.loads(result[0])
+                            stats = player_data["stats"]
+                            if stat in stats:
+                                stats[stat] = n
+                                player_data["stats"] = stats
+                                c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
+                                conn.commit()
+                                print(f"{stat} for {u} set to {n}.")
+                            else:
+                                print(f"Invalid stat: {stat}")
+                        else:
+                            print("User not found.")
+                    except ValueError:
+                        print("Invalid number.")
+                else:
+                    print("Usage: set <username> <stat> <n>")
+            else:
+                print("Usage: set <username> <stat> <n>")
+        elif cmd_base == "showfull":
+            if args:
+                u = args.strip()
+                c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
+                result = c.fetchone()
+                if result:
+                    player_data = json.loads(result[0])
+                    print(f"\nFull data for {u}:")
+                    for key, value in player_data.items():
+                        if isinstance(value, dict):
+                            print(f"{key}:")
+                            for subkey, subvalue in value.items():
+                                print(f"  {subkey}: {subvalue}")
+                        else:
+                            print(f"{key}: {value}")
+                    print("---")
+                else:
+                    print("User not found.")
+            else:
+                print("Usage: showfull <username>")
+        elif cmd_base == "give":
+            if args:
+                parts = args.split(" ", 2)
+                if len(parts) >= 2:
+                    u, item = parts[0], parts[1]
+                    qty = int(parts[2]) if len(parts) > 2 else 1
+                    try:
+                        qty = int(qty) if isinstance(qty, str) else qty
+                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
+                        result = c.fetchone()
+                        if result:
+                            player_data = json.loads(result[0])
+                            inventory = player_data.get("inventory", {})
+                            inventory[item] = inventory.get(item, 0) + qty
+                            player_data["inventory"] = inventory
+                            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
+                            conn.commit()
+                            print(f"Gave {qty}x {item} to {u}.")
+                        else:
+                            print("User not found.")
+                    except ValueError:
+                        print("Invalid quantity.")
+                else:
+                    print("Usage: give <username> <item> [qty]")
+            else:
+                print("Usage: give <username> <item> [qty]")
+        elif cmd_base == "ruinthefun":
+            if args:
+                u = args.strip()
+                c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
+                result = c.fetchone()
+                if result:
+                    player_data = json.loads(result[0])
+                    stats = player_data["stats"]
+                    inventory = player_data["inventory"]
+                    # Max stats
+                    stats["level"] = MAX_LEVEL
+                    stats["exp"] = exp_to_next(MAX_LEVEL) - 1
+                    stats["hp_max"] = 1000
+                    stats["mana_max"] = 500
+                    stats["atk"] = 100
+                    stats["defense"] = 50
+                    stats["perm_atk"] = 50
+                    stats["perm_def"] = 25
+                    stats["perm_hp_max"] = 500
+                    stats["perm_mana_max"] = 250
+                    stats["perm_crit_chance"] = 50
+                    stats["perm_mana_regen"] = 20
+                    stats["perm_lifesteal"] = 20
+                    stats["perm_lifesteal_chance"] = 20
+                    stats["perm_exp_boost"] = 50
+                    # All achievements
+                    stats["achievements"] = list(ACHIEVEMENTS.keys())
+                    stats["available_titles"] = list(TITLES.keys())
+                    # Equip all titles
+                    stats["equipped_titles"] = list(TITLES.keys())
+                    # 500x usable items
+                    inventory["potion"] = 500
+                    inventory["strong_potion"] = 500
+                    inventory["ultra_potion"] = 500
+                    inventory["mana_regen_potion"] = 500
+                    inventory["instant_mana"] = 500
+                    inventory["strength_boost"] = 500
+                    inventory["defense_boost"] = 500
+                    inventory["regen_potion"] = 500
+                    inventory["crit_boost"] = 500
+                    inventory["mana_upgrade_potion"] = 500
+                    # All equipment
+                    for eq in [WEAPONS, ARMORS, WANDS, ROBES, NECKLACES]:
+                        for item in eq:
+                            inventory[item] = 1
+                    # All permanent upgrades
+                    for up in PERM_UPGRADES:
+                        inventory[up] = 1
+                    player_data["stats"] = stats
+                    player_data["inventory"] = inventory
+                    apply_title_boosts(stats)
+                    c.execute('UPDATE users SET player_data = ?, score = 999999, money = 999999 WHERE username = ?', (json.dumps(player_data), u))
+                    conn.commit()
+                    print(f"Ruin the fun activated for {u}.")
+                else:
+                    print("User not found.")
+            else:
+                print("Usage: ruinthefun <username>")
+        elif cmd_base == "exit" or cmd_base == "quit" or cmd_base == "q":
+            print("Exiting debug console.")
+            break
+        else:
+            print("Unknown command. Type 'help' for commands.")
+    conn.close()
+# -------------------------
 def dungeon():
     global current_user
     if not current_user:
@@ -1033,16 +1413,574 @@ def dungeon():
     c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
     result = c.fetchone()
     player_data = json.loads(result[0])
-    stats = player_data["stats"]
-    inventory = player_data["inventory"]
-    if "equipped" not in stats:
-        stats["equipped"] = {"weapon": None, "armor": None, "wand": None, "robe": None, "necklace": None}
-    if "hp" not in stats:
-        stats["hp"] = stats.get("hp_max", 100)
-    if "mana" not in stats:
-        stats["mana"] = stats.get("mana_max", 50)
-    if "learned_spells" not in stats:
-        stats["learned_spells"] = []
+# -------------------------
+# Shop Interface
+# -------------------------
+def shop():
+    global current_user
+    if not current_user:
+        print("You must be logged in to access the shop.")
+        return
+
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT score, money, player_data FROM users WHERE username = ?', (current_user,))
+    result = c.fetchone()
+    if not result:
+        print("User data not found.")
+        conn.close()
+        return
+
+    score, money, player_data_json = result
+    player_data = json.loads(player_data_json)
+    inventory = player_data.get("inventory", {})
+
+    while True:
+        print("\n--- Shop ---")
+        print(f"Money: ${money} | Score: {score}")
+        print("Type the number to purchase, or 'exit' to leave shop.")
+        print("----- Potions & Mana -----")
+        print("1. Potion (restores 30 HP) - $20")
+        print("2. Strong Potion (restores 80 HP) - $80")
+        print("3. Ultra Potion (restores 200 HP) - $350")
+        print("4. Mana Regen Potion (+15 mana per fight for 4 fights) - $120")
+        print("5. Instant Mana (restore full mana) - $60")
+        print("\n----- Buffs -----")
+        print("6. Strength Boost (+5 ATK next fights) - $60")
+        print("7. Defense Boost (+3 DEF next fights) - $60")
+        print("8. Regen Potion (+12 HP/fight next fights) - $80")
+        print("9. Crit Boost (+50% crit next fights) - $80")
+        print("\n----- Weapons -----")
+        print(f"10. Wooden Sword (+2 ATK) - ${WEAPONS['wooden_sword']['price']}")
+        print(f"11. Iron Sword (+5 ATK) - ${WEAPONS['iron_sword']['price']}")
+        print(f"12. Steel Sword (+8 ATK) - ${WEAPONS['steel_sword']['price']}")
+        print(f"13. Diamond Sword (+50 ATK) - ${WEAPONS['diamond_sword']['price']}")
+        print(f"14. Void Sword (+200 ATK) - ${WEAPONS['void_sword']['price']}")
+        print(f"15. Infinitium Sword (+2000 ATK) - ${WEAPONS['infinitium_sword']['price']} and {WEAPONS['infinitium_sword'].get('score_price',0)} score")
+        print(f"16. Frostblade (+120 ATK) - ${WEAPONS['frostblade']['price']} and {WEAPONS['frostblade'].get('score_price',0)} score")
+        print(f"17. Flameblade (+130 ATK) - ${WEAPONS['flameblade']['price']} and {WEAPONS['flameblade'].get('score_price',0)} score")
+        print(f"18. Thunder Sword (+150 ATK) - ${WEAPONS['thunder_sword']['price']} and {WEAPONS['thunder_sword'].get('score_price',0)} score")
+        print(f"19. Holy Avenger (+180 ATK) - ${WEAPONS['holy_avenger']['price']} and {WEAPONS['holy_avenger'].get('score_price',0)} score")
+        print(f"20. Dragon Slayer (+250 ATK) - ${WEAPONS['dragon_slayer']['price']} and {WEAPONS['dragon_slayer'].get('score_price',0)} score")
+        print(f"21. Cosmic Blade (+500 ATK) - ${WEAPONS['cosmic_blade']['price']} and {WEAPONS['cosmic_blade'].get('score_price',0)} score")
+        print(f"22. Transcendent Edge (+1500 ATK) - ${WEAPONS['transcendent_edge']['price']} and {WEAPONS['transcendent_edge'].get('score_price',0)} score")
+        print("\n----- Armors -----")
+        print(f"23. Leather Armor (+1 DEF) - ${ARMORS['leather_armor']['price']}")
+        print(f"24. Chainmail (+3 DEF) - ${ARMORS['chainmail']['price']}")
+        print(f"25. Plate Armor (+6 DEF) - ${ARMORS['plate_armor']['price']}")
+        print(f"26. Diamond Armor (+25 DEF) - ${ARMORS['diamond_armor']['price']}")
+        print(f"27. Void Armor (+75 DEF) - ${ARMORS['void_armor']['price']}")
+        print(f"28. Infinitium Armor (+300 DEF) - ${ARMORS['infinitium_armor']['price']} and {ARMORS['infinitium_armor'].get('score_price',0)} score")
+        print(f"29. Frost Armor (+40 DEF) - ${ARMORS['frost_armor']['price']} and {ARMORS['frost_armor'].get('score_price',0)} score")
+        print(f"30. Flame Armor (+45 DEF) - ${ARMORS['flame_armor']['price']} and {ARMORS['flame_armor'].get('score_price',0)} score")
+        print(f"31. Thunder Armor (+55 DEF) - ${ARMORS['thunder_armor']['price']} and {ARMORS['thunder_armor'].get('score_price',0)} score")
+        print(f"32. Holy Armor (+70 DEF) - ${ARMORS['holy_armor']['price']} and {ARMORS['holy_armor'].get('score_price',0)} score")
+        print(f"33. Dragon Scale Armor (+100 DEF) - ${ARMORS['dragon_scale_armor']['price']} and {ARMORS['dragon_scale_armor'].get('score_price',0)} score")
+        print(f"34. Cosmic Armor (+200 DEF) - ${ARMORS['cosmic_armor']['price']} and {ARMORS['cosmic_armor'].get('score_price',0)} score")
+        print(f"35. Transcendent Armor (+500 DEF) - ${ARMORS['transcendent_armor']['price']} and {ARMORS['transcendent_armor'].get('score_price',0)} score")
+        print("\n----- Wands (mana weapons) -----")
+        print(f"36. Apprentice Wand (+5 magic) - ${WANDS['apprentice_wand']['price']}")
+        print(f"37. Mage Wand (+20 magic) - ${WANDS['mage_wand']['price']}")
+        print(f"38. Archmage Staff (+120 magic) - ${WANDS['archmage_staff']['price']} and {WANDS['archmage_staff'].get('score_price',0)} score")
+        print(f"39. Frost Wand (+60 magic) - ${WANDS['frost_wand']['price']} and {WANDS['frost_wand'].get('score_price',0)} score")
+        print(f"40. Flame Wand (+65 magic) - ${WANDS['flame_wand']['price']} and {WANDS['flame_wand'].get('score_price',0)} score")
+        print(f"41. Thunder Wand (+75 magic) - ${WANDS['thunder_wand']['price']} and {WANDS['thunder_wand'].get('score_price',0)} score")
+        print(f"42. Holy Scepter (+90 magic) - ${WANDS['holy_scepter']['price']} and {WANDS['holy_scepter'].get('score_price',0)} score")
+        print(f"43. Dragon Staff (+125 magic) - ${WANDS['dragon_staff']['price']} and {WANDS['dragon_staff'].get('score_price',0)} score")
+        print(f"44. Cosmic Scepter (+250 magic) - ${WANDS['cosmic_scepter']['price']} and {WANDS['cosmic_scepter'].get('score_price',0)} score")
+        print(f"45. Transcendent Staff (+750 magic) - ${WANDS['transcendent_staff']['price']} and {WANDS['transcendent_staff'].get('score_price',0)} score")
+        print("\n----- Robes -----")
+        print(f"46. Cloth Robe (+2 magic def) - ${ROBES['cloth_robe']['price']}")
+        print(f"47. Silk Robe (+10 magic def) - ${ROBES['silk_robe']['price']}")
+        print(f"48. Void Robe (+80 magic def) - ${ROBES['void_robe']['price']} and {ROBES['void_robe'].get('score_price',0)} score")
+        print(f"49. Frost Robe (+30 magic def) - ${ROBES['frost_robe']['price']} and {ROBES['frost_robe'].get('score_price',0)} score")
+        print(f"50. Flame Robe (+35 magic def) - ${ROBES['flame_robe']['price']} and {ROBES['flame_robe'].get('score_price',0)} score")
+        print(f"51. Thunder Robe (+45 magic def) - ${ROBES['thunder_robe']['price']} and {ROBES['thunder_robe'].get('score_price',0)} score")
+        print(f"52. Holy Robe (+60 magic def) - ${ROBES['holy_robe']['price']} and {ROBES['holy_robe'].get('score_price',0)} score")
+        print(f"53. Dragon Robe (+90 magic def) - ${ROBES['dragon_robe']['price']} and {ROBES['dragon_robe'].get('score_price',0)} score")
+        print(f"54. Cosmic Robe (+180 magic def) - ${ROBES['cosmic_robe']['price']} and {ROBES['cosmic_robe'].get('score_price',0)} score")
+        print(f"55. Transcendent Robe (+450 magic def) - ${ROBES['transcendent_robe']['price']} and {ROBES['transcendent_robe'].get('score_price',0)} score")
+        print("\n----- Necklaces -----")
+        print(f"56. Health Amulet (+20 HP) - ${NECKLACES['health_amulet']['price']}")
+        print(f"57. Mana Amulet (+15 Mana) - ${NECKLACES['mana_amulet']['price']}")
+        print(f"58. Strength Amulet (+5 ATK) - ${NECKLACES['strength_amulet']['price']}")
+        print(f"59. Defense Amulet (+3 DEF) - ${NECKLACES['defense_amulet']['price']}")
+        print(f"60. Critical Amulet (+10% Crit) - ${NECKLACES['crit_amulet']['price']}")
+        print(f"61. Lifesteal Amulet (+5% Lifesteal) - ${NECKLACES['lifesteal_amulet']['price']}")
+        print(f"62. Frost Necklace (+15 Magic Def, +30 HP) - ${NECKLACES['frost_necklace']['price']} and {NECKLACES['frost_necklace'].get('score_price',0)} score")
+        print(f"63. Flame Necklace (+10 Magic Atk, +8 ATK) - ${NECKLACES['flame_necklace']['price']} and {NECKLACES['flame_necklace'].get('score_price',0)} score")
+        print(f"64. Thunder Necklace (+15% Crit, +10 ATK) - ${NECKLACES['thunder_necklace']['price']} and {NECKLACES['thunder_necklace'].get('score_price',0)} score")
+        print(f"65. Holy Pendant (+50 HP, +30 Mana, +5 DEF) - ${NECKLACES['holy_pendant']['price']} and {NECKLACES['holy_pendant'].get('score_price',0)} score")
+        print(f"66. Dragon Necklace (+20 ATK, +15 DEF, +70 HP) - ${NECKLACES['dragon_necklace']['price']} and {NECKLACES['dragon_necklace'].get('score_price',0)} score")
+        print(f"67. Cosmic Necklace (+30 Magic Atk, +25 Magic Def, +50 Mana) - ${NECKLACES['cosmic_necklace']['price']} and {NECKLACES['cosmic_necklace'].get('score_price',0)} score")
+        print(f"68. Transcendent Necklace (+50 ATK, +40 DEF, +150 HP, +100 Mana, +20% Crit, +10% Lifesteal) - ${NECKLACES['transcendent_necklace']['price']} and {NECKLACES['transcendent_necklace'].get('score_price',0)} score")
+        print("\n----- Other Actions -----")
+        print("69. Equip item from inventory")
+        print("70. Unequip item")
+        print("71. Sell Potion (sell 1 potion for $10)")
+        print("72. Craft Items")
+        print("73. View dungeon treasure")
+        print("74. Exit shop")
+
+        choice = input("\nChoose an option: ").strip().lower()
+        if choice in ("exit", "74"):
+            break
+
+        item_name = None
+        item_dict = None
+        cost = 0
+        score_cost = 0
+        is_equipment = False
+
+        if choice == "1":
+            item_name = "potion"
+            cost = 20
+        elif choice == "2":
+            item_name = "strong_potion"
+            cost = 80
+        elif choice == "3":
+            item_name = "ultra_potion"
+            cost = 350
+        elif choice == "4":
+            item_name = "mana_regen_potion"
+            cost = 120
+        elif choice == "5":
+            item_name = "instant_mana"
+            cost = 60
+        elif choice == "6":
+            item_name = "strength_boost"
+            cost = 60
+        elif choice == "7":
+            item_name = "defense_boost"
+            cost = 60
+        elif choice == "8":
+            item_name = "regen_potion"
+            cost = 80
+        elif choice == "9":
+            item_name = "crit_boost"
+            cost = 80
+        elif choice == "10":
+            item_name = "wooden_sword"
+            item_dict = WEAPONS
+            cost = WEAPONS["wooden_sword"]["price"]
+            is_equipment = True
+        elif choice == "11":
+            item_name = "iron_sword"
+            item_dict = WEAPONS
+            cost = WEAPONS["iron_sword"]["price"]
+            is_equipment = True
+        elif choice == "12":
+            item_name = "steel_sword"
+            item_dict = WEAPONS
+            cost = WEAPONS["steel_sword"]["price"]
+            is_equipment = True
+        elif choice == "13":
+            item_name = "diamond_sword"
+            item_dict = WEAPONS
+            cost = WEAPONS["diamond_sword"]["price"]
+            is_equipment = True
+        elif choice == "14":
+            item_name = "void_sword"
+            item_dict = WEAPONS
+            cost = WEAPONS["void_sword"]["price"]
+            is_equipment = True
+        elif choice == "15":
+            item_name = "infinitium_sword"
+            item_dict = WEAPONS
+            cost = WEAPONS["infinitium_sword"]["price"]
+            score_cost = WEAPONS["infinitium_sword"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "16":
+            item_name = "frostblade"
+            item_dict = WEAPONS
+            cost = WEAPONS["frostblade"]["price"]
+            score_cost = WEAPONS["frostblade"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "17":
+            item_name = "flameblade"
+            item_dict = WEAPONS
+            cost = WEAPONS["flameblade"]["price"]
+            score_cost = WEAPONS["flameblade"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "18":
+            item_name = "thunder_sword"
+            item_dict = WEAPONS
+            cost = WEAPONS["thunder_sword"]["price"]
+            score_cost = WEAPONS["thunder_sword"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "19":
+            item_name = "holy_avenger"
+            item_dict = WEAPONS
+            cost = WEAPONS["holy_avenger"]["price"]
+            score_cost = WEAPONS["holy_avenger"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "20":
+            item_name = "dragon_slayer"
+            item_dict = WEAPONS
+            cost = WEAPONS["dragon_slayer"]["price"]
+            score_cost = WEAPONS["dragon_slayer"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "21":
+            item_name = "cosmic_blade"
+            item_dict = WEAPONS
+            cost = WEAPONS["cosmic_blade"]["price"]
+            score_cost = WEAPONS["cosmic_blade"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "22":
+            item_name = "transcendent_edge"
+            item_dict = WEAPONS
+            cost = WEAPONS["transcendent_edge"]["price"]
+            score_cost = WEAPONS["transcendent_edge"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "23":
+            item_name = "leather_armor"
+            item_dict = ARMORS
+            cost = ARMORS["leather_armor"]["price"]
+            is_equipment = True
+        elif choice == "24":
+            item_name = "chainmail"
+            item_dict = ARMORS
+            cost = ARMORS["chainmail"]["price"]
+            is_equipment = True
+        elif choice == "25":
+            item_name = "plate_armor"
+            item_dict = ARMORS
+            cost = ARMORS["plate_armor"]["price"]
+            is_equipment = True
+        elif choice == "26":
+            item_name = "diamond_armor"
+            item_dict = ARMORS
+            cost = ARMORS["diamond_armor"]["price"]
+            is_equipment = True
+        elif choice == "27":
+            item_name = "void_armor"
+            item_dict = ARMORS
+            cost = ARMORS["void_armor"]["price"]
+            is_equipment = True
+        elif choice == "28":
+            item_name = "infinitium_armor"
+            item_dict = ARMORS
+            cost = ARMORS["infinitium_armor"]["price"]
+            score_cost = ARMORS["infinitium_armor"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "29":
+            item_name = "frost_armor"
+            item_dict = ARMORS
+            cost = ARMORS["frost_armor"]["price"]
+            score_cost = ARMORS["frost_armor"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "30":
+            item_name = "flame_armor"
+            item_dict = ARMORS
+            cost = ARMORS["flame_armor"]["price"]
+            score_cost = ARMORS["flame_armor"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "31":
+            item_name = "thunder_armor"
+            item_dict = ARMORS
+            cost = ARMORS["thunder_armor"]["price"]
+            score_cost = ARMORS["thunder_armor"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "32":
+            item_name = "holy_armor"
+            item_dict = ARMORS
+            cost = ARMORS["holy_armor"]["price"]
+            score_cost = ARMORS["holy_armor"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "33":
+            item_name = "dragon_scale_armor"
+            item_dict = ARMORS
+            cost = ARMORS["dragon_scale_armor"]["price"]
+            score_cost = ARMORS["dragon_scale_armor"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "34":
+            item_name = "cosmic_armor"
+            item_dict = ARMORS
+            cost = ARMORS["cosmic_armor"]["price"]
+            score_cost = ARMORS["cosmic_armor"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "35":
+            item_name = "transcendent_armor"
+            item_dict = ARMORS
+            cost = ARMORS["transcendent_armor"]["price"]
+            score_cost = ARMORS["transcendent_armor"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "36":
+            item_name = "apprentice_wand"
+            item_dict = WANDS
+            cost = WANDS["apprentice_wand"]["price"]
+            is_equipment = True
+        elif choice == "37":
+            item_name = "mage_wand"
+            item_dict = WANDS
+            cost = WANDS["mage_wand"]["price"]
+            is_equipment = True
+        elif choice == "38":
+            item_name = "archmage_staff"
+            item_dict = WANDS
+            cost = WANDS["archmage_staff"]["price"]
+            score_cost = WANDS["archmage_staff"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "39":
+            item_name = "frost_wand"
+            item_dict = WANDS
+            cost = WANDS["frost_wand"]["price"]
+            score_cost = WANDS["frost_wand"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "40":
+            item_name = "flame_wand"
+            item_dict = WANDS
+            cost = WANDS["flame_wand"]["price"]
+            score_cost = WANDS["flame_wand"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "41":
+            item_name = "thunder_wand"
+            item_dict = WANDS
+            cost = WANDS["thunder_wand"]["price"]
+            score_cost = WANDS["thunder_wand"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "42":
+            item_name = "holy_scepter"
+            item_dict = WANDS
+            cost = WANDS["holy_scepter"]["price"]
+            score_cost = WANDS["holy_scepter"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "43":
+            item_name = "dragon_staff"
+            item_dict = WANDS
+            cost = WANDS["dragon_staff"]["price"]
+            score_cost = WANDS["dragon_staff"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "44":
+            item_name = "cosmic_scepter"
+            item_dict = WANDS
+            cost = WANDS["cosmic_scepter"]["price"]
+            score_cost = WANDS["cosmic_scepter"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "45":
+            item_name = "transcendent_staff"
+            item_dict = WANDS
+            cost = WANDS["transcendent_staff"]["price"]
+            score_cost = WANDS["transcendent_staff"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "46":
+            item_name = "cloth_robe"
+            item_dict = ROBES
+            cost = ROBES["cloth_robe"]["price"]
+            is_equipment = True
+        elif choice == "47":
+            item_name = "silk_robe"
+            item_dict = ROBES
+            cost = ROBES["silk_robe"]["price"]
+            is_equipment = True
+        elif choice == "48":
+            item_name = "void_robe"
+            item_dict = ROBES
+            cost = ROBES["void_robe"]["price"]
+            score_cost = ROBES["void_robe"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "49":
+            item_name = "frost_robe"
+            item_dict = ROBES
+            cost = ROBES["frost_robe"]["price"]
+            score_cost = ROBES["frost_robe"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "50":
+            item_name = "flame_robe"
+            item_dict = ROBES
+            cost = ROBES["flame_robe"]["price"]
+            score_cost = ROBES["flame_robe"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "51":
+            item_name = "thunder_robe"
+            item_dict = ROBES
+            cost = ROBES["thunder_robe"]["price"]
+            score_cost = ROBES["thunder_robe"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "52":
+            item_name = "holy_robe"
+            item_dict = ROBES
+            cost = ROBES["holy_robe"]["price"]
+            score_cost = ROBES["holy_robe"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "53":
+            item_name = "dragon_robe"
+            item_dict = ROBES
+            cost = ROBES["dragon_robe"]["price"]
+            score_cost = ROBES["dragon_robe"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "54":
+            item_name = "cosmic_robe"
+            item_dict = ROBES
+            cost = ROBES["cosmic_robe"]["price"]
+            score_cost = ROBES["cosmic_robe"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "55":
+            item_name = "transcendent_robe"
+            item_dict = ROBES
+            cost = ROBES["transcendent_robe"]["price"]
+            score_cost = ROBES["transcendent_robe"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "56":
+            item_name = "health_amulet"
+            item_dict = NECKLACES
+            cost = NECKLACES["health_amulet"]["price"]
+            is_equipment = True
+        elif choice == "57":
+            item_name = "mana_amulet"
+            item_dict = NECKLACES
+            cost = NECKLACES["mana_amulet"]["price"]
+            is_equipment = True
+        elif choice == "58":
+            item_name = "strength_amulet"
+            item_dict = NECKLACES
+            cost = NECKLACES["strength_amulet"]["price"]
+            is_equipment = True
+        elif choice == "59":
+            item_name = "defense_amulet"
+            item_dict = NECKLACES
+            cost = NECKLACES["defense_amulet"]["price"]
+            is_equipment = True
+        elif choice == "60":
+            item_name = "crit_amulet"
+            item_dict = NECKLACES
+            cost = NECKLACES["crit_amulet"]["price"]
+            is_equipment = True
+        elif choice == "61":
+            item_name = "lifesteal_amulet"
+            item_dict = NECKLACES
+            cost = NECKLACES["lifesteal_amulet"]["price"]
+            is_equipment = True
+        elif choice == "62":
+            item_name = "frost_necklace"
+            item_dict = NECKLACES
+            cost = NECKLACES["frost_necklace"]["price"]
+            score_cost = NECKLACES["frost_necklace"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "63":
+            item_name = "flame_necklace"
+            item_dict = NECKLACES
+            cost = NECKLACES["flame_necklace"]["price"]
+            score_cost = NECKLACES["flame_necklace"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "64":
+            item_name = "thunder_necklace"
+            item_dict = NECKLACES
+            cost = NECKLACES["thunder_necklace"]["price"]
+            score_cost = NECKLACES["thunder_necklace"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "65":
+            item_name = "holy_pendant"
+            item_dict = NECKLACES
+            cost = NECKLACES["holy_pendant"]["price"]
+            score_cost = NECKLACES["holy_pendant"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "66":
+            item_name = "dragon_necklace"
+            item_dict = NECKLACES
+            cost = NECKLACES["dragon_necklace"]["price"]
+            score_cost = NECKLACES["dragon_necklace"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "67":
+            item_name = "cosmic_necklace"
+            item_dict = NECKLACES
+            cost = NECKLACES["cosmic_necklace"]["price"]
+            score_cost = NECKLACES["cosmic_necklace"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "68":
+            item_name = "transcendent_necklace"
+            item_dict = NECKLACES
+            cost = NECKLACES["transcendent_necklace"]["price"]
+            score_cost = NECKLACES["transcendent_necklace"].get("score_price", 0)
+            is_equipment = True
+        elif choice == "69":
+            manage_inventory_menu(current_user, player_data, c)
+            # Reload data after inventory changes
+            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
+            result = c.fetchone()
+            if result:
+                player_data = json.loads(result[0])
+                inventory = player_data.get("inventory", {})
+            continue
+        elif choice == "70":
+            # Unequip item
+            print("Unequip which item? (weapon/armor/wand/robe/necklace)")
+            item_type = input("Item type: ").strip().lower()
+            stats = player_data["stats"]
+            equipped = stats.get("equipped", {})
+            if item_type in ["weapon", "armor", "wand", "robe", "necklace"]:
+                equipped[item_type] = None
+                player_data["stats"] = stats
+                c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
+                conn.commit()
+                print(f"Unequipped {item_type}.")
+                continue
+            else:
+                print("Invalid item type.")
+                continue
+        elif choice == "71":
+            # Sell potion
+            if inventory.get("potion", 0) > 0:
+                inventory["potion"] -= 1
+                money += 10
+                player_data["inventory"] = inventory
+                c.execute('UPDATE users SET money = ?, player_data = ? WHERE username = ?', (money, json.dumps(player_data), current_user))
+                conn.commit()
+                print("Sold 1 potion for $10.")
+            else:
+                print("No potions to sell.")
+            continue
+        elif choice == "72":
+            # Craft items - placeholder
+            print("Crafting not implemented yet.")
+            continue
+        elif choice == "73":
+            # View dungeon treasure
+            global dungeon_treasure
+            print(f"Current dungeon treasure: ${dungeon_treasure}")
+            continue
+        else:
+            print("Invalid choice.")
+            continue
+
+        if item_name:
+            if money >= cost and score >= score_cost:
+                if is_equipment:
+                    if inventory.get(item_name, 0) > 0:
+                        print("You already own this item.")
+                    else:
+                        inventory[item_name] = inventory.get(item_name, 0) + 1
+                        money -= cost
+                        score -= score_cost
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET money = ?, score = ?, player_data = ? WHERE username = ?', (money, score, json.dumps(player_data), current_user))
+                        conn.commit()
+                        print(f"Purchased {item_name} for ${cost}" + (f" and {score_cost} score" if score_cost > 0 else "") + "!")
+                else:
+                    # Consumables can be bought multiple times
+                    qty = parse_qty_from_choice(input("How many? (default 1): ").strip())
+                    if qty <= 0:
+                        qty = 1
+                    total_cost = cost * qty
+                    if money >= total_cost:
+                        inventory[item_name] = inventory.get(item_name, 0) + qty
+                        money -= total_cost
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET money = ?, player_data = ? WHERE username = ?', (money, json.dumps(player_data), current_user))
+                        conn.commit()
+                        print(f"Purchased {qty}x {item_name} for ${total_cost}!")
+                    else:
+                        print("Not enough money.")
+            else:
+                print("Not enough money or score.")
+
+    conn.close()
+
+def parse_qty_from_choice(choice_str):
+    try:
+        return int(choice_str)
+    except ValueError:
+        return 1
 
     # Apply permanent upgrades before entering dungeon
     apply_permanent_upgrades(current_user)
@@ -1056,7 +1994,7 @@ def dungeon():
     # Auto-equip best equipment after upgrading if enabled
     settings = stats.get("settings", {})
     if settings.get("auto_equip_best", False) or settings.get("auto_equip_everything", False):
-        equip_item_if_better(stats, inventory)
+        auto_equip_items(current_user)
 
     active_buffs = []
     forced_monster = None
@@ -1091,7 +2029,7 @@ def dungeon():
             print("You leave the dungeon safely.")
             stats["hp"] = player_hp
             stats["mana"] = player_mana
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
+            update_user(current_user, users[current_user][1], users[current_user][2], player_data)
             conn.commit()
             conn.close()
             return
@@ -1127,16 +2065,36 @@ def dungeon():
                         print(f" - {b}")
             continue
         if lc == "shop":
-            # Call shop function if implemented
-            print("Shop not implemented in this version.")
+            shop()
+            # Reload data after shop
+            ensure_user_fields(current_user)
+            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
+            result = c.fetchone()
+            player_data = json.loads(result[0])
+            stats = player_data["stats"]
+            inventory = player_data["inventory"]
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
             continue
         if lc == "packs":
-            # Call magic pack interface
-            print("Magic packs not implemented in this version.")
+            magic_pack_interface(current_user)
+            # Reload data after packs
+            ensure_user_fields(current_user)
+            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
+            result = c.fetchone()
+            player_data = json.loads(result[0])
+            stats = player_data["stats"]
+            inventory = player_data["inventory"]
             continue
         if lc == "upgrades":
-            # Call permanent upgrades interface
-            print("Permanent upgrades not implemented in this version.")
+            permanent_upgrades_interface(current_user)
+            # Reload data after upgrades
+            ensure_user_fields(current_user)
+            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
+            result = c.fetchone()
+            player_data = json.loads(result[0])
+            stats = player_data["stats"]
+            inventory = player_data["inventory"]
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
             continue
         if lc == "move":
             print(f"\nCurrent Area: {stats.get('current_area', 1)}")
@@ -1223,49 +2181,177 @@ def dungeon():
             "actions": []
         }
 
-        while monster["hp"] > 0 and player_hp > 0:
-            effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
-            crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0) / 100.0
-            base_crit = 0.05
-            title_crit_percent = stats.get("title_crit_chance_percent", 0) / 100.0
-            total_crit_chance = base_crit + crit_chance + title_crit_percent
+    conn.close()
 
-            action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
-            if action == "a":
-                dmg = random.randint(max(1, effective_atk - 2), effective_atk + 3)
-                crit_hit = False
-                if random.random() <= total_crit_chance:
-                    dmg *= 2
-                    crit_hit = True
-                    print("💥 CRITICAL HIT!")
-                    stats["critical_hits"] = stats.get("critical_hits", 0) + 1
-                monster["hp"] -= dmg
-                print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
-                battle_log["actions"].append({
-                    "action": "attack",
-                    "damage": dmg,
-                    "critical": crit_hit,
-                    "monster_hp_after": max(0, monster["hp"]),
-                    "player_hp_after": player_hp
-                })
+# -------------------------
+# Permanent Upgrades Interface
+# -------------------------
+def permanent_upgrades_interface(username):
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+    result = c.fetchone()
+    if not result:
+        print("User data not found.")
+        conn.close()
+        return
 
-                # Apply lifesteal
-                lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
-                lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
-                if random.random() <= lifesteal_chance and lifesteal_percent > 0:
-                    heal_amount = int(dmg * lifesteal_percent)
-                    if heal_amount > 0:
-                        player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
-                        print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
+    player_data = json.loads(result[0])
+    inventory = player_data.get("inventory", {})
+    stats = player_data.get("stats", {})
 
-            elif action == "m":
-                # Magic not fully implemented, skip
-                print("Magic not implemented.")
-            elif action == "p":
-                # Simple potion use
-                if inventory.get("potion", 0) > 0:
-                    inventory["potion"] -= 1
+    while True:
+        print("\n--- Permanent Upgrades ---")
+        print("Available upgrades (use permanent upgrade items from inventory):")
+        for key, upgrade in PERM_UPGRADES.items():
+            count = inventory.get(key, 0)
+            if count > 0:
+                print(f"{key}: {upgrade['name']} (x{count})")
+            else:
+                print(f"{key}: {upgrade['name']} (not owned)")
+
+        print("0. Back")
+
+        choice = input("Choose upgrade to use: ").strip().lower()
+        if choice == "0":
+            break
+
+        if choice in PERM_UPGRADES and inventory.get(choice, 0) > 0:
+            inventory[choice] -= 1
+            # Apply the upgrade
+            if "atk_increase" in PERM_UPGRADES[choice]:
+                stats["perm_atk"] = stats.get("perm_atk", 0) + PERM_UPGRADES[choice]["atk_increase"]
+            elif "def_increase" in PERM_UPGRADES[choice]:
+                stats["perm_def"] = stats.get("perm_def", 0) + PERM_UPGRADES[choice]["def_increase"]
+            elif "hp_increase" in PERM_UPGRADES[choice]:
+                stats["perm_hp_max"] = stats.get("perm_hp_max", 0) + PERM_UPGRADES[choice]["hp_increase"]
+            elif "magic_increase" in PERM_UPGRADES[choice]:
+                stats["perm_mana_max"] = stats.get("perm_mana_max", 0) + PERM_UPGRADES[choice]["magic_increase"]
+            elif "crit_chance_increase" in PERM_UPGRADES[choice]:
+                stats["perm_crit_chance"] = stats.get("perm_crit_chance", 0) + PERM_UPGRADES[choice]["crit_chance_increase"]
+            elif "mana_regen_increase" in PERM_UPGRADES[choice]:
+                stats["perm_mana_regen"] = stats.get("perm_mana_regen", 0) + PERM_UPGRADES[choice]["mana_regen_increase"]
+            elif "max_lifesteal_increase" in PERM_UPGRADES[choice]:
+                stats["perm_lifesteal"] = stats.get("perm_lifesteal", 0) + PERM_UPGRADES[choice]["max_lifesteal_increase"]
+            elif "lifesteal_chance_increase" in PERM_UPGRADES[choice]:
+                stats["perm_lifesteal_chance"] = stats.get("perm_lifesteal_chance", 0) + PERM_UPGRADES[choice]["lifesteal_chance_increase"]
+            elif "exp_increase" in PERM_UPGRADES[choice]:
+                stats["perm_exp_boost"] = stats.get("perm_exp_boost", 0) + PERM_UPGRADES[choice]["exp_increase"]
+
+            # Reapply permanent upgrades to current stats
+            apply_permanent_upgrades(username)
+
+            player_data["inventory"] = inventory
+            player_data["stats"] = stats
+            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+            conn.commit()
+            print(f"Used {PERM_UPGRADES[choice]['name']}!")
+        else:
+            print("Invalid choice or not owned.")
+
+    conn.close()
+
+# -------------------------
+# Magic Pack Interface
+# -------------------------
+def magic_pack_interface(username):
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+    result = c.fetchone()
+    if not result:
+        print("User data not found.")
+        conn.close()
+        return
+
+    player_data = json.loads(result[0])
+    inventory = player_data.get("inventory", {})
+
+    while True:
+        print("\n--- Magic Packs ---")
+        print("Available packs:")
+        for pack_key, pack in MAGIC_PACKS.items():
+            count = inventory.get(pack_key, 0)
+            if count > 0:
+                print(f"{pack_key}: {pack['name']} (x{count}) - {pack['description']}")
+            else:
+                print(f"{pack_key}: {pack['name']} - {pack['description']} (not owned)")
+
+        print("0. Back")
+
+        choice = input("Choose pack to open: ").strip().lower()
+        if choice == "0":
+            break
+
+        # Handle aliases
+        if choice in MAGIC_PACK_ALIASES:
+            choice = MAGIC_PACK_ALIASES[choice]
+
+        if choice in MAGIC_PACKS and inventory.get(choice, 0) > 0:
+            success, message = open_magic_pack(username, choice, 1)
+            if success:
+                print(message)
+                # Reload inventory
+                c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+                result = c.fetchone()
+                if result:
+                    player_data = json.loads(result[0])
+                    inventory = player_data.get("inventory", {})
+            else:
+                print(message)
+        else:
+            print("Invalid choice or not owned.")
+
+    conn.close()
+
+    while monster["hp"] > 0 and player_hp > 0:
+        effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
+        crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0) / 100.0
+        base_crit = 0.05
+        title_crit_percent = stats.get("title_crit_chance_percent", 0) / 100.0
+        total_crit_chance = base_crit + crit_chance + title_crit_percent
+
+        action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
+        if action == "a":
+            dmg = random.randint(max(1, effective_atk - 2), effective_atk + 3)
+            crit_hit = False
+            if random.random() <= total_crit_chance:
+                dmg *= 2
+                crit_hit = True
+                print("💥 CRITICAL HIT!")
+                stats["critical_hits"] = stats.get("critical_hits", 0) + 1
+            monster["hp"] -= dmg
+            print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
+            battle_log["actions"].append({
+                "action": "attack",
+                "damage": dmg,
+                "critical": crit_hit,
+                "monster_hp_after": max(0, monster["hp"]),
+                "player_hp_after": player_hp
+            })
+
+            # Apply lifesteal
+            lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
+            lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
+            if random.random() <= lifesteal_chance and lifesteal_percent > 0:
+                heal_amount = int(dmg * lifesteal_percent)
+                if heal_amount > 0:
+                    player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
+                    print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
+
+        elif action == "m":
+            # Magic not fully implemented, skip
+            print("Magic not implemented.")
+        elif action == "p":
+            player_mana_before = player_mana
+            print("Potions available: 1) potion (+30 HP) 2) strong_potion (+80 HP) 3) ultra_potion (+200 HP) 4) instant_mana (full mana)")
+            ch = input("Choice (1-4) or cancel: ").strip().lower()
+            if ch in ("cancel","c"):
+                continue
+            if ch == "1":
+                if inventory.get("potion",0) > 0:
                     heal = 30
+                    inventory["potion"] -= 1
                     player_hp = min(player_hp + heal, stats.get("hp_max"))
                     print(f"You used a potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
                     battle_log["actions"].append({
@@ -1274,140 +2360,476 @@ def dungeon():
                         "heal": heal,
                         "player_hp_after": player_hp
                     })
+                    stats["hp"] = player_hp
+                    stats["mana"] = player_mana
+                    save_users()
                 else:
-                    print("No potions!")
-            elif action == "u":
-                # Buff not implemented
-                print("Buffs not implemented.")
-            elif action == "r":
-                if random.random() <= 0.7:
-                    print("You ran away safely!")
+                    print("No potion.")
+            elif ch == "2":
+                if inventory.get("strong_potion",0) > 0:
+                    heal = 80
+                    inventory["strong_potion"] -= 1
+                    player_hp = min(player_hp + heal, stats.get("hp_max"))
+                    print(f"You used a strong potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
                     battle_log["actions"].append({
-                        "action": "run",
-                        "success": True
-                    })
-                    break
-                else:
-                    print("You failed to run away!")
-                    battle_log["actions"].append({
-                        "action": "run",
-                        "success": False,
-                        "damage_taken": 0,
+                        "action": "potion",
+                        "type": "strong_potion",
+                        "heal": heal,
                         "player_hp_after": player_hp
                     })
+                    stats["hp"] = player_hp
+                    stats["mana"] = player_mana
+                    save_users()
+                else:
+                    print("No strong potion.")
+            elif ch == "3":
+                if inventory.get("ultra_potion",0) > 0:
+                    heal = 200
+                    inventory["ultra_potion"] -= 1
+                    player_hp = min(player_hp + heal, stats.get("hp_max"))
+                    print(f"You used an ultra potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                    battle_log["actions"].append({
+                        "action": "potion",
+                        "type": "ultra_potion",
+                        "heal": heal,
+                        "player_hp_after": player_hp
+                    })
+                    stats["hp"] = player_hp
+                    stats["mana"] = player_mana
+                    save_users()
+                else:
+                    print("No ultra potion.")
+            elif ch == "4":
+                if inventory.get("instant_mana",0) > 0:
+                    inventory["instant_mana"] -= 1
+                    player_mana = stats.get("mana_max")
+                    print(f"You used Instant Mana and restored to full! (MANA: {player_mana}/{stats.get('mana_max')})")
+                    battle_log["actions"].append({
+                        "action": "potion",
+                        "type": "instant_mana",
+                        "mana_restored": stats.get("mana_max") - player_mana_before,
+                        "player_mana_after": player_mana
+                    })
+                    stats["hp"] = player_hp
+                    stats["mana"] = player_mana
+                    save_users()
+                else:
+                    print("No instant mana potions.")
             else:
-                print("Invalid action.")
-
-            if monster["hp"] <= 0:
+                print("Invalid choice.")
+        elif action == "u":
+            print("Which buff would you like to use?")
+            print("1. Strength Boost (+5 ATK next fights)")
+            print("2. Defense Boost (+3 DEF next fights)")
+            print("3. Regen Potion (+12 HP/fight next fights)")
+            print("4. Crit Boost (+50% crit chance next fights)")
+            print("5. Mana Regen Potion (+15 mana per fight for next fights)")
+            print("6. Mana Upgrade Potion (permanent +20 max mana)")
+            choice = input("Choice (1-6 or cancel): ").strip().lower()
+            if choice in ("cancel","c"):
+                print("Cancelled.")
+            elif choice == "1":
+                if inventory.get("strength_boost",0) > 0:
+                    inventory["strength_boost"] -= 1
+                    active_buffs.append({"type":"atk","amount":5,"remaining":4})  # STRENGTH_BOOST_DURATION
+                    print("You used Strength Boost! +5 ATK for 4 fights.")
+                    battle_log["actions"].append({
+                        "action": "buff",
+                        "type": "strength_boost",
+                        "amount": 5,
+                        "duration": 4
+                    })
+                    save_users()
+                else:
+                    print("No Strength Boosts.")
+            elif choice == "2":
+                if inventory.get("defense_boost",0) > 0:
+                    inventory["defense_boost"] -= 1
+                    active_buffs.append({"type":"def","amount":3,"remaining":4})  # DEFENSE_BOOST_DURATION
+                    print("You used Defense Boost! +3 DEF for 4 fights.")
+                    battle_log["actions"].append({
+                        "action": "buff",
+                        "type": "defense_boost",
+                        "amount": 3,
+                        "duration": 4
+                    })
+                    save_users()
+                else:
+                    print("No Defense Boosts.")
+            elif choice == "3":
+                if inventory.get("regen_potion",0) > 0:
+                    inventory["regen_potion"] -= 1
+                    active_buffs.append({"type":"regen","amount":12,"remaining":4})  # REGEN_DURATION
+                    print("You used Regen Potion! +12 HP per fight for 4 fights.")
+                    battle_log["actions"].append({
+                        "action": "buff",
+                        "type": "regen_potion",
+                        "amount": 12,
+                        "duration": 4
+                    })
+                    save_users()
+                else:
+                    print("No Regen Potions.")
+            elif choice == "4":
+                if inventory.get("crit_boost",0) > 0:
+                    inventory["crit_boost"] -= 1
+                    active_buffs.append({"type":"crit","amount":50,"remaining":4})  # CRIT_BOOST_DURATION
+                    print("You used Crit Boost! +50% crit chance for 4 fights.")
+                    battle_log["actions"].append({
+                        "action": "buff",
+                        "type": "crit_boost",
+                        "amount": 50,
+                        "duration": 4
+                    })
+                    save_users()
+                else:
+                    print("No Crit Boosts.")
+            elif choice == "5":
+                if inventory.get("mana_regen_potion",0) > 0:
+                    inventory["mana_regen_potion"] -= 1
+                    active_buffs.append({"type":"mana_regen","amount":15,"remaining":4})  # MANA_REGEN_DURATION
+                    print("You used Mana Regen Potion! +15 mana per fight for 4 fights.")
+                    battle_log["actions"].append({
+                        "action": "buff",
+                        "type": "mana_regen_potion",
+                        "amount": 15,
+                        "duration": 4
+                    })
+                    save_users()
+                else:
+                    print("No Mana Regen Potions.")
+            elif choice == "6":
+                if inventory.get("mana_upgrade_potion",0) > 0:
+                    inventory["mana_upgrade_potion"] -= 1
+                    stats["mana_max"] = stats.get("mana_max",50) + 20
+                    stats["mana"] = min(stats.get("mana",0) + 10, stats["mana_max"])
+                    print("Your MAX MANA permanently increased by +20!")
+                    battle_log["actions"].append({
+                        "action": "buff",
+                        "type": "mana_upgrade_potion",
+                        "amount": 20,
+                        "duration": "permanent"
+                    })
+                    save_users()
+                else:
+                    print("No Mana Upgrade Potions.")
+            else:
+                print("Invalid choice.")
+        elif action == "r":
+            if random.random() <= 0.7:
+                print("You ran away safely!")
+                battle_log["actions"].append({
+                    "action": "run",
+                    "success": True
+                })
                 break
-
-            # Monster attack
-            mon_atk = random.randint(monster["atk"] - 2, monster["atk"] + 2)
-            damage_to_player = max(1, mon_atk - effective_def)
-            player_hp -= damage_to_player
-            print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
-
-            # Regen
-            regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
-            hp_regen_percent = stats.get("title_hp_regen_percent", 0)
-            regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
-            if regen_amount > 0 and player_hp > 0:
-                player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
-                print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-            mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
-            permanent_mana_regen = stats.get("perm_mana_regen", 0)
-            if mana_regen_amount > 0 or permanent_mana_regen > 0:
-                total_mana_regen = mana_regen_amount + permanent_mana_regen
-                if total_mana_regen > 0 and player_mana >= 0:
-                    player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
-                    print(f"🔵 Mana Regen restored {total_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
-
-        # After fight
-        if fight_happened:
-            if player_hp <= 0:
-                battle_log["outcome"] = "defeat"
-            elif monster["hp"] <= 0:
-                battle_log["outcome"] = "victory"
             else:
-                battle_log["outcome"] = "run_success"
-
-            # Append battle log
-            stats["battle_logs"].append(battle_log)
-            if len(stats["battle_logs"]) > 50:
-                stats["battle_logs"] = stats["battle_logs"][-50:]
-
-        if player_hp <= 0:
-            print("💀 You have fallen in the dungeon...")
-            money_now = player_data.get("money", 0)
-            if money_now > 0:
-                lost = money_now // 4
-                if lost < 1:
-                    lost = 1
-                death_penalty_percent = stats.get("title_death_penalty_percent", 0)
-                lost = int(lost * (1 + death_penalty_percent / 100.0))
-                if lost < 0:
-                    lost = 0
-                if lost < 1:
-                    lost = 1
-                player_data["money"] = max(0, money_now - lost)
-                global dungeon_treasure
-                dungeon_treasure += lost
-                save_dungeon_treasure()
-                print(f"You wake up outside the dungeon and lost ${lost}. The money has been added to the dungeon treasure.")
-            else:
-                print("You wake up outside the dungeon with no money to lose.")
-
-            stats["times_died"] = stats.get("times_died", 0) + 1
-            stats["hp"] = max(1, stats.get("hp_max",100))
-            stats["mana"] = stats.get("mana_max",50)
-            player_hp = stats["hp"]
-            player_mana = stats["mana"]
-            check_achievements(current_user)
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
-            conn.commit()
-            continue
+                print("You failed to run away!")
+                battle_log["actions"].append({
+                    "action": "run",
+                    "success": False,
+                    "damage_taken": 0,
+                    "player_hp_after": player_hp
+                })
+        else:
+            print("Invalid action.")
 
         if monster["hp"] <= 0:
-            money_reward = monster["gold"]
-            money_boost_percent = stats.get("title_money_boost_percent", 0)
-            if money_boost_percent > 0:
-                money_reward = int(money_reward * (1 + money_boost_percent / 100.0))
-            player_data["money"] += money_reward
+            break
 
-            exp_gain = max(1, (monster.get("hp",0) * 2) + random.randint(5, 30))
-            if monster.get("is_boss"):
-                exp_gain *= 2
-            grant_exp(current_user, exp_gain)
+        # Monster attack
+        mon_atk = random.randint(monster["atk"] - 2, monster["atk"] + 2)
+        damage_to_player = max(1, mon_atk - effective_def)
+        player_hp -= damage_to_player
+        print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
 
-            if monster.get("is_boss"):
-                boss_bonus = random.randint(50, 150)
-                print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
-            else:
-                normal_bonus = random.randint(5, 20)
-                print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
+        # Regen
+        regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
+        hp_regen_percent = stats.get("title_hp_regen_percent", 0)
+        regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
+        if regen_amount > 0 and player_hp > 0:
+            player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
+            print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+        mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
+        permanent_mana_regen = stats.get("perm_mana_regen", 0)
+        if mana_regen_amount > 0 or permanent_mana_regen > 0:
+            total_mana_regen = mana_regen_amount + permanent_mana_regen
+            if total_mana_regen > 0 and player_mana >= 0:
+                player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
+                print(f"🔵 Mana Regen restored {total_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
 
-            # Materials
-            mats = monster.get("materials", [])
-            for mat in mats:
-                inventory[mat] = inventory.get(mat, 0) + 1
-            if mats:
-                print("You found:", ", ".join(mats))
+    # After fight
+    if fight_happened:
+        if player_hp <= 0:
+            battle_log["outcome"] = "defeat"
+        elif monster["hp"] <= 0:
+            battle_log["outcome"] = "victory"
+        else:
+            battle_log["outcome"] = "run_success"
 
-            stats["monsters_defeated"] = stats.get("monsters_defeated", 0) + 1
-            if monster.get("is_boss"):
-                stats["bosses_defeated"] = stats.get("bosses_defeated", 0) + 1
-            stats["total_money_earned"] = stats.get("total_money_earned", 0) + money_reward
+        # Append battle log
+        stats["battle_logs"].append(battle_log)
+        if len(stats["battle_logs"]) > 50:
+            stats["battle_logs"] = stats["battle_logs"][-50:]
 
-            check_achievements(current_user)
+    if player_hp <= 0:
+        print("💀 You have fallen in the dungeon...")
+        money_now = player_data.get("money", 0)
+        if money_now > 0:
+            lost = money_now // 4
+            if lost < 1:
+                lost = 1
+            death_penalty_percent = stats.get("title_death_penalty_percent", 0)
+            lost = int(lost * (1 + death_penalty_percent / 100.0))
+            if lost < 0:
+                lost = 0
+            if lost < 1:
+                lost = 1
+            player_data["money"] = max(0, money_now - lost)
+            global dungeon_treasure
+            dungeon_treasure += lost
+            save_dungeon_treasure()
+            print(f"You wake up outside the dungeon and lost ${lost}. The money has been added to the dungeon treasure.")
+        else:
+            print("You wake up outside the dungeon with no money to lose.")
 
-        # Update buffs
-        for b in active_buffs:
-            if b["remaining"] > 0:
-                b["remaining"] -= 1
-        active_buffs = [b for b in active_buffs if b["remaining"] > 0]
-
+        stats["times_died"] = stats.get("times_died", 0) + 1
+        stats["hp"] = max(1, stats.get("hp_max",100))
+        stats["mana"] = stats.get("mana_max",50)
+        player_hp = stats["hp"]
+        player_mana = stats["mana"]
+        check_achievements(current_user)
         c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
         conn.commit()
+        continue
+
+    if monster["hp"] <= 0:
+        money_reward = monster["gold"]
+        money_boost_percent = stats.get("title_money_boost_percent", 0)
+        if money_boost_percent > 0:
+            money_reward = int(money_reward * (1 + money_boost_percent / 100.0))
+        player_data["money"] += money_reward
+
+        exp_gain = max(1, (monster.get("hp",0) * 2) + random.randint(5, 30))
+        if monster.get("is_boss"):
+            exp_gain *= 2
+        grant_exp(current_user, exp_gain)
+
+        if monster.get("is_boss"):
+            boss_bonus = random.randint(50, 150)
+            print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
+        else:
+            normal_bonus = random.randint(5, 20)
+            print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
+
+        # Materials
+        mats = monster.get("materials", [])
+        for mat in mats:
+            inventory[mat] = inventory.get(mat, 0) + 1
+        if mats:
+            print("You found:", ", ".join(mats))
+
+        stats["monsters_defeated"] = stats.get("monsters_defeated", 0) + 1
+        if monster.get("is_boss"):
+            stats["bosses_defeated"] = stats.get("bosses_defeated", 0) + 1
+        stats["total_money_earned"] = stats.get("total_money_earned", 0) + money_reward
+
+        check_achievements(current_user)
+
+    # Update buffs
+    for b in active_buffs:
+        if b["remaining"] > 0:
+            b["remaining"] -= 1
+    active_buffs = [b for b in active_buffs if b["remaining"] > 0]
+
+    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
+    conn.commit()
+
+conn.close()
+        effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
+        crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0) / 100.0
+        base_crit = 0.05
+        title_crit_percent = stats.get("title_crit_chance_percent", 0) / 100.0
+        total_crit_chance = base_crit + crit_chance + title_crit_percent
+
+        action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
+        if action == "a":
+            dmg = random.randint(max(1, effective_atk - 2), effective_atk + 3)
+            crit_hit = False
+            if random.random() <= total_crit_chance:
+                dmg *= 2
+                crit_hit = True
+                print("💥 CRITICAL HIT!")
+                stats["critical_hits"] = stats.get("critical_hits", 0) + 1
+            monster["hp"] -= dmg
+            print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
+            battle_log["actions"].append({
+                "action": "attack",
+                "damage": dmg,
+                "critical": crit_hit,
+                "monster_hp_after": max(0, monster["hp"]),
+                "player_hp_after": player_hp
+            })
+
+            # Apply lifesteal
+            lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
+            lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
+            if random.random() <= lifesteal_chance and lifesteal_percent > 0:
+                heal_amount = int(dmg * lifesteal_percent)
+                if heal_amount > 0:
+                    player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
+                    print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
+
+        elif action == "m":
+            # Magic not fully implemented, skip
+            print("Magic not implemented.")
+        elif action == "p":
+            # Simple potion use
+            if inventory.get("potion", 0) > 0:
+                inventory["potion"] -= 1
+                heal = 30
+                player_hp = min(player_hp + heal, stats.get("hp_max"))
+                print(f"You used a potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                battle_log["actions"].append({
+                    "action": "potion",
+                    "type": "potion",
+                    "heal": heal,
+                    "player_hp_after": player_hp
+                })
+            else:
+                print("No potions!")
+        elif action == "u":
+            # Buff not implemented
+            print("Buffs not implemented.")
+        elif action == "r":
+            if random.random() <= 0.7:
+                print("You ran away safely!")
+                battle_log["actions"].append({
+                    "action": "run",
+                    "success": True
+                })
+                break
+            else:
+                print("You failed to run away!")
+                battle_log["actions"].append({
+                    "action": "run",
+                    "success": False,
+                    "damage_taken": 0,
+                    "player_hp_after": player_hp
+                })
+        else:
+            print("Invalid action.")
+
+        if monster["hp"] <= 0:
+            break
+
+        # Monster attack
+        mon_atk = random.randint(monster["atk"] - 2, monster["atk"] + 2)
+        damage_to_player = max(1, mon_atk - effective_def)
+        player_hp -= damage_to_player
+        print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
+
+        # Regen
+        regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
+        hp_regen_percent = stats.get("title_hp_regen_percent", 0)
+        regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
+        if regen_amount > 0 and player_hp > 0:
+            player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
+            print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+        mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
+        permanent_mana_regen = stats.get("perm_mana_regen", 0)
+        if mana_regen_amount > 0 or permanent_mana_regen > 0:
+            total_mana_regen = mana_regen_amount + permanent_mana_regen
+            if total_mana_regen > 0 and player_mana >= 0:
+                player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
+                print(f"🔵 Mana Regen restored {total_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
+
+    # After fight
+    if fight_happened:
+        if player_hp <= 0:
+            battle_log["outcome"] = "defeat"
+        elif monster["hp"] <= 0:
+            battle_log["outcome"] = "victory"
+        else:
+            battle_log["outcome"] = "run_success"
+
+        # Append battle log
+        stats["battle_logs"].append(battle_log)
+        if len(stats["battle_logs"]) > 50:
+            stats["battle_logs"] = stats["battle_logs"][-50:]
+
+    if player_hp <= 0:
+        print("💀 You have fallen in the dungeon...")
+        money_now = player_data.get("money", 0)
+        if money_now > 0:
+            lost = money_now // 4
+            if lost < 1:
+                lost = 1
+            death_penalty_percent = stats.get("title_death_penalty_percent", 0)
+            lost = int(lost * (1 + death_penalty_percent / 100.0))
+            if lost < 0:
+                lost = 0
+            if lost < 1:
+                lost = 1
+            player_data["money"] = max(0, money_now - lost)
+            global dungeon_treasure
+            dungeon_treasure += lost
+            save_dungeon_treasure()
+            print(f"You wake up outside the dungeon and lost ${lost}. The money has been added to the dungeon treasure.")
+        else:
+            print("You wake up outside the dungeon with no money to lose.")
+
+        stats["times_died"] = stats.get("times_died", 0) + 1
+        stats["hp"] = max(1, stats.get("hp_max",100))
+        stats["mana"] = stats.get("mana_max",50)
+        player_hp = stats["hp"]
+        player_mana = stats["mana"]
+        check_achievements(current_user)
+        c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
+        conn.commit()
+        continue
+
+    if monster["hp"] <= 0:
+        money_reward = monster["gold"]
+        money_boost_percent = stats.get("title_money_boost_percent", 0)
+        if money_boost_percent > 0:
+            money_reward = int(money_reward * (1 + money_boost_percent / 100.0))
+        player_data["money"] += money_reward
+
+        exp_gain = max(1, (monster.get("hp",0) * 2) + random.randint(5, 30))
+        if monster.get("is_boss"):
+            exp_gain *= 2
+        grant_exp(current_user, exp_gain)
+
+        if monster.get("is_boss"):
+            boss_bonus = random.randint(50, 150)
+            print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
+        else:
+            normal_bonus = random.randint(5, 20)
+            print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
+
+        # Materials
+        mats = monster.get("materials", [])
+        for mat in mats:
+            inventory[mat] = inventory.get(mat, 0) + 1
+        if mats:
+            print("You found:", ", ".join(mats))
+
+        stats["monsters_defeated"] = stats.get("monsters_defeated", 0) + 1
+        if monster.get("is_boss"):
+            stats["bosses_defeated"] = stats.get("bosses_defeated", 0) + 1
+        stats["total_money_earned"] = stats.get("total_money_earned", 0) + money_reward
+
+        check_achievements(current_user)
+
+    # Update buffs
+    for b in active_buffs:
+        if b["remaining"] > 0:
+            b["remaining"] -= 1
+    active_buffs = [b for b in active_buffs if b["remaining"] > 0]
+
+    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
+    conn.commit()
 
     conn.close()
 
@@ -2182,7 +3604,7 @@ def main_menu():
         if current_user:
             if choice == '1':
                 score = guessing_game(current_user, score)
-                update_user(current_user, score, money, player_data)
+                # Data is already saved via update_user in the functions
             elif choice == '2':
                 dungeon()
                 # Reload data after dungeon
@@ -2243,7 +3665,6 @@ def main_menu():
                     print("No users yet!")
             elif choice == '4':
                 print("Goodbye! Data saved automatically.")
-                save_users()
                 break
             else:
                 print("Oops, looks like you accidentally pressed the wrong button. Go again")
