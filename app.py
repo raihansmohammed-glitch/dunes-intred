@@ -577,6 +577,11 @@ def setup_db():
         money INTEGER DEFAULT 40,
         player_data TEXT
     )''')
+    # Ensure money column exists (for backward compatibility)
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN money INTEGER DEFAULT 40')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     conn.commit()
     conn.close()
 
