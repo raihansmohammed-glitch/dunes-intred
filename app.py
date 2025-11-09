@@ -1,4 +1,3 @@
-
 import sqlite3
 import json
 import random
@@ -2303,446 +2302,103 @@ def magic_pack_interface(username):
             print("Invalid choice or not owned.")
 
     conn.close()
+    effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
+    crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0) / 100.0
+    base_crit = 0.05
+    title_crit_percent = stats.get("title_crit_chance_percent", 0) / 100.0
+    total_crit_chance = base_crit + crit_chance + title_crit_percent
 
-    while monster["hp"] > 0 and player_hp > 0:
-        effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
-        crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0) / 100.0
-        base_crit = 0.05
-        title_crit_percent = stats.get("title_crit_chance_percent", 0) / 100.0
-        total_crit_chance = base_crit + crit_chance + title_crit_percent
+    action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
+    if action == "a":
+        dmg = random.randint(max(1, effective_atk - 2), effective_atk + 3)
+        crit_hit = False
+        if random.random() <= total_crit_chance:
+            dmg *= 2
+            crit_hit = True
+            print("💥 CRITICAL HIT!")
+            stats["critical_hits"] = stats.get("critical_hits", 0) + 1
+        monster["hp"] -= dmg
+        print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
+        battle_log["actions"].append({
+            "action": "attack",
+            "damage": dmg,
+            "critical": crit_hit,
+            "monster_hp_after": max(0, monster["hp"]),
+            "player_hp_after": player_hp
+        })
 
-        action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
-        if action == "a":
-            dmg = random.randint(max(1, effective_atk - 2), effective_atk + 3)
-            crit_hit = False
-            if random.random() <= total_crit_chance:
-                dmg *= 2
-                crit_hit = True
-                print("💥 CRITICAL HIT!")
-                stats["critical_hits"] = stats.get("critical_hits", 0) + 1
-            monster["hp"] -= dmg
-            print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
+        # Apply lifesteal
+        lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
+        lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
+        if random.random() <= lifesteal_chance and lifesteal_percent > 0:
+            heal_amount = int(dmg * lifesteal_percent)
+            if heal_amount > 0:
+                player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
+                print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
+
+    elif action == "m":
+        # Magic not fully implemented, skip
+        print("Magic not implemented.")
+    elif action == "p":
+        # Simple potion use
+        if inventory.get("potion", 0) > 0:
+            inventory["potion"] -= 1
+            heal = 30
+            player_hp = min(player_hp + heal, stats.get("hp_max"))
+            print(f"You used a potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
             battle_log["actions"].append({
-                "action": "attack",
-                "damage": dmg,
-                "critical": crit_hit,
-                "monster_hp_after": max(0, monster["hp"]),
+                "action": "potion",
+                "type": "potion",
+                "heal": heal,
                 "player_hp_after": player_hp
             })
-
-            # Apply lifesteal
-            lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
-            lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
-            if random.random() <= lifesteal_chance and lifesteal_percent > 0:
-                heal_amount = int(dmg * lifesteal_percent)
-                if heal_amount > 0:
-                    player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
-                    print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
-
-        elif action == "m":
-            # Magic not fully implemented, skip
-            print("Magic not implemented.")
-        elif action == "p":
-            player_mana_before = player_mana
-            print("Potions available: 1) potion (+30 HP) 2) strong_potion (+80 HP) 3) ultra_potion (+200 HP) 4) instant_mana (full mana)")
-            ch = input("Choice (1-4) or cancel: ").strip().lower()
-            if ch in ("cancel","c"):
-                continue
-            if ch == "1":
-                if inventory.get("potion",0) > 0:
-                    heal = 30
-                    inventory["potion"] -= 1
-                    player_hp = min(player_hp + heal, stats.get("hp_max"))
-                    print(f"You used a potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                    battle_log["actions"].append({
-                        "action": "potion",
-                        "type": "potion",
-                        "heal": heal,
-                        "player_hp_after": player_hp
-                    })
-                    stats["hp"] = player_hp
-                    stats["mana"] = player_mana
-                    save_users()
-                else:
-                    print("No potion.")
-            elif ch == "2":
-                if inventory.get("strong_potion",0) > 0:
-                    heal = 80
-                    inventory["strong_potion"] -= 1
-                    player_hp = min(player_hp + heal, stats.get("hp_max"))
-                    print(f"You used a strong potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                    battle_log["actions"].append({
-                        "action": "potion",
-                        "type": "strong_potion",
-                        "heal": heal,
-                        "player_hp_after": player_hp
-                    })
-                    stats["hp"] = player_hp
-                    stats["mana"] = player_mana
-                    save_users()
-                else:
-                    print("No strong potion.")
-            elif ch == "3":
-                if inventory.get("ultra_potion",0) > 0:
-                    heal = 200
-                    inventory["ultra_potion"] -= 1
-                    player_hp = min(player_hp + heal, stats.get("hp_max"))
-                    print(f"You used an ultra potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                    battle_log["actions"].append({
-                        "action": "potion",
-                        "type": "ultra_potion",
-                        "heal": heal,
-                        "player_hp_after": player_hp
-                    })
-                    stats["hp"] = player_hp
-                    stats["mana"] = player_mana
-                    save_users()
-                else:
-                    print("No ultra potion.")
-            elif ch == "4":
-                if inventory.get("instant_mana",0) > 0:
-                    inventory["instant_mana"] -= 1
-                    player_mana = stats.get("mana_max")
-                    print(f"You used Instant Mana and restored to full! (MANA: {player_mana}/{stats.get('mana_max')})")
-                    battle_log["actions"].append({
-                        "action": "potion",
-                        "type": "instant_mana",
-                        "mana_restored": stats.get("mana_max") - player_mana_before,
-                        "player_mana_after": player_mana
-                    })
-                    stats["hp"] = player_hp
-                    stats["mana"] = player_mana
-                    save_users()
-                else:
-                    print("No instant mana potions.")
-            else:
-                print("Invalid choice.")
-        elif action == "u":
-            print("Which buff would you like to use?")
-            print("1. Strength Boost (+5 ATK next fights)")
-            print("2. Defense Boost (+3 DEF next fights)")
-            print("3. Regen Potion (+12 HP/fight next fights)")
-            print("4. Crit Boost (+50% crit chance next fights)")
-            print("5. Mana Regen Potion (+15 mana per fight for next fights)")
-            print("6. Mana Upgrade Potion (permanent +20 max mana)")
-            choice = input("Choice (1-6 or cancel): ").strip().lower()
-            if choice in ("cancel","c"):
-                print("Cancelled.")
-            elif choice == "1":
-                if inventory.get("strength_boost",0) > 0:
-                    inventory["strength_boost"] -= 1
-                    active_buffs.append({"type":"atk","amount":5,"remaining":4})  # STRENGTH_BOOST_DURATION
-                    print("You used Strength Boost! +5 ATK for 4 fights.")
-                    battle_log["actions"].append({
-                        "action": "buff",
-                        "type": "strength_boost",
-                        "amount": 5,
-                        "duration": 4
-                    })
-                    save_users()
-                else:
-                    print("No Strength Boosts.")
-            elif choice == "2":
-                if inventory.get("defense_boost",0) > 0:
-                    inventory["defense_boost"] -= 1
-                    active_buffs.append({"type":"def","amount":3,"remaining":4})  # DEFENSE_BOOST_DURATION
-                    print("You used Defense Boost! +3 DEF for 4 fights.")
-                    battle_log["actions"].append({
-                        "action": "buff",
-                        "type": "defense_boost",
-                        "amount": 3,
-                        "duration": 4
-                    })
-                    save_users()
-                else:
-                    print("No Defense Boosts.")
-            elif choice == "3":
-                if inventory.get("regen_potion",0) > 0:
-                    inventory["regen_potion"] -= 1
-                    active_buffs.append({"type":"regen","amount":12,"remaining":4})  # REGEN_DURATION
-                    print("You used Regen Potion! +12 HP per fight for 4 fights.")
-                    battle_log["actions"].append({
-                        "action": "buff",
-                        "type": "regen_potion",
-                        "amount": 12,
-                        "duration": 4
-                    })
-                    save_users()
-                else:
-                    print("No Regen Potions.")
-            elif choice == "4":
-                if inventory.get("crit_boost",0) > 0:
-                    inventory["crit_boost"] -= 1
-                    active_buffs.append({"type":"crit","amount":50,"remaining":4})  # CRIT_BOOST_DURATION
-                    print("You used Crit Boost! +50% crit chance for 4 fights.")
-                    battle_log["actions"].append({
-                        "action": "buff",
-                        "type": "crit_boost",
-                        "amount": 50,
-                        "duration": 4
-                    })
-                    save_users()
-                else:
-                    print("No Crit Boosts.")
-            elif choice == "5":
-                if inventory.get("mana_regen_potion",0) > 0:
-                    inventory["mana_regen_potion"] -= 1
-                    active_buffs.append({"type":"mana_regen","amount":15,"remaining":4})  # MANA_REGEN_DURATION
-                    print("You used Mana Regen Potion! +15 mana per fight for 4 fights.")
-                    battle_log["actions"].append({
-                        "action": "buff",
-                        "type": "mana_regen_potion",
-                        "amount": 15,
-                        "duration": 4
-                    })
-                    save_users()
-                else:
-                    print("No Mana Regen Potions.")
-            elif choice == "6":
-                if inventory.get("mana_upgrade_potion",0) > 0:
-                    inventory["mana_upgrade_potion"] -= 1
-                    stats["mana_max"] = stats.get("mana_max",50) + 20
-                    stats["mana"] = min(stats.get("mana",0) + 10, stats["mana_max"])
-                    print("Your MAX MANA permanently increased by +20!")
-                    battle_log["actions"].append({
-                        "action": "buff",
-                        "type": "mana_upgrade_potion",
-                        "amount": 20,
-                        "duration": "permanent"
-                    })
-                    save_users()
-                else:
-                    print("No Mana Upgrade Potions.")
-            else:
-                print("Invalid choice.")
-        elif action == "r":
-            if random.random() <= 0.7:
-                print("You ran away safely!")
-                battle_log["actions"].append({
-                    "action": "run",
-                    "success": True
-                })
-                break
-            else:
-                print("You failed to run away!")
-                battle_log["actions"].append({
-                    "action": "run",
-                    "success": False,
-                    "damage_taken": 0,
-                    "player_hp_after": player_hp
-                })
         else:
-            print("Invalid action.")
-
-        if monster["hp"] <= 0:
+            print("No potions!")
+    elif action == "u":
+        # Buff not implemented
+        print("Buffs not implemented.")
+    elif action == "r":
+        if random.random() <= 0.7:
+            print("You ran away safely!")
+            battle_log["actions"].append({
+                "action": "run",
+                "success": True
+            })
             break
-
-        # Monster attack
-        mon_atk = random.randint(monster["atk"] - 2, monster["atk"] + 2)
-        damage_to_player = max(1, mon_atk - effective_def)
-        player_hp -= damage_to_player
-        print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
-
-        # Regen
-        regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
-        hp_regen_percent = stats.get("title_hp_regen_percent", 0)
-        regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
-        if regen_amount > 0 and player_hp > 0:
-            player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
-            print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-        mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
-        permanent_mana_regen = stats.get("perm_mana_regen", 0)
-        if mana_regen_amount > 0 or permanent_mana_regen > 0:
-            total_mana_regen = mana_regen_amount + permanent_mana_regen
-            if total_mana_regen > 0 and player_mana >= 0:
-                player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
-                print(f"🔵 Mana Regen restored {total_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
-
-    # After fight
-    if fight_happened:
-        if player_hp <= 0:
-            battle_log["outcome"] = "defeat"
-        elif monster["hp"] <= 0:
-            battle_log["outcome"] = "victory"
         else:
-            battle_log["outcome"] = "run_success"
-
-        # Append battle log
-        stats["battle_logs"].append(battle_log)
-        if len(stats["battle_logs"]) > 50:
-            stats["battle_logs"] = stats["battle_logs"][-50:]
-
-    if player_hp <= 0:
-        print("💀 You have fallen in the dungeon...")
-        money_now = player_data.get("money", 0)
-        if money_now > 0:
-            lost = money_now // 4
-            if lost < 1:
-                lost = 1
-            death_penalty_percent = stats.get("title_death_penalty_percent", 0)
-            lost = int(lost * (1 + death_penalty_percent / 100.0))
-            if lost < 0:
-                lost = 0
-            if lost < 1:
-                lost = 1
-            player_data["money"] = max(0, money_now - lost)
-            global dungeon_treasure
-            dungeon_treasure += lost
-            save_dungeon_treasure()
-            print(f"You wake up outside the dungeon and lost ${lost}. The money has been added to the dungeon treasure.")
-        else:
-            print("You wake up outside the dungeon with no money to lose.")
-
-        stats["times_died"] = stats.get("times_died", 0) + 1
-        stats["hp"] = max(1, stats.get("hp_max",100))
-        stats["mana"] = stats.get("mana_max",50)
-        player_hp = stats["hp"]
-        player_mana = stats["mana"]
-        check_achievements(current_user)
-        c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
-        conn.commit()
-        continue
+            print("You failed to run away!")
+            battle_log["actions"].append({
+                "action": "run",
+                "success": False,
+                "damage_taken": 0,
+                "player_hp_after": player_hp
+            })
+    else:
+        print("Invalid action.")
 
     if monster["hp"] <= 0:
-        money_reward = monster["gold"]
-        money_boost_percent = stats.get("title_money_boost_percent", 0)
-        if money_boost_percent > 0:
-            money_reward = int(money_reward * (1 + money_boost_percent / 100.0))
-        player_data["money"] += money_reward
+        break
 
-        exp_gain = max(1, (monster.get("hp",0) * 2) + random.randint(5, 30))
-        if monster.get("is_boss"):
-            exp_gain *= 2
-        grant_exp(current_user, exp_gain)
+    # Monster attack
+    mon_atk = random.randint(monster["atk"] - 2, monster["atk"] + 2)
+    damage_to_player = max(1, mon_atk - effective_def)
+    player_hp -= damage_to_player
+    print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
 
-        if monster.get("is_boss"):
-            boss_bonus = random.randint(50, 150)
-            print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
-        else:
-            normal_bonus = random.randint(5, 20)
-            print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
-
-        # Materials
-        mats = monster.get("materials", [])
-        for mat in mats:
-            inventory[mat] = inventory.get(mat, 0) + 1
-        if mats:
-            print("You found:", ", ".join(mats))
-
-        stats["monsters_defeated"] = stats.get("monsters_defeated", 0) + 1
-        if monster.get("is_boss"):
-            stats["bosses_defeated"] = stats.get("bosses_defeated", 0) + 1
-        stats["total_money_earned"] = stats.get("total_money_earned", 0) + money_reward
-
-        check_achievements(current_user)
-
-    # Update buffs
-    for b in active_buffs:
-        if b["remaining"] > 0:
-            b["remaining"] -= 1
-    active_buffs = [b for b in active_buffs if b["remaining"] > 0]
-
-    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
-    conn.commit()
-
-conn.close()
-        effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
-        crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0) / 100.0
-        base_crit = 0.05
-        title_crit_percent = stats.get("title_crit_chance_percent", 0) / 100.0
-        total_crit_chance = base_crit + crit_chance + title_crit_percent
-
-        action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
-        if action == "a":
-            dmg = random.randint(max(1, effective_atk - 2), effective_atk + 3)
-            crit_hit = False
-            if random.random() <= total_crit_chance:
-                dmg *= 2
-                crit_hit = True
-                print("💥 CRITICAL HIT!")
-                stats["critical_hits"] = stats.get("critical_hits", 0) + 1
-            monster["hp"] -= dmg
-            print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
-            battle_log["actions"].append({
-                "action": "attack",
-                "damage": dmg,
-                "critical": crit_hit,
-                "monster_hp_after": max(0, monster["hp"]),
-                "player_hp_after": player_hp
-            })
-
-            # Apply lifesteal
-            lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
-            lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
-            if random.random() <= lifesteal_chance and lifesteal_percent > 0:
-                heal_amount = int(dmg * lifesteal_percent)
-                if heal_amount > 0:
-                    player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
-                    print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
-
-        elif action == "m":
-            # Magic not fully implemented, skip
-            print("Magic not implemented.")
-        elif action == "p":
-            # Simple potion use
-            if inventory.get("potion", 0) > 0:
-                inventory["potion"] -= 1
-                heal = 30
-                player_hp = min(player_hp + heal, stats.get("hp_max"))
-                print(f"You used a potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                battle_log["actions"].append({
-                    "action": "potion",
-                    "type": "potion",
-                    "heal": heal,
-                    "player_hp_after": player_hp
-                })
-            else:
-                print("No potions!")
-        elif action == "u":
-            # Buff not implemented
-            print("Buffs not implemented.")
-        elif action == "r":
-            if random.random() <= 0.7:
-                print("You ran away safely!")
-                battle_log["actions"].append({
-                    "action": "run",
-                    "success": True
-                })
-                break
-            else:
-                print("You failed to run away!")
-                battle_log["actions"].append({
-                    "action": "run",
-                    "success": False,
-                    "damage_taken": 0,
-                    "player_hp_after": player_hp
-                })
-        else:
-            print("Invalid action.")
-
-        if monster["hp"] <= 0:
-            break
-
-        # Monster attack
-        mon_atk = random.randint(monster["atk"] - 2, monster["atk"] + 2)
-        damage_to_player = max(1, mon_atk - effective_def)
-        player_hp -= damage_to_player
-        print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
-
-        # Regen
-        regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
-        hp_regen_percent = stats.get("title_hp_regen_percent", 0)
-        regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
-        if regen_amount > 0 and player_hp > 0:
-            player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
-            print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-        mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
-        permanent_mana_regen = stats.get("perm_mana_regen", 0)
-        if mana_regen_amount > 0 or permanent_mana_regen > 0:
-            total_mana_regen = mana_regen_amount + permanent_mana_regen
-            if total_mana_regen > 0 and player_mana >= 0:
-                player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
-                print(f"🔵 Mana Regen restored {total_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
+    # Regen
+    regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
+    hp_regen_percent = stats.get("title_hp_regen_percent", 0)
+    regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
+    if regen_amount > 0 and player_hp > 0:
+        player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
+        print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+    mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
+    permanent_mana_regen = stats.get("perm_mana_regen", 0)
+    if mana_regen_amount > 0 or permanent_mana_regen > 0:
+        total_mana_regen = mana_regen_amount + permanent_mana_regen
+        if total_mana_regen > 0 and player_mana >= 0:
+            player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
+            print(f"🔵 Mana Regen restored {total_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
 
     # After fight
     if fight_happened:
