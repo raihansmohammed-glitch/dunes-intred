@@ -569,9 +569,6 @@ def stop_autosave():
 # -------------------------
 # Save & Load functions (SQLite-based)
 # -------------------------
-def save_users():
-    # This function is now a no-op since we save to SQLite directly
-    return True
 
 def setup_db():
     conn = sqlite3.connect('users.db')
@@ -721,7 +718,6 @@ def default_player_data():
             "times_died": 0,
             "dungeon_treasure_collected": 0,
             "critical_hits": 0,
-            "battle_logs": [],
             # Track if stats were manually set below default
             "stats_manually_set": {
                 "hp": False,
@@ -747,10 +743,10 @@ def default_player_data():
     }
 def choose_monster_for_area(area):
     # Filter monsters by area
-    area_monsters = [m for m in monsters if m.get("area", area) == area and not m["is_boss"]]
+    area_monsters = [m for m in MONSTERS if m.get("area", area) == area and not m["is_boss"]]
     if not area_monsters:
         # Fallback to any non-boss monster
-        area_monsters = [m for m in monsters if not m["is_boss"]]
+        area_monsters = [m for m in MONSTERS if not m["is_boss"]]
 
     weights = [m.get("weight", 1) for m in area_monsters]
     chosen = random.choices(area_monsters, weights=weights, k=1)[0].copy()
@@ -772,10 +768,10 @@ def choose_monster_for_area(area):
 
 def choose_boss_for_area(area):
     # Filter bosses by area
-    area_bosses = [m for m in monsters if m.get("area", area) == area and m["is_boss"]]
+    area_bosses = [m for m in MONSTERS if m.get("area", area) == area and m["is_boss"]]
     if not area_bosses:
         # Fallback to any boss
-        area_bosses = [m for m in monsters if m["is_boss"]]
+        area_bosses = [m for m in MONSTERS if m["is_boss"]]
 
     weights = [m.get("weight", 1) for m in area_bosses]
     chosen = random.choices(area_bosses, weights=weights, k=1)[0].copy()
@@ -796,70 +792,87 @@ def choose_boss_for_area(area):
     return chosen
 
 def get_boss_template():
-    return next(m for m in monsters if m["is_boss"])
+    return next(m for m in MONSTERS if m["is_boss"])
 
 def apply_damage_with_defense(damage, defense):
     reduced = damage - defense
     return reduced if reduced >= 1 else 1
 
-MONSTERS = {
-    "slime": {"name": "Slime", "hp": 10, "atk": 2, "def": 0, "exp": 5, "gold": 5, "materials": ["slime_gel"]},
-    "goblin": {"name": "Goblin", "hp": 15, "atk": 4, "def": 1, "exp": 8, "gold": 8, "materials": ["goblin_tooth"]},
-    "orc": {"name": "Orc", "hp": 25, "atk": 6, "def": 2, "exp": 12, "gold": 12, "materials": ["orc_iron"]},
-    "wolf": {"name": "Wolf", "hp": 20, "atk": 7, "def": 1, "exp": 10, "gold": 10, "materials": ["wolf_pelt"]},
-    "skeleton": {"name": "Skeleton", "hp": 30, "atk": 8, "def": 3, "exp": 15, "gold": 15, "materials": ["skeleton_bone"]},
-    "bandit": {"name": "Bandit", "hp": 35, "atk": 9, "def": 4, "exp": 18, "gold": 18, "materials": ["bandit_cloth"]},
-    "troll": {"name": "Troll", "hp": 50, "atk": 12, "def": 6, "exp": 25, "gold": 25, "materials": ["troll_core"]},
-    "shadow_beast": {"name": "Shadow Beast", "hp": 45, "atk": 14, "def": 5, "exp": 22, "gold": 22, "materials": ["dark_essence"]},
-    "dark_knight": {"name": "Dark Knight", "hp": 70, "atk": 18, "def": 8, "exp": 35, "gold": 35, "materials": ["prism_fragment"]},
-    "necromancer": {"name": "Necromancer", "hp": 60, "atk": 16, "def": 7, "exp": 30, "gold": 30, "materials": ["void_fragment"]},
-    "dragon_whelp": {"name": "Dragon Whelp", "hp": 80, "atk": 22, "def": 10, "exp": 40, "gold": 40, "materials": ["dragon_scale"]},
-    "frost_giant": {"name": "Frost Giant", "hp": 90, "atk": 20, "def": 12, "exp": 45, "gold": 45, "materials": ["frozen_heart"]},
-    "void_creature": {"name": "Void Creature", "hp": 100, "atk": 25, "def": 15, "exp": 50, "gold": 50, "materials": ["thunder_core"]},
-    "phoenix": {"name": "Phoenix", "hp": 85, "atk": 28, "def": 14, "exp": 48, "gold": 48, "materials": ["phoenix_feather"]},
-    "prism_guardian": {"name": "Prism Guardian", "hp": 120, "atk": 30, "def": 18, "exp": 60, "gold": 60, "materials": ["holy_light"]},
-    "demon_lord": {"name": "Demon Lord", "hp": 110, "atk": 32, "def": 20, "exp": 65, "gold": 65, "materials": ["demon_horn"]},
-    "celestial_beast": {"name": "Celestial Beast", "hp": 150, "atk": 35, "def": 25, "exp": 75, "gold": 75, "materials": ["crystal_shard"]},
-    "ancient_dragon": {"name": "Ancient Dragon", "hp": 140, "atk": 38, "def": 28, "exp": 80, "gold": 80, "materials": ["star_dust"]},
-    "god_of_dungeons": {"name": "God of Dungeons", "hp": 200, "atk": 50, "def": 30, "exp": 100, "gold": 100, "materials": ["moon_rock", "sun_stone"]}
-}
+MONSTERS = [
+# Area 1 Monsters (Level 1-5)
+{"name": "Slime", "hp": 8, "atk_min": 1, "atk_max": 3, "money_min": 2, "money_max": 7, "class": "D(Common)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.25, "slime_gel": 0.4}, "weight": 18, "area": 1},
+{"name": "Goblin", "hp": 10, "atk_min": 3, "atk_max": 5, "money_min": 4, "money_max": 15, "class": "D(Common)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.3, "strength_boost": 0.05, "goblin_tooth": 0.3}, "weight": 15, "area": 1},
+{"name": "Wolf", "hp": 12, "atk_min": 3, "atk_max": 6, "money_min": 10, "money_max": 22, "class": "D(Common)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "wolf_pelt": 0.3}, "weight": 14, "area": 1},
+{"name": "Goblin Shaman", "hp": 20, "magic_atk_min": 8, "magic_atk_max": 12, "money_min": 10, "money_max": 25, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"mana_regen_potion": 0.1, "goblin_tooth": 0.2}, "weight": 8, "area": 1},
+{"name": "Forest Sprite", "hp": 15, "atk_min": 2, "atk_max": 5, "money_min": 8, "money_max": 20, "class": "D(Common)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.25, "mana_regen_potion": 0.1, "crystal_shard": 0.2}, "weight": 12, "area": 1},
 
-BOSSES = {
-    "boss_slime": {"name": "King Slime", "hp": 100, "atk": 20, "def": 10, "exp": 100, "gold": 200, "materials": ["slime_gel", "prism_fragment"]},
-    "boss_goblin": {"name": "Goblin King", "hp": 150, "atk": 25, "def": 12, "exp": 150, "gold": 300, "materials": ["goblin_tooth", "orc_iron"]},
-    "boss_orc": {"name": "Orc Warlord", "hp": 200, "atk": 30, "def": 15, "exp": 200, "gold": 400, "materials": ["orc_iron", "troll_core"]},
-    "boss_wolf": {"name": "Alpha Wolf", "hp": 180, "atk": 28, "def": 14, "exp": 180, "gold": 360, "materials": ["wolf_pelt", "dark_essence"]},
-    "boss_skeleton": {"name": "Lich Lord", "hp": 250, "atk": 35, "def": 18, "exp": 250, "gold": 500, "materials": ["skeleton_bone", "void_fragment"]},
-    "boss_bandit": {"name": "Bandit Chief", "hp": 220, "atk": 32, "def": 16, "exp": 220, "gold": 440, "materials": ["bandit_cloth", "prism_fragment"]},
-    "boss_troll": {"name": "Troll King", "hp": 300, "atk": 40, "def": 20, "exp": 300, "gold": 600, "materials": ["troll_core", "dragon_scale"]},
-    "boss_shadow_beast": {"name": "Shadow Lord", "hp": 280, "atk": 38, "def": 19, "exp": 280, "gold": 560, "materials": ["dark_essence", "frozen_heart"]},
-    "boss_dark_knight": {"name": "Death Knight", "hp": 350, "atk": 45, "def": 22, "exp": 350, "gold": 700, "materials": ["prism_fragment", "thunder_core"]},
-    "boss_necromancer": {"name": "Arch Necromancer", "hp": 320, "atk": 42, "def": 21, "exp": 320, "gold": 640, "materials": ["void_fragment", "phoenix_feather"]},
-    "boss_dragon_whelp": {"name": "Young Dragon", "hp": 400, "atk": 50, "def": 25, "exp": 400, "gold": 800, "materials": ["dragon_scale", "holy_light"]},
-    "boss_frost_giant": {"name": "Frost Titan", "hp": 380, "atk": 48, "def": 24, "exp": 380, "gold": 760, "materials": ["frozen_heart", "demon_horn"]},
-    "boss_void_creature": {"name": "Void Lord", "hp": 450, "atk": 55, "def": 27, "exp": 450, "gold": 900, "materials": ["thunder_core", "crystal_shard"]},
-    "boss_phoenix": {"name": "Phoenix Lord", "hp": 420, "atk": 52, "def": 26, "exp": 420, "gold": 840, "materials": ["phoenix_feather", "star_dust"]},
-    "boss_prism_guardian": {"name": "Prism Warden", "hp": 500, "atk": 60, "def": 30, "exp": 500, "gold": 1000, "materials": ["holy_light", "moon_rock"]},
-    "boss_demon_lord": {"name": "Demon Overlord", "hp": 480, "atk": 58, "def": 29, "exp": 480, "gold": 960, "materials": ["demon_horn", "sun_stone"]},
-    "boss_celestial_beast": {"name": "Celestial Guardian", "hp": 550, "atk": 65, "def": 32, "exp": 550, "gold": 1100, "materials": ["crystal_shard", "transcendent_heart"]},
-    "boss_ancient_dragon": {"name": "Elder Dragon", "hp": 520, "atk": 62, "def": 31, "exp": 520, "gold": 1040, "materials": ["star_dust", "soul_shard"]},
-    "boss_god_of_dungeons": {"name": "Supreme Dungeon God", "hp": 600, "atk": 70, "def": 35, "exp": 600, "gold": 1200, "materials": ["moon_rock", "sun_stone", "transcendent_heart", "soul_shard"]}
-}
+# Area 2 Monsters (Level 6-10)
+{"name": "Skeleton", "hp": 20, "atk_min": 4, "atk_max": 7, "money_min": 15, "money_max": 30, "class": "D(Common)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.25, "defense_boost": 0.05, "skeleton_bone": 0.4}, "weight": 12, "area": 2},
+{"name": "Orc", "hp": 30, "atk_min": 5, "atk_max": 8, "money_min": 20, "money_max": 40, "class": "D(Common)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "orc_iron": 0.3}, "weight": 10, "area": 2},
+{"name": "Giant Spider", "hp": 25, "atk_min": 6, "atk_max": 9, "money_min": 25, "money_max": 45, "class": "D(Common)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "crit_boost": 0.05, "spider_venom": 0.3}, "weight": 8, "area": 2},
+{"name": "Dark Bat", "hp": 18, "atk_min": 5, "atk_max": 8, "money_min": 18, "money_max": 35, "class": "D(Common)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "bat_wing": 0.3}, "weight": 10, "area": 2},
 
-# Define monsters list with required fields
-monsters = []
-for k, v in MONSTERS.items():
-    v_copy = v.copy()
-    v_copy["is_boss"] = False
-    v_copy["area"] = 1
-    v_copy["weight"] = 1
-    monsters.append(v_copy)
-for k, v in BOSSES.items():
-    v_copy = v.copy()
-    v_copy["is_boss"] = True
-    v_copy["area"] = 1
-    v_copy["weight"] = 1
-    monsters.append(v_copy)
+# Area 3 Monsters (Level 11-15) - 10% chance for all permanent upgrades
+{"name": "Bandit", "hp": 40, "atk_min": 7, "atk_max": 12, "money_min": 35, "money_max": 60, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "crit_boost": 0.04, "common_magic_pack": 0.15, "bandit_cloth": 0.3, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 10, "area": 3},
+{"name": "Orc Warrior", "hp": 55, "atk_min": 8, "atk_max": 13, "money_min": 40, "money_max": 70, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "orc_iron": 0.4, "strength_boost": 0.1, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 8, "area": 3},
+{"name": "Dark Mage", "hp": 45, "magic_atk_min": 10, "magic_atk_max": 15, "money_min": 50, "money_max": 80, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.25, "strength_boost": 0.06, "common_magic_pack": 0.25, "rare_magic_pack": 0.1, "dark_essence": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 7, "area": 3},
+{"name": "Stone Golem", "hp": 70, "atk_min": 6, "atk_max": 10, "money_min": 45, "money_max": 75, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "defense_boost": 0.1, "stone_core": 0.3, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 6, "area": 3},
+
+# Area 4 Monsters (Level 16-20) - 10% chance for all permanent upgrades
+{"name": "Troll", "hp": 90, "atk_min": 12, "atk_max": 18, "money_min": 80, "money_max": 120, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "regen_potion": 0.05, "common_magic_pack": 0.1, "rare_magic_pack": 0.05, "troll_core": 0.3, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 6, "area": 4},
+{"name": "Ice Elemental", "hp": 75, "magic_atk_min": 15, "magic_atk_max": 20, "money_min": 90, "money_max": 130, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "frozen_heart": 0.3, "ice_shard": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 5, "area": 4},
+{"name": "Fire Elemental", "hp": 70, "magic_atk_min": 16, "magic_atk_max": 22, "money_min": 85, "money_max": 125, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "fire_essence": 0.3, "ember": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 5, "area": 4},
+{"name": "Thunder Bird", "hp": 65, "magic_atk_min": 14, "magic_atk_max": 21, "money_min": 95, "money_max": 140, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "thunder_core": 0.3, "lightning_feather": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 5, "area": 4},
+
+# Area 5 Monsters (Level 21-25) - 12% chance for all permanent upgrades
+{"name": "Dark Knight", "hp": 120, "atk_min": 18, "atk_max": 25, "money_min": 120, "money_max": 180, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "defense_boost": 0.1, "rare_magic_pack": 0.2, "dark_essence": 0.3, "perm_exp_upgrade": 0.12, "perm_strength_upgrade": 0.12, "perm_defense_upgrade": 0.12, "perm_health_upgrade": 0.12, "perm_mana_upgrade": 0.12, "perm_crit_chance_upgrade": 0.12, "perm_mana_regen_upgrade": 0.12, "perm_lifesteal_upgrade": 0.12, "perm_lifesteal_chance_upgrade": 0.12}, "weight": 4, "area": 5},
+{"name": "Shadow Assassin", "hp": 100, "atk_min": 20, "atk_max": 28, "money_min": 130, "money_max": 190, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "crit_boost": 0.1, "rare_magic_pack": 0.2, "shadow_cloak": 0.2, "perm_exp_upgrade": 0.12, "perm_strength_upgrade": 0.12, "perm_defense_upgrade": 0.12, "perm_health_upgrade": 0.12, "perm_mana_upgrade": 0.12, "perm_crit_chance_upgrade": 0.12, "perm_mana_regen_upgrade": 0.12, "perm_lifesteal_upgrade": 0.12, "perm_lifesteal_chance_upgrade": 0.12}, "weight": 4, "area": 5},
+{"name": "Arcane Mage", "hp": 110, "magic_atk_min": 22, "magic_atk_max": 30, "money_min": 140, "money_max": 200, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "mana_upgrade_potion": 0.1, "rare_magic_pack": 0.25, "mythical_magic_pack": 0.1, "arcane_tome": 0.2, "perm_exp_upgrade": 0.12, "perm_strength_upgrade": 0.12, "perm_defense_upgrade": 0.12, "perm_health_upgrade": 0.12, "perm_mana_upgrade": 0.12, "perm_crit_chance_upgrade": 0.12, "perm_mana_regen_upgrade": 0.12, "perm_lifesteal_upgrade": 0.12, "perm_lifesteal_chance_upgrade": 0.12}, "weight": 3, "area": 5},
+{"name": "Warlock", "hp": 105, "atk_min": 21, "atk_max": 29, "money_min": 135, "money_max": 195, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "curse_scroll": 0.2, "rare_magic_pack": 0.2, "mythical_magic_pack": 0.1, "demon_horn": 0.2, "perm_exp_upgrade": 0.12, "perm_strength_upgrade": 0.12, "perm_defense_upgrade": 0.12, "perm_health_upgrade": 0.12, "perm_mana_upgrade": 0.12, "perm_crit_chance_upgrade": 0.12, "perm_mana_regen_upgrade": 0.12, "perm_lifesteal_upgrade": 0.12, "perm_lifesteal_chance_upgrade": 0.12}, "weight": 3, "area": 5},
+
+# Area 6 Monsters (Level 26-30) - 14% chance for all permanent upgrades
+{"name": "Ice Giant", "hp": 150, "atk_min": 25, "atk_max": 35, "money_min": 180, "money_max": 250, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "frozen_heart": 0.4, "mythical_magic_pack": 0.2, "ice_shard": 0.3, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 3, "area": 6},
+{"name": "Phoenix", "hp": 130, "atk_min": 28, "atk_max": 38, "money_min": 200, "money_max": 280, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "phoenix_feather": 0.3, "mythical_magic_pack": 0.25, "fire_essence": 0.3, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 2, "area": 6},
+{"name": "Crystal Golem", "hp": 160, "atk_min": 24, "atk_max": 34, "money_min": 190, "money_max": 260, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "crystal_shard": 0.4, "mythical_magic_pack": 0.2, "stone_core": 0.3, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 2, "area": 6},
+{"name": "Storm Dragon", "hp": 140, "atk_min": 27, "atk_max": 37, "money_min": 210, "money_max": 290, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "thunder_core": 0.4, "mythical_magic_pack": 0.25, "dragon_scale": 0.2, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 2, "area": 6},
+
+# Area 7 Monsters (Level 31-35) - 16% chance for all permanent upgrades
+{"name": "Void Walker", "hp": 180, "magic_atk_min": 32, "magic_atk_max": 42, "money_min": 250, "money_max": 350, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "void_fragment": 0.3, "mythical_magic_pack": 0.2, "prismatic_magic_pack": 0.1, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7},
+{"name": "Celestial Guardian", "hp": 200, "atk_min": 30, "atk_max": 40, "money_min": 280, "money_max": 380, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "holy_light": 0.3, "mythical_magic_pack": 0.25, "prismatic_magic_pack": 0.15, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7},
+{"name": "Star Weaver", "hp": 170, "atk_min": 33, "atk_max": 43, "money_min": 260, "money_max": 360, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.4, "mythical_magic_pack": 0.2, "prismatic_magic_pack": 0.1, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7},
+{"name": "Moon Sentinel", "hp": 190, "atk_min": 31, "atk_max": 41, "money_min": 270, "money_max": 370, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "moon_rock": 0.3, "mythical_magic_pack": 0.2, "prismatic_magic_pack": 0.15, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7},
+
+# Area 8 Monsters (Level 36-40) - 18% chance for all permanent upgrades
+{"name": "Sun Champion", "hp": 220, "atk_min": 36, "atk_max": 46, "money_min": 320, "money_max": 420, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "sun_stone": 0.3, "prismatic_magic_pack": 0.25, "divine_magic_pack": 0.1, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8},
+{"name": "Void Lord", "hp": 240, "magic_atk_min": 38, "magic_atk_max": 48, "money_min": 350, "money_max": 450, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "void_fragment": 0.4, "prismatic_magic_pack": 0.25, "divine_magic_pack": 0.15, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8},
+{"name": "Divine Paladin", "hp": 210, "atk_min": 37, "atk_max": 47, "money_min": 330, "money_max": 430, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "holy_light": 0.4, "prismatic_magic_pack": 0.3, "divine_magic_pack": 0.15, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8},
+{"name": "Cosmic Mage", "hp": 230, "magic_atk_min": 35, "magic_atk_max": 45, "money_min": 340, "money_max": 440, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.3, "prismatic_magic_pack": 0.25, "divine_magic_pack": 0.2, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8},
+
+# Area 9 Monsters (Level 41-45) - 20% chance for all permanent upgrades
+{"name": "Eternal Dragon", "hp": 300, "atk_min": 42, "atk_max": 54, "money_min": 450, "money_max": 600, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "dragon_scale": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.1, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9},
+{"name": "Void Reaper", "hp": 280, "magic_atk_min": 45, "magic_atk_max": 57, "money_min": 480, "money_max": 630, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "void_fragment": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.15, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9},
+{"name": "Celestial Phoenix", "hp": 290, "atk_min": 43, "atk_max": 55, "money_min": 470, "money_max": 620, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "phoenix_feather": 0.4, "divine_magic_pack": 0.35, "transcendent_magic_pack": 0.15, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9},
+{"name": "Cosmic Entity", "hp": 310, "magic_atk_min": 41, "magic_atk_max": 53, "money_min": 460, "money_max": 610, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.2, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9},
+
+# Area 10 Monsters (Level 46-50) - 20% chance for all permanent upgrades
+{"name": "Transcendent Being", "hp": 400, "atk_min": 50, "atk_max": 65, "money_min": 600, "money_max": 800, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "transcendent_heart": 0.2, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.3, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10},
+{"name": "Void Emperor", "hp": 420, "magic_atk_min": 52, "magic_atk_max": 67, "money_min": 650, "money_max": 850, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "void_fragment": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.35, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10},
+{"name": "Divine Avatar", "hp": 410, "atk_min": 51, "atk_max": 66, "money_min": 630, "money_max": 830, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "holy_light": 0.4, "divine_magic_pack": 0.35, "transcendent_magic_pack": 0.3, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10},
+{"name": "Cosmic Overlord", "hp": 430, "atk_min": 53, "atk_max": 68, "money_min": 670, "money_max": 870, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.4, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10},
+
+# Bosses - 100% chance for all permanent upgrades
+{"name": "Goblin King", "hp": 200, "atk_min": 50, "atk_max": 100, "money_min": 200, "money_max": 400, "class": "D(Common)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.5, "defense_boost": 0.3, "goblin_tooth": 1.0, "common_magic_pack": 0.5, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 1},
+{"name": "Skeleton King", "hp": 500, "atk_min": 110, "atk_max": 175, "money_min": 750, "money_max": 2000, "class": "B(Mythical)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.8, "defense_boost": 0.5, "crit_boost": 0.4, "rare_magic_pack": 0.8, "mythical_magic_pack": 0.4, "skeleton_bone": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 1},
+{"name": "Troll Chieftain", "hp": 800, "atk_min": 120, "atk_max": 150, "money_min": 1500, "money_max": 3000, "class": "C(Rare)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.7, "defense_boost": 0.6, "regen_potion": 0.5, "rare_magic_pack": 0.7, "mythical_magic_pack": 0.3, "troll_core": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 3},
+{"name": "Dark Lord", "hp": 1200, "atk_min": 135, "atk_max": 189, "money_min": 2500, "money_max": 5000, "class": "B(Mythical)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.8, "defense_boost": 0.6, "crit_boost": 0.5, "mythical_magic_pack": 0.8, "prismatic_magic_pack": 0.4, "dark_essence": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 4},
+{"name": "Ice Queen", "hp": 1500, "magic_atk_min": 150, "magic_atk_max": 75, "money_min": 3500, "money_max": 6000, "class": "B(Mythical)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "defense_boost": 0.8, "regen_potion": 0.7, "mythical_magic_pack": 0.7, "prismatic_magic_pack": 0.5, "frozen_heart": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 5},
+{"name": "Phoenix Lord", "hp": 1800, "atk_min": 100, "atk_max": 150, "money_min": 4500, "money_max": 7500, "class": "A(Prismatic)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.8, "mana_upgrade_potion": 0.6, "mythical_magic_pack": 0.8, "prismatic_magic_pack": 0.6, "phoenix_feather": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 6},
+{"name": "Void Master", "hp": 2200, "atk_min": 190, "atk_max": 240, "money_min": 6000, "money_max": 10000, "class": "A(Prismatic)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.9, "defense_boost": 0.8, "crit_boost": 0.7, "prismatic_magic_pack": 0.8, "divine_magic_pack": 0.4, "void_fragment": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 7},
+{"name": "Celestial Emperor", "hp": 2800, "atk_min": 250, "atk_max": 350, "money_min": 8000, "money_max": 13000, "class": "S(Divine)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.9, "defense_boost": 0.9, "mana_upgrade_potion": 0.7, "prismatic_magic_pack": 0.8, "divine_magic_pack": 0.6, "holy_light": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 8},
+{"name": "Dragon Lord", "hp": 3500, "atk_min": 250, "atk_max": 350, "money_min": 10000, "money_max": 16000, "class": "S(Divine)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 1.0, "defense_boost": 0.9, "crit_boost": 0.8, "divine_magic_pack": 0.8, "transcendent_magic_pack": 0.4, "dragon_scale": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 9},
+{"name": "Grim Reaper", "hp": 4000, "magic_atk_min": 300, "magic_atk_max": 500, "money_min": 12000, "money_max": 20000, "class": "S(Divine)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 1.0, "defense_boost": 1.0, "crit_boost": 1.0, "prismatic_magic_pack": 0.8, "divine_magic_pack": 0.8, "soul_shard": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 10},
+{"name": "Demon King Muzan", "hp": 12000, "atk_min": 400, "atk_max": 550, "money_min": 100000, "money_max": 500000, "class": "SS(Transcendent)", "is_boss": True, "is_super_boss": True, "drop": {"potion": 1.0, "strength_boost": 1, "defense_boost": 1, "crit_boost": 1, "transcendent_heart": 0.5, "divine_magic_pack": 0.8, "transcendent_magic_pack": 0.4, "demon_horn": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 0.01, "area": 10},
+]
 
 def get_leaderboard():
     """Get leaderboard from SQLite database"""
@@ -890,154 +903,67 @@ def guessing_game(current_user, score):
                 return score
         except ValueError:
             print("Please enter a valid number.")
-def combat(username, monster_key, is_boss=False):
-    """
-    Basic combat function for dungeon battles.
-    Returns (victory: bool, exp_gained: int, gold_gained: int, materials_gained: list)
-    """
-    if not any(user[0] == username for user in get_leaderboard()):  # Simple user check
-        return False, 0, 0, []
 
+def explore_dungeon(username):
+    """Explore the dungeon to find treasure"""
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
     c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
     result = c.fetchone()
     if not result:
         conn.close()
-        return False, 0, 0, []
-
+        return "User not found."
+    
     player_data = json.loads(result[0])
     stats = player_data["stats"]
-    inventory = player_data.get("inventory", {})
-
-    # Ensure user fields are normalized before combat
-    ensure_user_fields(username)
-
-    # Reload after normalization
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    player_data = json.loads(result[0])
-    stats = player_data["stats"]
-    inventory = player_data.get("inventory", {})
-
-    # Get monster data
-    monster_dict = BOSSES if is_boss else MONSTERS
-    if monster_key not in monster_dict:
+    inventory = player_data["inventory"]
+    
+    # Check if player has enough health to explore
+    if stats["hp"] < stats["hp_max"] * 0.3:
         conn.close()
-        return False, 0, 0, []
-
-    monster = monster_dict[monster_key]
-
-    # Calculate player effective stats (including equipment and titles)
-    player_hp = stats["hp"]
-    player_atk = stats["atk"] + stats.get("title_atk_boost", 0)
-    player_def = stats["defense"] + stats.get("title_def_boost", 0)
-    player_magic_def = stats.get("perm_magic_def", 0)
-
-    # Equipment bonuses
-    equipped = stats.get("equipped", {})
-    if equipped.get("weapon") and equipped["weapon"] in WEAPONS:
-        player_atk += WEAPONS[equipped["weapon"]]["atk"]
-    if equipped.get("armor") and equipped["armor"] in ARMORS:
-        player_def += ARMORS[equipped["armor"]]["def"]
-    if equipped.get("necklace") and equipped["necklace"] in NECKLACES:
-        player_atk += NECKLACES[equipped["necklace"]].get("atk_bonus", 0)
-        player_def += NECKLACES[equipped["necklace"]].get("def_bonus", 0)
-        player_hp += NECKLACES[equipped["necklace"]].get("hp_bonus", 0)
-
-    monster_hp = monster["hp"]
-    monster_atk = monster["atk"]
-    monster_def = monster["def"]
-
-    print(f"\n⚔️  Battle: {stats.get('title', 'Adventurer')} vs {monster['name']}!")
-    print(f"Your HP: {player_hp} | ATK: {player_atk} | DEF: {player_def}")
-    print(f"{monster['name']}'s HP: {monster_hp} | ATK: {monster_atk} | DEF: {monster_def}")
-
-    # Simple turn-based combat
-    while player_hp > 0 and monster_hp > 0:
-        # Player turn
-        damage_to_monster = max(1, player_atk - monster_def)
-        monster_hp -= damage_to_monster
-        print(f"You deal {damage_to_monster} damage! {monster['name']} HP: {max(0, monster_hp)}")
-
-        if monster_hp <= 0:
-            break
-
-        # Monster turn
-        damage_to_player = max(1, monster_atk - player_def)
-        player_hp -= damage_to_player
-        print(f"{monster['name']} deals {damage_to_player} damage! Your HP: {max(0, player_hp)}")
-
-        if player_hp <= 0:
-            break
-
-        # For simplicity, no player choice - auto attack
-        pass
-
-    victory = player_hp > 0
-
-    if victory:
-        exp_gained = monster["exp"]
-        gold_gained = monster["gold"]
-        materials_gained = monster["materials"][:]  # Copy list
-
-        print(f"\n🎉 Victory! You defeated {monster['name']}!")
-        print(f"Gained {exp_gained} EXP, {gold_gained} gold, and materials: {', '.join(materials_gained)}")
-
-        # Grant EXP
-        lvls_gained = grant_exp(username, exp_gained)
-
-        # Add gold
-        player_data["money"] += gold_gained
-
-        # Add materials
-        for mat in materials_gained:
-            inventory[mat] = inventory.get(mat, 0) + 1
-
-        # Update battle stats
-        stats["monsters_defeated"] = stats.get("monsters_defeated", 0) + 1
-        if is_boss:
-            stats["bosses_defeated"] = stats.get("bosses_defeated", 0) + 1
-
-        player_data["inventory"] = inventory
-        player_data["stats"] = stats
-        c.execute('UPDATE users SET player_data = ?, money = ? WHERE username = ?',
-                  (json.dumps(player_data), player_data["money"], username))
-        conn.commit()
-
-        # Auto equip if enabled
-        auto_equip_items(username)
-
-        # Check achievements
-        check_achievements(username)
-
-    else:
-        print(f"\n💀 Defeat! You were defeated by {monster['name']}.")
-        # Death penalty: lose some gold
-        gold_lost = min(player_data["money"] // 10, 100)  # Lose 10% or 100, whichever is less
-        player_data["money"] -= gold_lost
-        player_data["money"] = max(0, player_data["money"])
-
-        # Update death stats
-        stats["times_died"] = stats.get("times_died", 0) + 1
-
-        player_data["stats"] = stats
-        c.execute('UPDATE users SET player_data = ?, money = ? WHERE username = ?',
-                  (json.dumps(player_data), player_data["money"], username))
-        conn.commit()
-
-        if gold_lost > 0:
-            print(f"You lost {gold_lost} gold due to death penalty.")
-
+        return "You need at least 30% health to explore the dungeon."
+    
+    # Consume some health for exploration
+    stats["hp"] = max(1, stats["hp"] - stats["hp_max"] * 0.1)
+    
+    # Calculate treasure found based on player level and area
+    area = stats.get("current_area", 1)
+    level = stats.get("level", 1)
+    
+    # Base treasure amount
+    base_treasure = 100 + (area * 50) + (level * 20)
+    
+    # Apply treasure boost from titles if available
+    treasure_boost = stats.get("title_treasure_boost", 0)
+    if treasure_boost > 0:
+        boosted_amount = base_treasure * (treasure_boost / 100.0)
+        base_treasure += boosted_amount
+    
+    # Random factor
+    treasure_found = int(base_treasure * random.uniform(0.8, 1.5))
+    
+    # Cap at dungeon_treasure
+    global dungeon_treasure
+    treasure_found = min(treasure_found, dungeon_treasure)
+    
+    # Update player money and stats
+    player_data["money"] += treasure_found
+    stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + treasure_found
+    stats["total_money_earned"] = stats.get("total_money_earned", 0) + treasure_found
+    
+    # Reduce dungeon treasure
+    dungeon_treasure -= treasure_found
+    
+    load_dungeon_treasure()
+    save_dungeon_treasure()
+    # Check for achievements
+    check_achievements(username)
+    
+    # Save player data
+    c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+              (json.dumps(player_data), username))
+    conn.commit()
     conn.close()
-    return victory, exp_gained if victory else 0, gold_gained if victory else 0, materials_gained if victory else []
-    """Get leaderboard from SQLite database"""
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('SELECT username, score FROM users ORDER BY score DESC LIMIT 10')
-    results = c.fetchall()
-    conn.close()
-    return results
 
 # -------------------------
 # Dungeon game function (needed for main menu)
@@ -1401,17 +1327,825 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
             print("Unknown command. Type 'help' for commands.")
     conn.close()
 # -------------------------
-def dungeon():
-    global current_user
-    if not current_user:
-        print("You must be logged in to enter the dungeon.")
-        return
-    ensure_user_fields(current_user)
-    conn = sqlite3.connect('users.db')
+
+def add_material_drops(inventory, monster):
+    """Add material drops from a monster to the inventory"""
+    if "drop" in monster:
+        for item, chance in monster["drop"].items():
+            if random.random() < chance:
+                if item in inventory:
+                    inventory[item] += 1
+                else:
+                    inventory[item] = 1
+                print(f"Found {item}!")
+    return inventory
+
+def dungeon(username):
+    users_db_path='users.db'
+    # Apply permanent upgrades before entering dungeon
+    apply_permanent_upgrades(current_user)
+    conn = sqlite3.connect(users_db_path)
     c = conn.cursor()
+    # Reload player data after applying upgrades
     c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
     result = c.fetchone()
     player_data = json.loads(result[0])
+    stats = player_data["stats"]
+    inventory = player_data["inventory"]
+
+    # Auto-equip best equipment after upgrading if enabled
+    settings = stats.get("settings", {})
+    if settings.get("auto_equip_best", False) or settings.get("auto_equip_everything", False):
+        auto_equip_items(current_user)
+
+    active_buffs = []
+    forced_monster = None
+
+    print("\n⚔️ Welcome to the Dungeon, brave adventurer!")
+    player_hp = stats.get("hp", stats.get("hp_max", 100))
+    player_mana = stats.get("mana", stats.get("mana_max", 50))
+
+    # Calculate effective base ATK and DEF (including equipment and permanent upgrades)
+    effective_base_atk, effective_base_def, _, _, _, _, _, _ = compute_effective_stats(stats, [])
+
+    # Calculate base ATK and DEF with equipment (permanent upgrades + equipment)
+    w_atk = WEAPONS.get(stats.get("equipped", {}).get("weapon"), {}).get("atk", 0)
+    a_def = ARMORS.get(stats.get("equipped", {}).get("armor"), {}).get("def", 0)
+    n_atk = NECKLACES.get(stats.get("equipped", {}).get("necklace"), {}).get("atk_bonus", 0)
+    n_def = NECKLACES.get(stats.get("equipped", {}).get("necklace"), {}).get("def_bonus", 0)
+    normal_atk = stats.get("atk", 5)
+    normal_def = stats.get("defense", 0)
+    equipped_atk = normal_atk + w_atk + n_atk
+    equipped_def = normal_def + a_def + n_def
+
+    current_area = stats.get("current_area", 1)
+    print(f"Entering dungeon with HP: {player_hp}, MANA: {player_mana}, ATK: {equipped_atk}, DEF: {equipped_def}, LVL: {stats.get('level',1)}, AREA: {current_area}")
+    print(f"Normal ATK + Perm: {normal_atk}, Normal DEF + Perm: {normal_def}")
+
+    while True:
+        cmd = input("\nType 'explore' to find a monster, 'status' to view stats, 'shop' to access shop, 'packs' to open magic packs, 'upgrades' to use permanent upgrades, 'move' to change areas, or 'exit' to leave the dungeon: ").strip()
+        if not cmd:
+            continue
+        lc = cmd.lower().strip()
+        if lc == "exit":
+            print("You leave the dungeon safely.")
+            stats["hp"] = player_hp
+            stats["mana"] = player_mana
+            update_user(current_user, username[current_user][1], username[current_user][2], player_data)
+            conn.commit()
+            conn.close()
+            return
+        if lc == "status":
+            effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
+            crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0)
+            regen_total = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
+            mana_regen_total = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
+            next_exp = exp_to_next(stats.get("level",1)) if stats.get("level",1) < MAX_LEVEL else "MAX"
+            name_display = current_user
+            if stats.get("settings", {}).get("call_including_title", True) and stats.get("title"):
+                name_display = f"{stats['title']} {current_user}"
+            print(f"HP: {player_hp}/{stats.get('hp_max')}, MANA: {player_mana}/{stats.get('mana_max')}, ATK: {effective_atk}, DEF: {effective_def}, Money: ${player_data.get('money',0)}, LVL: {stats.get('level')}, EXP: {stats.get('exp')}/{next_exp}, AREA: {stats.get('current_area', 1)}")
+            if stats.get("settings", {}).get("show_exp_bar", False):
+                exp_bar = create_exp_bar(stats.get("exp", 0), next_exp if next_exp != "MAX" else exp_to_next(stats["level"]))
+                print(f"EXP Bar: {exp_bar}")
+            print("Equipped:", stats.get("equipped"))
+            print("Inventory (highlights):", {k:v for k,v in inventory.items() if v>0 and k in ['potion','strong_potion','mana_regen_potion','instant_mana']})
+            print("\nCurrent permanent stats:")
+            print(f"ATK Bonus: +{stats.get('perm_atk', 0)}")
+            print(f"DEF Bonus: +{stats.get('perm_def', 0)}")
+            print(f"HP Bonus: +{stats.get('perm_hp_max', 0)}")
+            print(f"Mana Bonus: +{stats.get('perm_mana_max', 0)}")
+            print(f"Crit Chance Bonus: +{stats.get('perm_crit_chance', 0)}%")
+            print(f"Mana Regen Bonus: +{stats.get('perm_mana_regen', 0)} per fight")
+            print(f"Lifesteal Bonus: +{stats.get('perm_lifesteal', 0)}% of damage")
+            print(f"Lifesteal Chance Bonus: +{stats.get('perm_lifesteal_chance', 0)}% chance")
+            print(f"Experience Boost: +{stats.get('perm_exp_boost', 0)}%")
+            if active_buffs:
+                print("Active buffs (fights remaining):")
+                for b in active_buffs:
+                    if b['remaining']>0:
+                        print(f" - {b}")
+            continue
+        if lc == "shop":
+            shop()
+            # Reload data after shop
+            ensure_user_fields(current_user)
+            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
+            result = c.fetchone()
+            player_data = json.loads(result[0])
+            stats = player_data["stats"]
+            inventory = player_data["inventory"]
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
+            continue
+        if lc == "packs":
+            magic_pack_interface(current_user)
+            # Reload data after packs
+            ensure_user_fields(current_user)
+            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
+            result = c.fetchone()
+            player_data = json.loads(result[0])
+            stats = player_data["stats"]
+            inventory = player_data["inventory"]
+            continue
+        if lc == "upgrades":
+            permanent_upgrades_interface(current_user)
+            # Reload data after upgrades
+            ensure_user_fields(current_user)
+            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
+            result = c.fetchone()
+            player_data = json.loads(result[0])
+            stats = player_data["stats"]
+            inventory = player_data["inventory"]
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
+            continue
+        if lc == "move":
+            print(f"\nCurrent Area: {stats.get('current_area', 1)}")
+            print("You can move to areas 1-10. Higher areas have stronger monsters.")
+            try:
+                new_area = int(input("Enter area number (1-10) or 'cancel': ").strip())
+                if new_area == "cancel":
+                    continue
+                if 1 <= new_area <= 10:
+                    stats["current_area"] = new_area
+                    current_area = new_area
+                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
+                    conn.commit()
+                    print(f"Moved to Area {new_area}!")
+                else:
+                    print("Invalid area. Must be between 1 and 10.")
+            except ValueError:
+                print("Invalid input. Enter a number between 1 and 10.")
+            continue
+
+        if lc.startswith("explore"):
+            parts = cmd.split()
+            # If user used the force-spawn syntax (e.g. explore 10234 boss Demon King)
+            if len(parts) >= 4:
+                code = parts[1].strip()
+                is_boss_flag = parts[2].strip().lower()
+                monster_name = " ".join(parts[3:]).strip().lower()
+
+                if code == "10234":
+                    boss_flags = ("yes", "y", "true", "boss", "b")
+                    normal_flags = ("no", "n", "false", "normal", "monster", "m")
+
+                    if is_boss_flag in boss_flags:
+                        # try to find a boss with that name
+                        found = next((m for m in MONSTERS if m["name"].lower() == monster_name and m.get("is_boss")), None)
+                        if found:
+                            forced_monster = found.copy()
+                            print(f"Forced boss spawn: {forced_monster['name']}")
+                        else:
+                            print("Boss not found.")
+                        continue  # we handled the force-spawn command this turn
+
+                    elif is_boss_flag in normal_flags:
+                        found = next((m for m in MONSTERS if m["name"].lower() == monster_name and not m.get("is_boss")), None)
+                        if found:
+                            forced_monster = found.copy()
+                            print(f"Forced monster spawn: {forced_monster['name']}")
+                        else:
+                            print("Monster not found.")
+                        continue  # handled force-spawn this turn
+
+                    else:
+                        print("Invalid flag.")
+                        continue
+
+                else:
+                    print("Invalid code.")
+                    continue
+
+            # If we reach here it's either plain 'explore' or we did not match the force syntax.
+            # Fall through to the actual explore logic (monster spawn + combat loop) below.
+
+        else:
+            print("Unknown command. Try 'explore', 'status', 'shop', 'packs', 'upgrades', 'move', or 'exit'.")
+            continue
+
+        # Explore logic
+        if forced_monster is not None:
+            monster = forced_monster.copy()
+            forced_monster = None
+            # Use existing monster data
+        else:
+            roll = random.randint(1,100)
+            if roll <= 5:  # Boss chance
+                area = stats.get("current_area", 1)
+                monster = choose_boss_for_area(area)
+                cls = monster.get("class")
+                print(f"\n🔥 BOSS APPEARS: {monster['name']} (Class {cls})! (HP {monster['hp']}, ATK {monster['atk_min']}–{monster['atk_max']})")
+            else:
+                # Choose random monster
+                area = stats.get("current_area", 1)
+                monster = choose_monster_for_area(area)
+                cls = monster.get("class")
+                print(f"\nA wild {monster['name']} (Class {cls}) appears! (HP {monster['hp']}, ATK {monster['atk_min']}–{monster['atk_max']})")
+
+        while monster["hp"] > 0 and player_hp > 0:
+            # Combat loop
+            fight_happened = True
+            effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
+            crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0) / 100.0
+            base_crit = 0.05
+            title_crit_percent = stats.get("title_crit_chance_percent", 0) / 100.0
+            total_crit_chance = base_crit + crit_chance + title_crit_percent
+
+            action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
+            if action == "a":
+                dmg = random.randint(max(1, effective_atk - 2), effective_atk + 3)
+                crit_hit = False
+                if random.random() <= total_crit_chance:
+                    dmg *= 2
+                    crit_hit = True
+                    print("💥 CRITICAL HIT!")
+                    stats["critical_hits"] = stats.get("critical_hits", 0) + 1
+                    monster["hp"] -= dmg
+                print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
+                lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
+                lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
+                if random.random() <= lifesteal_chance and lifesteal_percent > 0:
+                    heal_amount = int(dmg * lifesteal_percent)
+                    if heal_amount > 0:
+                        player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
+                        print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
+                        stats["hp"] = player_hp
+                        stats["mana"] = player_mana
+                        update_user()
+
+                lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
+                lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
+                if random.random() <= lifesteal_chance and lifesteal_percent > 0:
+                    heal_amount = int(dmg * lifesteal_percent)
+                    if heal_amount > 0:
+                        player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
+                        print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
+                        stats["hp"] = player_hp
+                        stats["mana"] = player_mana
+                        # Update player data in database
+                        player_data["stats"] = stats
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+
+                if monster["hp"] <= 0:
+                    money_reward = random.randint(monster["money_min"], monster["money_max"])
+                    # Apply money boost from titles
+                    money_boost_percent = stats.get("title_money_boost_percent", 0)
+                    if money_boost_percent > 0:
+                        money_reward = int(money_reward * (1 + money_boost_percent / 100.0))
+                    
+                    # Update money in database
+                    money += money_reward
+                    c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
+                    
+                    drops = []
+                    for item_name, chance in monster.get("drop", {}).items():
+                        if random.random() <= chance:
+                            inventory[item_name] = inventory.get(item_name, 0) + 1
+                            drops.append(item_name)
+                    
+                    # Apply material boost from titles
+                    material_boost_percent = stats.get("title_material_boost_percent", 0)
+                    if material_boost_percent > 0:
+                        # Temporarily modify drop chances
+                        original_drops = monster.get("drop", {}).copy()
+                        boosted_drops = {}
+                        for item, chance in original_drops.items():
+                            boosted_drops[item] = min(1.0, chance * (1 + material_boost_percent / 100.0))
+                        monster["drop"] = boosted_drops
+                        mat_drops = add_material_drops(monster, inventory, stats)
+                        monster["drop"] = original_drops  # Restore original
+                    else:
+                        mat_drops = add_material_drops(monster, inventory, stats)
+                    
+                    if mat_drops:
+                        drops.extend(mat_drops)
+
+                    # Boss drops - 100% chance for all permanent upgrades (except Skeleton King)
+                    if monster.get("is_boss") and monster["name"] != "Skeleton King":
+                        for perm_key in PERM_UPGRADES:
+                            inventory[perm_key] = inventory.get(perm_key, 0) + 1
+                            drops.append(f"{PERM_UPGRADES[perm_key]['name']} (Permanent Upgrade)")
+
+                    # Track achievements
+                    stats["monsters_defeated"] = stats.get("monsters_defeated", 0) + 1
+                    if monster.get("is_boss"):
+                        stats["bosses_defeated"] = stats.get("bosses_defeated", 0) + 1
+                    stats["total_money_earned"] = stats.get("total_money_earned", 0) + money_reward
+
+                    exp_gain = max(1, (monster.get("hp",0) * 2) + random.randint(5, 30))
+                    if monster.get("is_boss"):
+                        exp_gain *= 2
+                    grant_exp(current_user, exp_gain)
+                    
+                    if monster.get("is_boss"):
+                        boss_bonus = random.randint(50, 150)
+                        print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{boss_bonus} score, +{exp_gain} EXP")
+                        score += boss_bonus
+                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, current_user))
+                        
+                        if dungeon_treasure > 0:
+                            # Apply treasure boost from titles
+                            treasure_boost_percent = stats.get("title_treasure_boost_percent", 0)
+                            recovered_treasure = dungeon_treasure
+                            if treasure_boost_percent > 0:
+                                recovered_treasure = int(dungeon_treasure * (1 + treasure_boost_percent / 100.0))
+                            print(f"🏆 You recovered the dungeon treasure: ${recovered_treasure}!")
+                            money += recovered_treasure
+                            stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + recovered_treasure
+                            dungeon_treasure = 0
+                            save_dungeon_treasure()
+                            c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
+                    else:
+                        normal_bonus = random.randint(5, 20)
+                        print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{normal_bonus} score, +{exp_gain} EXP")
+                        score += normal_bonus
+                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, current_user))
+                    
+                    if drops:
+                        print("You found:", ", ".join(drops))
+
+                    # Check achievements after defeat
+                    check_achievements(current_user)
+
+                    # Update player data in database
+                    stats["hp"] = player_hp
+                    stats["mana"] = player_mana
+                    player_data["stats"] = stats
+                    player_data["inventory"] = inventory
+                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                            (json.dumps(player_data), current_user))
+                    conn.commit()
+                    break
+                    
+                # Monster attacks
+                mon_atk = random.randint(monster["atk_min"], monster["atk_max"])
+                damage_to_player = apply_damage_with_defense(mon_atk, effective_def)
+                player_hp -= damage_to_player
+                print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
+                # Apply regen
+                regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
+                # Apply hp_regen_percent from titles
+                hp_regen_percent = stats.get("title_hp_regen_percent", 0)
+                regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
+                if regen_amount > 0 and player_hp > 0:
+                    player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
+                    print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                    
+                # Apply mana regen
+                mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
+                permanent_mana_regen = stats.get("perm_mana_regen", 0)
+                if mana_regen_amount > 0 or permanent_mana_regen > 0:
+                    total_mana_regen = mana_regen_amount + permanent_mana_regen
+                    if total_mana_regen > 0 and player_mana >= 0:
+                        player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
+                        if permanent_mana_regen > 0:
+                            print(f"🔵 Permanent Mana Regen restored {permanent_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
+                        else:
+                            print(f"🔵 Mana Regen restored {mana_regen_amount} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
+                
+                # Update player data in database
+                stats["hp"] = player_hp
+                stats["mana"] = player_mana
+                player_data["stats"] = stats
+                player_data["inventory"] = inventory
+                c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                        (json.dumps(player_data), current_user))
+                conn.commit()
+
+            elif action == "m":
+                # Check if player has equipped spells
+                equipped_spells = stats.get("equipped_spells", [None, None, None, None])
+                if not any(equipped_spells):
+                    print("You haven't equipped any spells yet. Visit the Magic Spells interface to equip spells!")
+                    continue
+
+                available = [SPELLS_BY_KEY[s] for s in equipped_spells if s is not None]
+                if not available:
+                    print("You don't have any equipped spells.")
+                    continue
+
+                print("Equipped spells:")
+                for i, s in enumerate(available, start=1):
+                    print(f"{i}. {s['name']} (mana {s['mana']}) - {s['desc']}")
+                sel = input("Choose spell number or 'cancel': ").strip().lower()
+                if sel in ("cancel","c"):
+                    continue
+                try:
+                    idx = int(sel) - 1
+                    if idx < 0 or idx >= len(available):
+                        print("Invalid selection.")
+                        continue
+                    s = available[idx]
+                except Exception:
+                    print("Invalid selection.")
+                    continue
+                    
+                if player_mana < s["mana"]:
+                    print("Not enough mana.")
+                    continue
+                    
+                player_mana -= s["mana"]
+
+                # Check if it's a healing spell
+                if "barrier" in s["key"] or "resurgence" in s["key"]:
+                    # Healing spell
+                    heal_amount = s["power"]
+                    player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
+                    print(f"You cast {s['name']} and healed {heal_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                else:
+                    # Damage spell
+                    dmg = s["power"] + random.randint(-s["power"]//8, s["power"]//8)
+                    spell_crit = False
+                    if random.random() < 0.05:
+                        dmg = int(dmg * 1.5)
+                        spell_crit = True
+                        print("✨ Spell Critical!")
+                    monster["hp"] -= dmg
+                    print(f"You cast {s['name']} dealing {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
+
+                    # Apply lifesteal if it triggers
+                    lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
+                    lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
+                    if random.random() <= lifesteal_chance and lifesteal_percent > 0:
+                        heal_amount = int(dmg * lifesteal_percent)
+                        if heal_amount > 0:
+                            player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
+                            print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
+
+                # Update player data in database
+                stats["hp"] = player_hp
+                stats["mana"] = player_mana
+                player_data["stats"] = stats
+                player_data["inventory"] = inventory
+                c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                        (json.dumps(player_data), current_user))
+                conn.commit()
+
+                if monster["hp"] <= 0:
+                    money_reward = random.randint(monster["money_min"], monster["money_max"])
+                    money += money_reward
+                    c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
+                    
+                    drops = []
+                    for item_name, chance in monster.get("drop", {}).items():
+                        if random.random() <= chance:
+                            inventory[item_name] = inventory.get(item_name, 0) + 1
+                            drops.append(item_name)
+                    mat_drops = add_material_drops(monster, inventory, stats)
+                    if mat_drops:
+                        drops.extend(mat_drops)
+
+                    # Boss drops - 100% chance for all permanent upgrades (except Skeleton King)
+                    if monster.get("is_boss") and monster["name"] != "Skeleton King":
+                        for perm_key in PERM_UPGRADES:
+                            inventory[perm_key] = inventory.get(perm_key, 0) + 1
+                            drops.append(f"{PERM_UPGRADES[perm_key]['name']} (Permanent Upgrade)")
+
+                    exp_gain = max(1, (monster.get("hp",0) * 2) + random.randint(5, 30))
+                    if monster.get("is_boss"):
+                        exp_gain *= 2
+                    grant_exp(current_user, exp_gain)
+                    
+                    if monster.get("is_boss"):
+                        boss_bonus = random.randint(50, 150)
+                        print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{boss_bonus} score, +{exp_gain} EXP")
+                        score += boss_bonus
+                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, current_user))
+                        
+                        if dungeon_treasure > 0:
+                            dungeon_treasure_gained = dungeon_treasure
+                            print(f"🏆 You recovered the dungeon treasure: ${dungeon_treasure_gained}!")
+                            money += dungeon_treasure_gained
+                            stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + dungeon_treasure_gained
+                            dungeon_treasure = 0
+                            save_dungeon_treasure()
+                            c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
+                    else:
+                        normal_bonus = random.randint(5, 20)
+                        print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{normal_bonus} score, +{exp_gain} EXP")
+                        score += normal_bonus
+                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, current_user))
+                    
+                    if drops:
+                        print("You found:", ", ".join(drops))
+                    
+                    # Update player data in database
+                    stats["hp"] = player_hp
+                    stats["mana"] = player_mana
+                    player_data["stats"] = stats
+                    player_data["inventory"] = inventory
+                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                            (json.dumps(player_data), current_user))
+                    conn.commit()
+                    break
+                    
+                # Monster attacks
+                mon_atk = random.randint(monster["atk_min"], monster["atk_max"])
+                damage_to_player = apply_damage_with_defense(mon_atk, effective_def)
+                player_hp -= damage_to_player
+                print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
+                
+                # Apply regen
+                regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
+                # Apply hp_regen_percent from titles
+                hp_regen_percent = stats.get("title_hp_regen_percent", 0)
+                regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
+                if regen_amount > 0 and player_hp > 0:
+                    player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
+                    print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                    
+                # Apply mana regen
+                mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
+                permanent_mana_regen = stats.get("perm_mana_regen", 0)
+                if mana_regen_amount > 0 or permanent_mana_regen > 0:
+                    total_mana_regen = mana_regen_amount + permanent_mana_regen
+                    if total_mana_regen > 0 and player_mana >= 0:
+                        player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
+                        if permanent_mana_regen > 0:
+                            print(f"🔵 Permanent Mana Regen restored {permanent_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
+                        else:
+                            print(f"🔵 Mana Regen restored {mana_regen_amount} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
+                
+                # Update player data in database
+                stats["hp"] = player_hp
+                stats["mana"] = player_mana
+                player_data["stats"] = stats
+                player_data["inventory"] = inventory
+                c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                        (json.dumps(player_data), current_user))
+                conn.commit()
+
+            elif action == "p":
+                player_mana_before = player_mana
+                print("Potions available: 1) potion (+30 HP) 2) strong_potion (+80 HP) 3) ultra_potion (+200 HP) 4) instant_mana (full mana)")
+                ch = input("Choice (1-4) or cancel: ").strip().lower()
+                if ch in ("cancel","c"):
+                    continue
+                if ch == "1":
+                    if inventory.get("potion",0) > 0:
+                        heal = 30
+                        inventory["potion"] -= 1
+                        player_hp = min(player_hp + heal, stats.get("hp_max"))
+                        print(f"You used a potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                        # Update player data in database
+                        stats["hp"] = player_hp
+                        player_data["stats"] = stats
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No potion.")
+                elif ch == "2":
+                    if inventory.get("strong_potion",0) > 0:
+                        heal = 80
+                        inventory["strong_potion"] -= 1
+                        player_hp = min(player_hp + heal, stats.get("hp_max"))
+                        print(f"You used a strong potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                        # Update player data in database
+                        stats["hp"] = player_hp
+                        player_data["stats"] = stats
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No strong potion.")
+                elif ch == "3":
+                    if inventory.get("ultra_potion",0) > 0:
+                        heal = 200
+                        inventory["ultra_potion"] -= 1
+                        player_hp = min(player_hp + heal, stats.get("hp_max"))
+                        print(f"You used an ultra potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                        # Update player data in database
+                        stats["hp"] = player_hp
+                        player_data["stats"] = stats
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No ultra potion.")
+                elif ch == "4":
+                    if inventory.get("instant_mana",0) > 0:
+                        inventory["instant_mana"] -= 1
+                        player_mana = stats.get("mana_max")
+                        print(f"You used Instant Mana and restored to full! (MANA: {player_mana}/{stats.get('mana_max')})")
+                        # Update player data in database
+                        stats["mana"] = player_mana
+                        player_data["stats"] = stats
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No instant mana potions.")
+                else:
+                    print("Invalid choice.")
+
+            elif action == "u":
+                print("Which buff would you like to use?")
+                print("1. Strength Boost (+5 ATK for next fights)")
+                print("2. Defense Boost (+3 DEF for next fights)")
+                print("3. Regen Potion (+12 HP per fight for next fights)")
+                print("4. Crit Boost (+50% crit chance for next fights)")
+                print("5. Mana Regen Potion (+15 mana per fight for next fights)")
+                print("6. Mana Upgrade Potion (permanent +20 max mana)")
+                choice = input("Choice (1-6 or cancel): ").strip().lower()
+                if choice in ("cancel","c"):
+                    print("Cancelled.")
+                elif choice == "1":
+                    if inventory.get("strength_boost",0) > 0:
+                        inventory["strength_boost"] -= 1
+                        active_buffs.append({"type":"atk","amount":5,"remaining":3})
+                        print("You used Strength Boost! +5 ATK for 3 fights.")
+                        # Update player data in database
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No Strength Boosts.")
+                elif choice == "2":
+                    if inventory.get("defense_boost",0) > 0:
+                        inventory["defense_boost"] -= 1
+                        active_buffs.append({"type":"def","amount":3,"remaining":3})
+                        print("You used Defense Boost! +3 DEF for 3 fights.")
+                        # Update player data in database
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No Defense Boosts.")
+                elif choice == "3":
+                    if inventory.get("regen_potion",0) > 0:
+                        inventory["regen_potion"] -= 1
+                        active_buffs.append({"type":"regen","amount":12,"remaining":3})
+                        print("You used Regen Potion! +12 HP per fight for 3 fights.")
+                        # Update player data in database
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No Regen Potions.")
+                elif choice == "4":
+                    if inventory.get("crit_boost",0) > 0:
+                        inventory["crit_boost"] -= 1
+                        active_buffs.append({"type":"crit","amount":50,"remaining":3})
+                        print("You used Crit Boost! +50% crit chance for 3 fights.")
+                        # Update player data in database
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No Crit Boosts.")
+                elif choice == "5":
+                    if inventory.get("mana_regen_potion",0) > 0:
+                        inventory["mana_regen_potion"] -= 1
+                        active_buffs.append({"type":"mana_regen","amount":15,"remaining":3})
+                        print("You used Mana Regen Potion! +15 mana per fight for 3 fights.")
+                        # Update player data in database
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No Mana Regen Potions.")
+                elif choice == "6":
+                    if inventory.get("mana_upgrade_potion",0) > 0:
+                        inventory["mana_upgrade_potion"] -= 1
+                        stats["mana_max"] = stats.get("mana_max",50) + 20
+                        stats["mana"] = min(stats.get("mana",0) + 10, stats["mana_max"])
+                        print("Your MAX MANA permanently increased by +20!")
+                        # Update player data in database
+                        player_data["stats"] = stats
+                        player_data["inventory"] = inventory
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                                (json.dumps(player_data), current_user))
+                        conn.commit()
+                    else:
+                        print("No Mana Upgrade Potions.")
+                else:
+                    print("Invalid choice.")
+
+            elif action == "r":
+                if random.random() <= 0.7:
+                    print("You ran away safely!")
+                    break
+                else:
+                    print("You failed to run away!")
+                    mon_atk = random.randint(monster["atk_min"], monster["atk_max"])
+                    damage_to_player = apply_damage_with_defense(mon_atk, effective_def)
+                    player_hp -= damage_to_player
+                    print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
+
+                    # Apply regen
+                    regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
+                    # Apply hp_regen_percent from titles
+                    hp_regen_percent = stats.get("title_hp_regen_percent", 0)
+                    regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
+                    if regen_amount > 0 and player_hp > 0:
+                        player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
+                        print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                        
+                    # Apply mana regen
+                    mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
+                    permanent_mana_regen = stats.get("perm_mana_regen", 0)
+                    if mana_regen_amount > 0 or permanent_mana_regen > 0:
+                        total_mana_regen = mana_regen_amount + permanent_mana_regen
+                        if total_mana_regen > 0 and player_mana >= 0:
+                            player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
+                            if permanent_mana_regen > 0:
+                                print(f"🔵 Permanent Mana Regen restored {permanent_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
+                            else:
+                                print(f"🔵 Mana Regen restored {mana_regen_amount} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
+                    
+                    # Update player data in database
+                    stats["hp"] = player_hp
+                    stats["mana"] = player_mana
+                    player_data["stats"] = stats
+                    player_data["inventory"] = inventory
+                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                            (json.dumps(player_data), current_user))
+                    conn.commit()
+            else:
+                print("Invalid choice. Try again.")
+
+        if fight_happened:
+            # Decrease remaining duration for active buffs
+            for b in active_buffs:
+                if b["remaining"] > 0:
+                    b["remaining"] -= 1
+            active_buffs = [b for b in active_buffs if b["remaining"] > 0]
+            
+            # Update player data in database
+            player_data["stats"] = stats
+            player_data["inventory"] = inventory
+            c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                    (json.dumps(player_data), current_user))
+            conn.commit()
+
+        if player_hp <= 0:
+            print("💀 You have fallen in the dungeon...")
+            if money > 0:
+                lost = money // 4
+                if lost < 1:
+                    lost = 1
+                # Apply death penalty percent from titles
+                death_penalty_percent = stats.get("title_death_penalty_percent", 0)
+                lost = int(lost * (1 + death_penalty_percent / 100.0))
+                if lost < 0:
+                    lost = 0
+                if lost < 1:
+                    lost = 1
+                money = max(0, money - lost)
+                dungeon_treasure += lost
+                save_dungeon_treasure()
+                c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
+                print(f"You wake up outside the dungeon and lost ${lost}. The money has been added to the dungeon treasure.")
+            else:
+                print("You wake up outside the dungeon with no money to lose.")
+
+            # Track death for achievements
+            stats["times_died"] = stats.get("times_died", 0) + 1
+
+            stats["hp"] = max(1, stats.get("hp_max",100))
+            stats["mana"] = stats.get("mana_max",50)
+            
+            # Check achievements after death
+            check_achievements(current_user)
+            
+            # Update player data in database
+            player_data["stats"] = stats
+            player_data["inventory"] = inventory
+            c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                    (json.dumps(player_data), current_user))
+            conn.commit()
+            
+            save_all_data()
+            conn.close()
+            return
+        else:
+            # Update player data in database
+            stats["hp"] = player_hp
+            stats["mana"] = player_mana
+            player_data["stats"] = stats
+            player_data["inventory"] = inventory
+            c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
+                    (json.dumps(player_data), current_user))
+            conn.commit()
+            
+            highlights = {k:v for k,v in inventory.items() if v>0 and k in ['potion','mana_regen_potion','instant_mana']}
+            print(f"Current Score: {score}, Money: ${money}, Inventory highlights: {highlights}")
+            conn.close()
+            # continue exploring
+        conn.close()
 # -------------------------
 # Shop Interface
 # -------------------------
@@ -1981,207 +2715,6 @@ def parse_qty_from_choice(choice_str):
     except ValueError:
         return 1
 
-    # Apply permanent upgrades before entering dungeon
-    apply_permanent_upgrades(current_user)
-    # Reload player data after applying upgrades
-    c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
-    result = c.fetchone()
-    player_data = json.loads(result[0])
-    stats = player_data["stats"]
-    inventory = player_data["inventory"]
-
-    # Auto-equip best equipment after upgrading if enabled
-    settings = stats.get("settings", {})
-    if settings.get("auto_equip_best", False) or settings.get("auto_equip_everything", False):
-        auto_equip_items(current_user)
-
-    active_buffs = []
-    forced_monster = None
-
-    print("\n⚔️ Welcome to the Dungeon, brave adventurer!")
-    player_hp = stats.get("hp", stats.get("hp_max", 100))
-    player_mana = stats.get("mana", stats.get("mana_max", 50))
-
-    # Calculate effective base ATK and DEF (including equipment and permanent upgrades)
-    effective_base_atk, effective_base_def, _, _, _, _, _, _ = compute_effective_stats(stats, [])
-
-    # Calculate base ATK and DEF with equipment (permanent upgrades + equipment)
-    w_atk = WEAPONS.get(stats.get("equipped", {}).get("weapon"), {}).get("atk", 0)
-    a_def = ARMORS.get(stats.get("equipped", {}).get("armor"), {}).get("def", 0)
-    n_atk = NECKLACES.get(stats.get("equipped", {}).get("necklace"), {}).get("atk_bonus", 0)
-    n_def = NECKLACES.get(stats.get("equipped", {}).get("necklace"), {}).get("def_bonus", 0)
-    normal_atk = stats.get("atk", 5)
-    normal_def = stats.get("defense", 0)
-    equipped_atk = normal_atk + w_atk + n_atk
-    equipped_def = normal_def + a_def + n_def
-
-    current_area = stats.get("current_area", 1)
-    print(f"Entering dungeon with HP: {player_hp}, MANA: {player_mana}, ATK: {equipped_atk}, DEF: {equipped_def}, LVL: {stats.get('level',1)}, AREA: {current_area}")
-    print(f"Normal ATK + Perm: {normal_atk}, Normal DEF + Perm: {normal_def}")
-
-    while True:
-        cmd = input("\nType 'explore' to find a monster, 'status' to view stats, 'shop' to access shop, 'packs' to open magic packs, 'upgrades' to use permanent upgrades, 'move' to change areas, or 'exit' to leave the dungeon: ").strip()
-        if not cmd:
-            continue
-        lc = cmd.lower().strip()
-        if lc == "exit":
-            print("You leave the dungeon safely.")
-            stats["hp"] = player_hp
-            stats["mana"] = player_mana
-            update_user(current_user, users[current_user][1], users[current_user][2], player_data)
-            conn.commit()
-            conn.close()
-            return
-        if lc == "status":
-            effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
-            crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0)
-            regen_total = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
-            mana_regen_total = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
-            next_exp = exp_to_next(stats.get("level",1)) if stats.get("level",1) < MAX_LEVEL else "MAX"
-            name_display = current_user
-            if stats.get("settings", {}).get("call_including_title", True) and stats.get("title"):
-                name_display = f"{stats['title']} {current_user}"
-            print(f"HP: {player_hp}/{stats.get('hp_max')}, MANA: {player_mana}/{stats.get('mana_max')}, ATK: {effective_atk}, DEF: {effective_def}, Money: ${player_data.get('money',0)}, LVL: {stats.get('level')}, EXP: {stats.get('exp')}/{next_exp}, AREA: {stats.get('current_area', 1)}")
-            if stats.get("settings", {}).get("show_exp_bar", False):
-                exp_bar = create_exp_bar(stats.get("exp", 0), next_exp if next_exp != "MAX" else exp_to_next(stats["level"]))
-                print(f"EXP Bar: {exp_bar}")
-            print("Equipped:", stats.get("equipped"))
-            print("Inventory (highlights):", {k:v for k,v in inventory.items() if v>0 and k in ['potion','strong_potion','mana_regen_potion','instant_mana']})
-            print("\nCurrent permanent stats:")
-            print(f"ATK Bonus: +{stats.get('perm_atk', 0)}")
-            print(f"DEF Bonus: +{stats.get('perm_def', 0)}")
-            print(f"HP Bonus: +{stats.get('perm_hp_max', 0)}")
-            print(f"Mana Bonus: +{stats.get('perm_mana_max', 0)}")
-            print(f"Crit Chance Bonus: +{stats.get('perm_crit_chance', 0)}%")
-            print(f"Mana Regen Bonus: +{stats.get('perm_mana_regen', 0)} per fight")
-            print(f"Lifesteal Bonus: +{stats.get('perm_lifesteal', 0)}% of damage")
-            print(f"Lifesteal Chance Bonus: +{stats.get('perm_lifesteal_chance', 0)}% chance")
-            print(f"Experience Boost: +{stats.get('perm_exp_boost', 0)}%")
-            if active_buffs:
-                print("Active buffs (fights remaining):")
-                for b in active_buffs:
-                    if b['remaining']>0:
-                        print(f" - {b}")
-            continue
-        if lc == "shop":
-            shop()
-            # Reload data after shop
-            ensure_user_fields(current_user)
-            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
-            result = c.fetchone()
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            inventory = player_data["inventory"]
-            player_mana = stats.get("mana", stats.get("mana_max", 50))
-            continue
-        if lc == "packs":
-            magic_pack_interface(current_user)
-            # Reload data after packs
-            ensure_user_fields(current_user)
-            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
-            result = c.fetchone()
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            inventory = player_data["inventory"]
-            continue
-        if lc == "upgrades":
-            permanent_upgrades_interface(current_user)
-            # Reload data after upgrades
-            ensure_user_fields(current_user)
-            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
-            result = c.fetchone()
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            inventory = player_data["inventory"]
-            player_mana = stats.get("mana", stats.get("mana_max", 50))
-            continue
-        if lc == "move":
-            print(f"\nCurrent Area: {stats.get('current_area', 1)}")
-            print("You can move to areas 1-10. Higher areas have stronger monsters.")
-            try:
-                new_area = int(input("Enter area number (1-10) or 'cancel': ").strip())
-                if new_area == "cancel":
-                    continue
-                if 1 <= new_area <= 10:
-                    stats["current_area"] = new_area
-                    current_area = new_area
-                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
-                    conn.commit()
-                    print(f"Moved to Area {new_area}!")
-                else:
-                    print("Invalid area. Must be between 1 and 10.")
-            except ValueError:
-                print("Invalid input. Enter a number between 1 and 10.")
-            continue
-
-        if lc.startswith("explore "):
-            parts = cmd.split()
-            if len(parts) >= 4:
-                code = parts[1].strip()
-                is_boss_flag = parts[2].strip().lower()
-                monster_name = " ".join(parts[3:]).strip().lower()
-                if code == "10234":
-                    boss_flags = ("yes", "y", "true", "boss", "b")
-                    normal_flags = ("no", "n", "false", "normal", "monster", "m")
-                    if is_boss_flag in boss_flags:
-                        # Force boss
-                        print("Forced boss spawn not implemented.")
-                    elif is_boss_flag in normal_flags:
-                        # Force normal monster
-                        print("Forced monster spawn not implemented.")
-                    else:
-                        print("Invalid flag.")
-                else:
-                    print("Invalid code.")
-            continue
-        elif lc != "explore":
-            print("Unknown command. Try 'explore', 'status', 'shop', 'packs', 'upgrades', 'move', or 'exit'.")
-            continue
-
-        # Explore logic
-        if forced_monster is not None:
-            monster = forced_monster.copy()
-            forced_monster = None
-            # Use existing monster data
-        else:
-            roll = random.randint(1,100)
-            if roll <= 5:  # Boss chance
-                # Choose random boss
-                boss_keys = list(BOSSES.keys())
-                boss_key = random.choice(boss_keys)
-                monster = BOSSES[boss_key].copy()
-                monster['is_boss'] = True
-            else:
-                # Choose random monster
-                monster_keys = list(MONSTERS.keys())
-                monster_key = random.choice(monster_keys)
-                monster = MONSTERS[monster_key].copy()
-                monster['is_boss'] = False
-
-        # Scale monster stats based on area
-        scale = 1.0 + (current_area - 1) * 0.15
-        monster["hp"] = max(1, int(monster.get("hp", 1) * scale))
-        monster["atk"] = max(1, int(monster["atk"] * scale))
-        monster["def"] = max(0, int(monster["def"] * scale))
-        monster["gold"] = max(1, int(monster["gold"] * scale))
-
-        print(f"\nA wild {monster['name']} appears! (HP {monster['hp']}, ATK {monster['atk']}, DEF {monster['def']})")
-
-        # Combat loop
-        fight_happened = True
-        battle_log = {
-            "timestamp": time.time(),
-            "monster_name": monster["name"],
-            "monster_class": "Unknown",
-            "monster_hp": monster["hp"],
-            "monster_atk": monster["atk"],
-            "player_hp_start": player_hp,
-            "player_mana_start": player_mana,
-            "actions": []
-        }
-
-    conn.close()
-
 # -------------------------
 # Permanent Upgrades Interface
 # -------------------------
@@ -2300,192 +2833,6 @@ def magic_pack_interface(username):
                 print(message)
         else:
             print("Invalid choice or not owned.")
-
-    conn.close()
-    effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
-    crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0) / 100.0
-    base_crit = 0.05
-    title_crit_percent = stats.get("title_crit_chance_percent", 0) / 100.0
-    total_crit_chance = base_crit + crit_chance + title_crit_percent
-
-    action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
-    if action == "a":
-        dmg = random.randint(max(1, effective_atk - 2), effective_atk + 3)
-        crit_hit = False
-        if random.random() <= total_crit_chance:
-            dmg *= 2
-            crit_hit = True
-            print("💥 CRITICAL HIT!")
-            stats["critical_hits"] = stats.get("critical_hits", 0) + 1
-        monster["hp"] -= dmg
-        print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
-        battle_log["actions"].append({
-            "action": "attack",
-            "damage": dmg,
-            "critical": crit_hit,
-            "monster_hp_after": max(0, monster["hp"]),
-            "player_hp_after": player_hp
-        })
-
-        # Apply lifesteal
-        lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
-        lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
-        if random.random() <= lifesteal_chance and lifesteal_percent > 0:
-            heal_amount = int(dmg * lifesteal_percent)
-            if heal_amount > 0:
-                player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
-                print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
-
-    elif action == "m":
-        # Magic not fully implemented, skip
-        print("Magic not implemented.")
-    elif action == "p":
-        # Simple potion use
-        if inventory.get("potion", 0) > 0:
-            inventory["potion"] -= 1
-            heal = 30
-            player_hp = min(player_hp + heal, stats.get("hp_max"))
-            print(f"You used a potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-            battle_log["actions"].append({
-                "action": "potion",
-                "type": "potion",
-                "heal": heal,
-                "player_hp_after": player_hp
-            })
-        else:
-            print("No potions!")
-    elif action == "u":
-        # Buff not implemented
-        print("Buffs not implemented.")
-    elif action == "r":
-        if random.random() <= 0.7:
-            print("You ran away safely!")
-            battle_log["actions"].append({
-                "action": "run",
-                "success": True
-            })
-            break
-        else:
-            print("You failed to run away!")
-            battle_log["actions"].append({
-                "action": "run",
-                "success": False,
-                "damage_taken": 0,
-                "player_hp_after": player_hp
-            })
-    else:
-        print("Invalid action.")
-
-    if monster["hp"] <= 0:
-        break
-
-    # Monster attack
-    mon_atk = random.randint(monster["atk"] - 2, monster["atk"] + 2)
-    damage_to_player = max(1, mon_atk - effective_def)
-    player_hp -= damage_to_player
-    print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
-
-    # Regen
-    regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
-    hp_regen_percent = stats.get("title_hp_regen_percent", 0)
-    regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
-    if regen_amount > 0 and player_hp > 0:
-        player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
-        print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-    mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
-    permanent_mana_regen = stats.get("perm_mana_regen", 0)
-    if mana_regen_amount > 0 or permanent_mana_regen > 0:
-        total_mana_regen = mana_regen_amount + permanent_mana_regen
-        if total_mana_regen > 0 and player_mana >= 0:
-            player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
-            print(f"🔵 Mana Regen restored {total_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
-
-    # After fight
-    if fight_happened:
-        if player_hp <= 0:
-            battle_log["outcome"] = "defeat"
-        elif monster["hp"] <= 0:
-            battle_log["outcome"] = "victory"
-        else:
-            battle_log["outcome"] = "run_success"
-
-        # Append battle log
-        stats["battle_logs"].append(battle_log)
-        if len(stats["battle_logs"]) > 50:
-            stats["battle_logs"] = stats["battle_logs"][-50:]
-
-    if player_hp <= 0:
-        print("💀 You have fallen in the dungeon...")
-        money_now = player_data.get("money", 0)
-        if money_now > 0:
-            lost = money_now // 4
-            if lost < 1:
-                lost = 1
-            death_penalty_percent = stats.get("title_death_penalty_percent", 0)
-            lost = int(lost * (1 + death_penalty_percent / 100.0))
-            if lost < 0:
-                lost = 0
-            if lost < 1:
-                lost = 1
-            player_data["money"] = max(0, money_now - lost)
-            global dungeon_treasure
-            dungeon_treasure += lost
-            save_dungeon_treasure()
-            print(f"You wake up outside the dungeon and lost ${lost}. The money has been added to the dungeon treasure.")
-        else:
-            print("You wake up outside the dungeon with no money to lose.")
-
-        stats["times_died"] = stats.get("times_died", 0) + 1
-        stats["hp"] = max(1, stats.get("hp_max",100))
-        stats["mana"] = stats.get("mana_max",50)
-        player_hp = stats["hp"]
-        player_mana = stats["mana"]
-        check_achievements(current_user)
-        c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
-        conn.commit()
-        continue
-
-    if monster["hp"] <= 0:
-        money_reward = monster["gold"]
-        money_boost_percent = stats.get("title_money_boost_percent", 0)
-        if money_boost_percent > 0:
-            money_reward = int(money_reward * (1 + money_boost_percent / 100.0))
-        player_data["money"] += money_reward
-
-        exp_gain = max(1, (monster.get("hp",0) * 2) + random.randint(5, 30))
-        if monster.get("is_boss"):
-            exp_gain *= 2
-        grant_exp(current_user, exp_gain)
-
-        if monster.get("is_boss"):
-            boss_bonus = random.randint(50, 150)
-            print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
-        else:
-            normal_bonus = random.randint(5, 20)
-            print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{exp_gain} EXP")
-
-        # Materials
-        mats = monster.get("materials", [])
-        for mat in mats:
-            inventory[mat] = inventory.get(mat, 0) + 1
-        if mats:
-            print("You found:", ", ".join(mats))
-
-        stats["monsters_defeated"] = stats.get("monsters_defeated", 0) + 1
-        if monster.get("is_boss"):
-            stats["bosses_defeated"] = stats.get("bosses_defeated", 0) + 1
-        stats["total_money_earned"] = stats.get("total_money_earned", 0) + money_reward
-
-        check_achievements(current_user)
-
-    # Update buffs
-    for b in active_buffs:
-        if b["remaining"] > 0:
-            b["remaining"] -= 1
-    active_buffs = [b for b in active_buffs if b["remaining"] > 0]
-
-    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
-    conn.commit()
 
     conn.close()
 
@@ -3217,6 +3564,8 @@ def compute_effective_stats(stats, active_buffs):
     atk_buff = sum(b["amount"] for b in active_buffs if b["type"]=="atk" and b["remaining"]>0)
     def_buff = sum(b["amount"] for b in active_buffs if b["type"]=="def" and b["remaining"]>0)
 
+    global effective_atk, effective_def, effective_magic_atk, effective_magic_def, effective_hp_bonus, effective_mana_bonus
+
     # Calculate effective stats before percent multipliers
     effective_atk = base_atk + w_atk + n_atk + t_atk + atk_buff
     effective_def = base_def + a_def + n_def + t_def + def_buff
@@ -3234,6 +3583,7 @@ def compute_effective_stats(stats, active_buffs):
     return effective_atk, effective_def, effective_magic_atk, effective_magic_def, effective_hp_bonus, effective_mana_bonus, n_crit, n_lifesteal
 
 def main_menu():
+    global current_user, score, player_data, money
     current_user = None
     score = 0
     player_data = None
@@ -3262,7 +3612,7 @@ def main_menu():
                 score = guessing_game(current_user, score)
                 # Data is already saved via update_user in the functions
             elif choice == '2':
-                dungeon()
+                dungeon(username)
                 # Reload data after dungeon
                 score, money, player_data = signin(current_user, password="")
             elif choice == '3':
