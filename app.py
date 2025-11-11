@@ -798,6 +798,25 @@ def apply_damage_with_defense(damage, defense):
     reduced = damage - defense
     return reduced if reduced >= 1 else 1
 
+def apply_magic_damage(damage, magic_def):
+    """Magic damage is reduced by magic_def (robes, perm_magic_def). Minimum 1."""
+    reduced = damage - magic_def
+    return reduced if reduced >= 1 else 1
+
+def get_equip_bonuses(stats):
+    """Return player's equip numeric bonuses used by damage/def calculations."""
+    equip = stats.get("equipped", {})
+    w_atk = WEAPONS.get(equip.get("weapon"), {}).get("atk", 0)
+    n_atk = NECKLACES.get(equip.get("necklace"), {}).get("atk_bonus", 0)
+    armor_def = ARMORS.get(equip.get("armor"), {}).get("def", 0)
+    robe_magic_def = ROBES.get(equip.get("robe"), {}).get("magic_def", 0)
+    return {
+        "weapon_atk": w_atk,
+        "neck_atk": n_atk,
+        "armor_def": armor_def,
+        "robe_magic_def": robe_magic_def
+    }
+
 MONSTERS = [
 # Area 1 Monsters (Level 1-5)
 {"name": "Slime", "hp": 8, "atk_min": 1, "atk_max": 3, "money_min": 2, "money_max": 7, "class": "D(Common)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.25, "slime_gel": 0.4}, "weight": 18, "area": 1},
@@ -1553,14 +1572,28 @@ def dungeon(username):
 
             action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
             if action == "a":
-                dmg = random.randint(max(1, effective_atk - 2), effective_atk + 3)
-                crit_hit = False
-                if random.random() <= total_crit_chance:
-                    dmg *= 2
-                    crit_hit = True
-                    print("💥 CRITICAL HIT!")
-                    stats["critical_hits"] = stats.get("critical_hits", 0) + 1
+                    # ***** REPLACE HERE: player physical attack (uses equipped weapon + necklace) *****
+                    equip = get_equip_bonuses(stats)
+                    weapon_bonus = equip["weapon_atk"] + equip["neck_atk"]
+
+                    base_roll = random.randint(max(1, effective_atk - 2), effective_atk + 3)
+                    dmg = 5 + weapon_bonus + base_roll
+
+                    # If the monster is a 'magic' monster (uses magic_atk fields), physical attacks are weak (1/4)
+                    if "magic_atk_min" in monster or "magic_atk_max" in monster:
+                        dmg = max(1, dmg // 4)
+
+                    crit_hit = False
+                    if random.random() <= total_crit_chance:
+                        dmg = int(dmg * 2)
+                        crit_hit = True
+                        print("💥 CRITICAL HIT!")
+                        stats["critical_hits"] = stats.get("critical_hits", 0) + 1
+
+                    # Apply damage to monster (physical damage goes through monster's normal HP/armor - if you want monster defense later, add monster['def'] handling)
                     monster["hp"] -= dmg
+                    print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
+
                 print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
                 lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
                 lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
