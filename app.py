@@ -326,44 +326,45 @@ def get_title(level, achievements=None):
     return best_achievement_title if best_achievement_title else level_title
 
 def check_achievements(username):
-    """Check and unlock achievements for a user"""
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
-        conn.close()
+    try:
+        with sqlite3.connect('users.db', timeout=10.0) as conn:
+            c = conn.cursor()
+            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+            result = c.fetchone()
+            if not result:
+                return []
+
+            player_data = json.loads(result[0])
+            stats = player_data.get("stats", {})
+            unlocked = stats.get("achievements", [])
+            new_achievements = []
+
+            for ach_key, achievement in ACHIEVEMENTS.items():
+                if ach_key not in unlocked and achievement["condition"](stats):
+                    unlocked.append(ach_key)
+                    new_achievements.append(ach_key)
+                    print(f"🏆 Achievement Unlocked: {achievement['name']} - '{achievement['title']}'!")
+                    print(f" {achievement['desc']}")
+
+            if new_achievements:
+                stats["achievements"] = unlocked
+                # Update title if new achievement gives better title
+                old_title = stats.get("title")
+                new_title = get_title(stats.get("level", 1), unlocked)
+                if new_title != old_title:
+                    stats["title"] = new_title
+                    if new_title not in stats.get("available_titles", []):
+                        stats["available_titles"].append(new_title)
+                    print(f"🎉 New title unlocked: '{new_title}'!")
+
+                player_data["stats"] = stats
+                c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+                conn.commit()
+
+            return new_achievements
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
         return []
-
-    player_data = json.loads(result[0])
-    stats = player_data.get("stats", {})
-    unlocked = stats.get("achievements", [])
-    new_achievements = []
-
-    for ach_key, achievement in ACHIEVEMENTS.items():
-        if ach_key not in unlocked and achievement["condition"](stats):
-            unlocked.append(ach_key)
-            new_achievements.append(ach_key)
-            print(f"🏆 Achievement Unlocked: {achievement['name']} - '{achievement['title']}'!")
-            print(f" {achievement['desc']}")
-
-    if new_achievements:
-        stats["achievements"] = unlocked
-        # Update title if new achievement gives better title
-        old_title = stats.get("title")
-        new_title = get_title(stats.get("level", 1), unlocked)
-        if new_title != old_title:
-            stats["title"] = new_title
-            if new_title not in stats.get("available_titles", []):
-                stats["available_titles"].append(new_title)
-            print(f"🎉 New title unlocked: '{new_title}'!")
-
-        player_data["stats"] = stats
-        c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-        conn.commit()
-
-    conn.close()
-    return new_achievements
 
 # -------------------------
 # XP / Leveling system
@@ -401,130 +402,133 @@ def create_exp_bar(current_exp, next_exp):
     return "[░░░░░░░░░░] 0%"
 
 def grant_exp(username, amount):
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
-        conn.close()
-        return []
+    try:
+        with sqlite3.connect('users.db', timeout=10.0) as conn:
+            c = conn.cursor()
+            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+            result = c.fetchone()
+            if not result:
+                return []
 
-    player_data = json.loads(result[0])
-    stats = player_data["stats"]
-    lvls_gained = []
-    if stats.get("level", 1) >= MAX_LEVEL:
-        conn.close()
-        return lvls_gained
-
-    # Apply experience boost if available
-    exp_boost = stats.get("perm_exp_boost", 0)
-    title_exp_boost = stats.get("title_exp_boost", 0)
-    total_exp_boost = exp_boost + title_exp_boost
-    if total_exp_boost > 0:
-        boosted_amount = amount * (total_exp_boost / 100.0)
-        print(f"Experience boost applied! +{boosted_amount:.1f} bonus EXP")
-        amount += boosted_amount
-
-    stats["exp"] = stats.get("exp", 0) + amount
-    old_title = stats.get("title")
-    while stats["level"] < MAX_LEVEL and stats["exp"] >= exp_to_next(stats["level"]):
-        req = exp_to_next(stats["level"])
-        stats["exp"] -= req
-        old_level = stats["level"]
-        stats["level"] += 1
-
-        # Improved stat gains per level
-        hp_increase = 10 + stats["level"] // 2
-        atk_increase = 1 + stats["level"] // 5
-        mana_increase = 5 + stats["level"] // 3
-
-        # Check if stats were manually set below default
-        default_stats = default_player_data()["stats"]
-
-        # Handle HP
-        if not stats["stats_manually_set"]["hp_max"]:
-            stats["hp_max"] = stats.get("hp_max", 100) + hp_increase
-        if not stats["stats_manually_set"]["hp"]:
-            stats["hp"] = min(stats.get("hp", stats["hp_max"]) + stats["hp_max"] // 4, stats["hp_max"])
-
-        # Handle ATK
-        if not stats["stats_manually_set"]["atk"]:
-            stats["atk"] = stats.get("atk", 5) + atk_increase
-
-        # Handle Mana
-        if not stats["stats_manually_set"]["mana_max"]:
-            stats["mana_max"] = stats.get("mana_max", 50) + mana_increase
-        if not stats["stats_manually_set"]["mana"]:
-            stats["mana"] = min(stats.get("mana", stats["mana_max"]) + stats["mana_max"] // 3, stats["mana_max"])
-
-        # Handle DEF
-        if not stats["stats_manually_set"]["defense"]:
-            stats["defense"] = stats.get("defense", 0) + 1
-
-        lvls_gained.append(stats["level"])
-
-        # Apply permanent upgrades after level up
-        apply_permanent_upgrades(username)
-
-        # Reload user data after applying upgrades
-        c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-        result = c.fetchone()
-        if result:
             player_data = json.loads(result[0])
             stats = player_data["stats"]
+            lvls_gained = []
+            if stats.get("level", 1) >= MAX_LEVEL:
+                return lvls_gained
 
-        # Update title if level changed
-        new_title = get_title(stats["level"], stats.get("achievements", []))
-        if new_title != old_title:
-            stats["title"] = new_title
+            # Apply experience boost if available
+            exp_boost = stats.get("perm_exp_boost", 0)
+            title_exp_boost = stats.get("title_exp_boost", 0)
+            total_exp_boost = exp_boost + title_exp_boost
+            if total_exp_boost > 0:
+                boosted_amount = amount * (total_exp_boost / 100.0)
+                print(f"Experience boost applied! +{boosted_amount:.1f} bonus EXP")
+                amount += boosted_amount
 
-        # Check for new achievements after leveling up
-        check_achievements(username)
+            stats["exp"] = stats.get("exp", 0) + amount
+            old_title = stats.get("title")
+            while stats["level"] < MAX_LEVEL and stats["exp"] >= exp_to_next(stats["level"]):
+                req = exp_to_next(stats["level"])
+                stats["exp"] -= req
+                old_level = stats["level"]
+                stats["level"] += 1
 
-        player_data["stats"] = stats
-        c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-        conn.commit()
+                # Improved stat gains per level
+                hp_increase = 10 + stats["level"] // 2
+                atk_increase = 1 + stats["level"] // 5
+                mana_increase = 5 + stats["level"] // 3
 
+                # Check if stats were manually set below default
+                default_stats = default_player_data()["stats"]
+
+                # Handle HP
+                if not stats["stats_manually_set"]["hp_max"]:
+                    stats["hp_max"] = stats.get("hp_max", 100) + hp_increase
+                if not stats["stats_manually_set"]["hp"]:
+                    stats["hp"] = min(stats.get("hp", stats["hp_max"]) + stats["hp_max"] // 4, stats["hp_max"])
+
+                # Handle ATK
+                if not stats["stats_manually_set"]["atk"]:
+                    stats["atk"] = stats.get("atk", 5) + atk_increase
+
+                # Handle Mana
+                if not stats["stats_manually_set"]["mana_max"]:
+                    stats["mana_max"] = stats.get("mana_max", 50) + mana_increase
+                if not stats["stats_manually_set"]["mana"]:
+                    stats["mana"] = min(stats.get("mana", stats["mana_max"]) + stats["mana_max"] // 3, stats["mana_max"])
+
+                # Handle DEF
+                if not stats["stats_manually_set"]["defense"]:
+                    stats["defense"] = stats.get("defense", 0) + 1
+
+                lvls_gained.append(stats["level"])
+
+            player_data["stats"] = stats
+            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+            conn.commit()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return []
+    
+    # Now that the connection is closed, we can safely call other functions
+    # Apply permanent upgrades after level up
+    apply_permanent_upgrades(username)
+    
+    # Auto-equip items if enabled
     auto_equip_items(username)
-    conn.close()
+    
+    # Check for new achievements after leveling up
+    check_achievements(username)
+    
     return lvls_gained
 
 # -------------------------
 # Dungeon treasure persistence (SQLite-based now, but keep global for compatibility)
 # -------------------------
-def load_dungeon_treasure():
-    global dungeon_treasure
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    # Create table if not exists
-    c.execute('''CREATE TABLE IF NOT EXISTS dungeon_treasure (
-        id INTEGER PRIMARY KEY,
-        treasure INTEGER DEFAULT 0
-    )''')
-    c.execute('SELECT treasure FROM dungeon_treasure WHERE id = 1')
-    result = c.fetchone()
-    if result:
-        dungeon_treasure = int(result[0])
-    else:
-        dungeon_treasure = random.randint(200000, 1000000)
-        c.execute('INSERT INTO dungeon_treasure (id, treasure) VALUES (1, ?)', (dungeon_treasure,))
-        conn.commit()
-
-    # If dungeon treasure is below 200,000, reroll to between 200,000 and 1,000,000
-    if dungeon_treasure < 200000:
-        dungeon_treasure = random.randint(200000, 1000000)
-        save_dungeon_treasure()
-
-    conn.close()
-
 def save_dungeon_treasure():
     global dungeon_treasure
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('UPDATE dungeon_treasure SET treasure = ? WHERE id = 1', (int(dungeon_treasure),))
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        c.execute('UPDATE dungeon_treasure SET treasure = ? WHERE id = 1', (int(dungeon_treasure),))
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+
+def load_dungeon_treasure():
+    global dungeon_treasure
+    try:
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS dungeon_treasure (
+            id INTEGER PRIMARY KEY,
+            treasure INTEGER DEFAULT 0
+        )''')
+        c.execute('SELECT treasure FROM dungeon_treasure WHERE id = 1')
+        result = c.fetchone()
+        if result:
+            dungeon_treasure = int(result[0])
+        else:
+            dungeon_treasure = random.randint(200000, 1000000)
+            c.execute('INSERT INTO dungeon_treasure (id, treasure) VALUES (1, ?)', (dungeon_treasure,))
+            conn.commit()
+
+        # If dungeon treasure is below 200,000, reroll it
+        if dungeon_treasure < 200000:
+            dungeon_treasure = random.randint(200000, 1000000)
+            save_dungeon_treasure()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        dungeon_treasure = random.randint(200000, 1000000)
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 load_dungeon_treasure()
 
@@ -799,23 +803,65 @@ def apply_damage_with_defense(damage, defense):
     return reduced if reduced >= 1 else 1
 
 def apply_magic_damage(damage, magic_def):
-    """Magic damage is reduced by magic_def (robes, perm_magic_def). Minimum 1."""
+    """Magic damage reduced by magic_def (robes + perm). Minimum 1."""
     reduced = damage - magic_def
     return reduced if reduced >= 1 else 1
 
-def get_equip_bonuses(stats):
-    """Return player's equip numeric bonuses used by damage/def calculations."""
+def get_equip_and_perm_bonuses(stats):
+    """
+    Return a dict combining equipment, permanent and title bonuses used in combat.
+    Keys: weapon_atk, neck_atk, armor_def, neck_def, robe_magic_def,
+          perm_atk, perm_def, perm_magic_def,
+          total_base_atk, total_base_def, total_magic_def
+    """
     equip = stats.get("equipped", {})
+
+    # equipment values (safe defaults)
     w_atk = WEAPONS.get(equip.get("weapon"), {}).get("atk", 0)
     n_atk = NECKLACES.get(equip.get("necklace"), {}).get("atk_bonus", 0)
-    armor_def = ARMORS.get(equip.get("armor"), {}).get("def", 0)
-    robe_magic_def = ROBES.get(equip.get("robe"), {}).get("magic_def", 0)
+    a_def = ARMORS.get(equip.get("armor"), {}).get("def", 0)
+    n_def = NECKLACES.get(equip.get("necklace"), {}).get("def_bonus", 0)
+    robe_magic = ROBES.get(equip.get("robe"), {}).get("magic_def", 0)
+
+    # permanent / title values (these should be added to stats by apply_permanent_upgrades)
+    perm_atk = stats.get("perm_atk", 0)
+    perm_def = stats.get("perm_def", 0)
+    perm_magic_def = stats.get("perm_magic_def", 0)
+
+    title_atk_boost = stats.get("title_atk_boost", 0)
+    title_def_boost = stats.get("title_def_boost", 0)
+    title_magic_def = stats.get("title_magic_def", 0)
+
+    # base defaults (base_base_atk = default atk (5) unless stats has override)
+    base_base_atk = stats.get("atk", 5)
+    base_base_def = stats.get("defense", 0)
+
+    # Combine base + perm + title
+    total_base_atk = base_base_atk + perm_atk + title_atk_boost
+    total_base_def = base_base_def + perm_def + title_def_boost
+    total_magic_def = robe_magic + perm_magic_def + title_magic_def
+
     return {
         "weapon_atk": w_atk,
         "neck_atk": n_atk,
-        "armor_def": armor_def,
-        "robe_magic_def": robe_magic_def
+        "armor_def": a_def,
+        "neck_def": n_def,
+        "robe_magic_def": robe_magic,
+        "perm_atk": perm_atk,
+        "perm_def": perm_def,
+        "perm_magic_def": perm_magic_def,
+        "total_base_atk": total_base_atk,
+        "total_base_def": total_base_def,
+        "total_magic_def": total_magic_def
     }
+
+def calculate_total_crit_chance(stats, active_buffs):
+    """Return combined crit chance (perm + active crit buffs). All in 0..1."""
+    total = stats.get("perm_crit_chance", 0) / 100.0
+    for b in active_buffs:
+        if b.get("type") == "crit" and b.get("remaining", 0) > 0:
+            total += b.get("amount", 0) / 100.0
+    return total
 
 MONSTERS = [
 # Area 1 Monsters (Level 1-5)
@@ -1348,34 +1394,63 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
 # -------------------------
 
 def add_material_drops(inventory, monster):
-    """Add material drops from a monster to the inventory"""
+    """Add material drops from a monster to the inventory and return list of dropped items"""
+    dropped = []
     if "drop" in monster:
         for item, chance in monster["drop"].items():
             if random.random() < chance:
-                if item in inventory:
-                    inventory[item] += 1
-                else:
-                    inventory[item] = 1
+                inventory[item] = inventory.get(item, 0) + 1
+                dropped.append(item)
                 print(f"Found {item}!")
-    return inventory
+    return dropped
 
 def dungeon(username):
-    users_db_path='users.db'
-    # Apply permanent upgrades before entering dungeon
-    apply_permanent_upgrades(current_user)
+    """
+    Dungeon combat loop that uses:
+      - apply_permanent_upgrades(username)
+      - compute_effective_stats(...)
+      - get_equip_and_perm_bonuses(stats)
+      - apply_damage_with_defense(...) and apply_magic_damage(...)
+      - calculate_total_crit_chance(...)
+    """
+    users_db_path = 'users.db'
     conn = sqlite3.connect(users_db_path)
     c = conn.cursor()
-    # Reload player data after applying upgrades
-    c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
+
+    # Ensure permanent upgrades applied first to populate perm_* fields
+    try:
+        apply_permanent_upgrades(username)
+    except Exception:
+        # If your apply_permanent_upgrades signature / behaviour differs, this still safely continues
+        pass
+
+    # Reload player data and score after applying permanent upgrades
+    c.execute('SELECT player_data, score FROM users WHERE username = ?', (username,))
     result = c.fetchone()
+    if not result:
+        print("User not found.")
+        conn.close()
+        return
+
     player_data = json.loads(result[0])
-    stats = player_data["stats"]
-    inventory = player_data["inventory"]
+    score = result[1] or 0
+
+    player_data = json.loads(result[0])
+    stats = player_data.get("stats", {})
+    inventory = player_data.get("inventory", {})
 
     # Auto-equip best equipment after upgrading if enabled
     settings = stats.get("settings", {})
     if settings.get("auto_equip_best", False) or settings.get("auto_equip_everything", False):
-        auto_equip_items(current_user)
+        try:
+            auto_equip_items(username)
+            # reload stats/inventory if auto-equip mutates them
+            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+            player_data = json.loads(c.fetchone()[0])
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
+        except Exception:
+            pass
 
     active_buffs = []
     forced_monster = None
@@ -1384,140 +1459,128 @@ def dungeon(username):
     player_hp = stats.get("hp", stats.get("hp_max", 100))
     player_mana = stats.get("mana", stats.get("mana_max", 50))
 
-    # Calculate effective base ATK and DEF (including equipment and permanent upgrades)
-    effective_base_atk, effective_base_def, _, _, _, _, _, _ = compute_effective_stats(stats, [])
-
-    # Calculate base ATK and DEF with equipment (permanent upgrades + equipment)
-    w_atk = WEAPONS.get(stats.get("equipped", {}).get("weapon"), {}).get("atk", 0)
-    a_def = ARMORS.get(stats.get("equipped", {}).get("armor"), {}).get("def", 0)
-    n_atk = NECKLACES.get(stats.get("equipped", {}).get("necklace"), {}).get("atk_bonus", 0)
-    n_def = NECKLACES.get(stats.get("equipped", {}).get("necklace"), {}).get("def_bonus", 0)
-    normal_atk = stats.get("atk", 5)
-    normal_def = stats.get("defense", 0)
-    equipped_atk = normal_atk + w_atk + n_atk
-    equipped_def = normal_def + a_def + n_def
+    # Compute simple equipped ATK/DEF display (perm applied in apply_permanent_upgrades)
+    bonuses = get_equip_and_perm_bonuses(stats)
+    w_atk = bonuses.get("weapon_atk", 0)
+    a_def = bonuses.get("armor_def", 0)
+    n_atk = bonuses.get("neck_atk", 0)
+    equipped_atk = bonuses.get("total_base_atk", stats.get("atk", 5)) + w_atk + n_atk
+    equipped_def = bonuses.get("total_base_def", stats.get("defense", 0)) + a_def + bonuses.get("neck_def", 0)
 
     current_area = stats.get("current_area", 1)
     print(f"Entering dungeon with HP: {player_hp}, MANA: {player_mana}, ATK: {equipped_atk}, DEF: {equipped_def}, LVL: {stats.get('level',1)}, AREA: {current_area}")
-    print(f"Normal ATK + Perm: {normal_atk}, Normal DEF + Perm: {normal_def}")
+    print(f"Base ATK (with perm): {bonuses.get('total_base_atk', stats.get('atk',5))}, Base DEF (with perm): {bonuses.get('total_base_def', stats.get('defense',0))}")
 
+    # Main loop
     while True:
         cmd = input("\nType 'explore' to find a monster, 'status' to view stats, 'shop' to access shop, 'packs' to open magic packs, 'upgrades' to use permanent upgrades, 'move' to change areas, or 'exit' to leave the dungeon: ").strip()
         if not cmd:
             continue
         lc = cmd.lower().strip()
+
         if lc == "exit":
             print("You leave the dungeon safely.")
             stats["hp"] = player_hp
             stats["mana"] = player_mana
-            update_user(current_user, username[current_user][1], username[current_user][2], player_data)
+            player_data["stats"] = stats
+            player_data["inventory"] = inventory
+            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
             conn.commit()
             conn.close()
             return
+
         if lc == "status":
-            effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
-            crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0)
-            regen_total = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
-            mana_regen_total = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
+            # ensure perm is applied and effective stats are fresh
+            try:
+                apply_permanent_upgrades(username)
+            except Exception:
+                pass
+            effective_atk, effective_def, effective_magic_atk, effective_magic_def, _, _, _, _ = compute_effective_stats(stats, active_buffs)
             next_exp = exp_to_next(stats.get("level",1)) if stats.get("level",1) < MAX_LEVEL else "MAX"
-            name_display = current_user
+            name_display = username
             if stats.get("settings", {}).get("call_including_title", True) and stats.get("title"):
-                name_display = f"{stats['title']} {current_user}"
+                name_display = f"{stats['title']} {username}"
             print(f"HP: {player_hp}/{stats.get('hp_max')}, MANA: {player_mana}/{stats.get('mana_max')}, ATK: {effective_atk}, DEF: {effective_def}, Money: ${player_data.get('money',0)}, LVL: {stats.get('level')}, EXP: {stats.get('exp')}/{next_exp}, AREA: {stats.get('current_area', 1)}")
-            if stats.get("settings", {}).get("show_exp_bar", False):
-                exp_bar = create_exp_bar(stats.get("exp", 0), next_exp if next_exp != "MAX" else exp_to_next(stats["level"]))
-                print(f"EXP Bar: {exp_bar}")
-            print("Equipped:", stats.get("equipped"))
-            print("Inventory (highlights):", {k:v for k,v in inventory.items() if v>0 and k in ['potion','strong_potion','mana_regen_potion','instant_mana']})
-            print("\nCurrent permanent stats:")
-            print(f"ATK Bonus: +{stats.get('perm_atk', 0)}")
-            print(f"DEF Bonus: +{stats.get('perm_def', 0)}")
-            print(f"HP Bonus: +{stats.get('perm_hp_max', 0)}")
-            print(f"Mana Bonus: +{stats.get('perm_mana_max', 0)}")
-            print(f"Crit Chance Bonus: +{stats.get('perm_crit_chance', 0)}%")
-            print(f"Mana Regen Bonus: +{stats.get('perm_mana_regen', 0)} per fight")
-            print(f"Lifesteal Bonus: +{stats.get('perm_lifesteal', 0)}% of damage")
-            print(f"Lifesteal Chance Bonus: +{stats.get('perm_lifesteal_chance', 0)}% chance")
-            print(f"Experience Boost: +{stats.get('perm_exp_boost', 0)}%")
             if active_buffs:
-                print("Active buffs (fights remaining):")
+                print("Active buffs:")
                 for b in active_buffs:
-                    if b['remaining']>0:
+                    if b.get('remaining',0) > 0:
                         print(f" - {b}")
             continue
+
         if lc == "shop":
             shop()
-            # Reload data after shop
-            ensure_user_fields(current_user)
-            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
-            result = c.fetchone()
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            inventory = player_data["inventory"]
+            # reload after shop
+            ensure_user_fields(username)
+            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+            player_data = json.loads(c.fetchone()[0])
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
             player_mana = stats.get("mana", stats.get("mana_max", 50))
+            player_hp = stats.get("hp", stats.get("hp_max", 100))
             continue
+
         if lc == "packs":
-            magic_pack_interface(current_user)
-            # Reload data after packs
-            ensure_user_fields(current_user)
-            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
-            result = c.fetchone()
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            inventory = player_data["inventory"]
-            continue
-        if lc == "upgrades":
-            permanent_upgrades_interface(current_user)
-            # Reload data after upgrades
-            ensure_user_fields(current_user)
-            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
-            result = c.fetchone()
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            inventory = player_data["inventory"]
+            magic_pack_interface(username)
+            ensure_user_fields(username)
+            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+            player_data = json.loads(c.fetchone()[0])
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
             player_mana = stats.get("mana", stats.get("mana_max", 50))
+            player_hp = stats.get("hp", stats.get("hp_max", 100))
             continue
+
+        if lc == "upgrades":
+            permanent_upgrades_interface(username)
+            ensure_user_fields(username)
+            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+            player_data = json.loads(c.fetchone()[0])
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
+            player_hp = stats.get("hp", stats.get("hp_max", 100))
+            continue
+
         if lc == "move":
             print(f"\nCurrent Area: {stats.get('current_area', 1)}")
             print("You can move to areas 1-10. Higher areas have stronger monsters.")
             try:
-                new_area = int(input("Enter area number (1-10) or 'cancel': ").strip())
-                if new_area == "cancel":
+                new_area = input("Enter area number (1-10) or 'cancel': ").strip()
+                if new_area.lower() == "cancel":
                     continue
+                new_area = int(new_area)
                 if 1 <= new_area <= 10:
                     stats["current_area"] = new_area
                     current_area = new_area
-                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
+                    player_data["stats"] = stats
+                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
                     conn.commit()
                     print(f"Moved to Area {new_area}!")
                 else:
                     print("Invalid area. Must be between 1 and 10.")
-            except ValueError:
+            except Exception:
                 print("Invalid input. Enter a number between 1 and 10.")
             continue
 
         if lc.startswith("explore"):
             parts = cmd.split()
-            # If user used the force-spawn syntax (e.g. explore 10234 boss Demon King)
+            # force spawn syntax support retained (same as your original)
             if len(parts) >= 4:
                 code = parts[1].strip()
                 is_boss_flag = parts[2].strip().lower()
                 monster_name = " ".join(parts[3:]).strip().lower()
-
                 if code == "10234":
                     boss_flags = ("yes", "y", "true", "boss", "b")
                     normal_flags = ("no", "n", "false", "normal", "monster", "m")
-
                     if is_boss_flag in boss_flags:
-                        # try to find a boss with that name
                         found = next((m for m in MONSTERS if m["name"].lower() == monster_name and m.get("is_boss")), None)
                         if found:
                             forced_monster = found.copy()
                             print(f"Forced boss spawn: {forced_monster['name']}")
                         else:
                             print("Boss not found.")
-                        continue  # we handled the force-spawn command this turn
-
+                        continue
                     elif is_boss_flag in normal_flags:
                         found = next((m for m in MONSTERS if m["name"].lower() == monster_name and not m.get("is_boss")), None)
                         if found:
@@ -1525,660 +1588,271 @@ def dungeon(username):
                             print(f"Forced monster spawn: {forced_monster['name']}")
                         else:
                             print("Monster not found.")
-                        continue  # handled force-spawn this turn
-
+                        continue
                     else:
                         print("Invalid flag.")
                         continue
-
                 else:
                     print("Invalid code.")
                     continue
 
-            # If we reach here it's either plain 'explore' or we did not match the force syntax.
-            # Fall through to the actual explore logic (monster spawn + combat loop) below.
-
-        else:
-            print("Unknown command. Try 'explore', 'status', 'shop', 'packs', 'upgrades', 'move', or 'exit'.")
-            continue
-
-        # Explore logic
-        if forced_monster is not None:
-            monster = forced_monster.copy()
-            forced_monster = None
-            # Use existing monster data
-        else:
-            roll = random.randint(1,100)
-            if roll <= 5:  # Boss chance
-                area = stats.get("current_area", 1)
-                monster = choose_boss_for_area(area)
-                cls = monster.get("class")
-                print(f"\n🔥 BOSS APPEARS: {monster['name']} (Class {cls})! (HP {monster['hp']}, ATK {monster['atk_min']}–{monster['atk_max']})")
+            # choose monster
+            if forced_monster is not None:
+                monster = forced_monster.copy()
+                forced_monster = None
             else:
-                # Choose random monster
-                area = stats.get("current_area", 1)
-                monster = choose_monster_for_area(area)
-                cls = monster.get("class")
-                print(f"\nA wild {monster['name']} (Class {cls}) appears! (HP {monster['hp']}, ATK {monster['atk_min']}–{monster['atk_max']})")
+                roll = random.randint(1, 100)
+                if roll <= 5:
+                    area = stats.get("current_area", 1)
+                    monster = choose_boss_for_area(area)
+                    print(f"\n🔥 BOSS APPEARS: {monster['name']}! (HP {monster.get('hp')}, ATK {monster.get('atk_min','?')}–{monster.get('atk_max','?')})")
+                else:
+                    area = stats.get("current_area", 1)
+                    monster = choose_monster_for_area(area)
+                    print(f"\nA wild {monster['name']} appears! (HP {monster.get('hp')}, ATK {monster.get('atk_min','?')}–{monster.get('atk_max','?')})")
 
-        while monster["hp"] > 0 and player_hp > 0:
-            # Combat loop
-            fight_happened = True
-            effective_atk, effective_def, _, _, _, _, _, _ = compute_effective_stats(stats, active_buffs)
-            crit_chance = sum(b['amount'] for b in active_buffs if b['type']=='crit' and b['remaining']>0) / 100.0
-            base_crit = 0.05
-            title_crit_percent = stats.get("title_crit_chance_percent", 0) / 100.0
-            total_crit_chance = base_crit + crit_chance + title_crit_percent
+            # fight loop
+            fight_happened = False
+            while monster.get("hp", 0) > 0 and player_hp > 0:
+                fight_happened = True
 
-            action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
-            if action == "a":
-                    # ***** REPLACE HERE: player physical attack (uses equipped weapon + necklace) *****
-                    equip = get_equip_bonuses(stats)
-                    weapon_bonus = equip["weapon_atk"] + equip["neck_atk"]
+                # ensure permanent upgrades applied and recompute effective stats
+                try:
+                    apply_permanent_upgrades(username)
+                except Exception:
+                    pass
+                effective_atk, effective_def, effective_magic_atk, effective_magic_def, _, _, _, _ = compute_effective_stats(stats, active_buffs)
 
-                    base_roll = random.randint(max(1, effective_atk - 2), effective_atk + 3)
-                    dmg = 5 + weapon_bonus + base_roll
+                # compute total crit chance from perm + active buffs
+                total_crit_chance = calculate_total_crit_chance(stats, active_buffs)
 
-                    # If the monster is a 'magic' monster (uses magic_atk fields), physical attacks are weak (1/4)
+                action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
+
+                # ---------- PLAYER PHYSICAL ATTACK ----------
+                if action == "a":
+                    bonuses = get_equip_and_perm_bonuses(stats)
+                    weapon_bonus = bonuses.get("weapon_atk", 0) + bonuses.get("neck_atk", 0)
+                    total_base_atk = bonuses.get("total_base_atk", effective_atk)
+                    base_roll = random.randint(max(1, total_base_atk - 2), total_base_atk + 3)
+                    dmg = 5 + base_roll + weapon_bonus
+
+                    # physical attacks are weak vs magic-type monsters
                     if "magic_atk_min" in monster or "magic_atk_max" in monster:
                         dmg = max(1, dmg // 4)
 
-                    crit_hit = False
+                    # crit check
                     if random.random() <= total_crit_chance:
                         dmg = int(dmg * 2)
-                        crit_hit = True
-                        print("💥 CRITICAL HIT!")
                         stats["critical_hits"] = stats.get("critical_hits", 0) + 1
+                        print("💥 CRITICAL HIT!")
 
-                    # Apply damage to monster (physical damage goes through monster's normal HP/armor - if you want monster defense later, add monster['def'] handling)
-                    monster["hp"] -= dmg
-                    print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
+                    # apply monster physical defense (if any)
+                    monster_def = monster.get("def", 0)
+                    damage_after = apply_damage_with_defense(dmg, monster_def)
+                    monster["hp"] = monster.get("hp", 0) - damage_after
+                    print(f"You hit the {monster['name']} for {damage_after} damage! (Monster HP: {max(0, monster['hp'])})")
 
-                print(f"You hit the {monster['name']} for {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
-                lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
-                lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
-                if random.random() <= lifesteal_chance and lifesteal_percent > 0:
-                    heal_amount = int(dmg * lifesteal_percent)
-                    if heal_amount > 0:
+                    # lifesteal (from actual damage dealt)
+                    lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
+                    lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
+                    if random.random() <= lifesteal_chance and lifesteal_percent > 0:
+                        heal_amount = int(damage_after * lifesteal_percent)
+                        if heal_amount > 0:
+                            player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
+                            print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
+                            stats["hp"] = player_hp
+                            stats["mana"] = player_mana
+
+                    # persist minimal state
+                    player_data["stats"] = stats
+                    player_data["inventory"] = inventory
+                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+                    conn.commit()
+
+                # ---------- PLAYER MAGIC ATTACK (spells) ----------
+                elif action == "m":
+                    equipped_spells = stats.get("equipped_spells", [None, None, None, None])
+                    if not any(equipped_spells):
+                        print("You haven't equipped any spells yet. Visit the Magic Spells interface to equip spells!")
+                        continue
+                    available = [SPELLS_BY_KEY[s] for s in equipped_spells if s is not None and s in SPELLS_BY_KEY]
+                    if not available:
+                        print("You don't have any equipped spells.")
+                        continue
+                    print("Equipped spells:")
+                    for i, s in enumerate(available, start=1):
+                        print(f"{i}. {s['name']} (mana {s['mana']}) - {s.get('desc','')}")
+                    sel = input("Choose spell number or 'cancel': ").strip().lower()
+                    if sel in ("cancel", "c"):
+                        continue
+                    try:
+                        idx = int(sel) - 1
+                        if idx < 0 or idx >= len(available):
+                            print("Invalid selection.")
+                            continue
+                        s = available[idx]
+                    except Exception:
+                        print("Invalid selection.")
+                        continue
+
+                    if player_mana < s.get("mana", 0):
+                        print("Not enough mana.")
+                        continue
+
+                    player_mana -= s.get("mana", 0)
+
+                    # compute magic damage: spell power + wand + perm magic atk
+                    wand_magic = WANDS.get(stats.get("equipped", {}).get("wand"), {}).get("magic_atk", 0)
+                    perm_magic_atk = stats.get("perm_magic_atk", 0)
+                    dmg = s.get("power", 0) + wand_magic + perm_magic_atk + random.randint(-(s.get("power",0)//8), s.get("power",0)//8)
+
+                    # use combined crit (perm + buffs) for spells too
+                    if random.random() <= total_crit_chance:
+                        dmg = int(dmg * 2)
+                        stats["critical_hits"] = stats.get("critical_hits", 0) + 1
+                        print("✨ CRITICAL SPELL HIT!")
+
+                    # Magic ignores physical armor and is reduced by monster.magic_def
+                    monster_magic_def = monster.get("magic_def", 0)
+                    damage_after = apply_magic_damage(dmg, monster_magic_def)
+                    monster["hp"] = monster.get("hp", 0) - damage_after
+                    print(f"You cast {s['name']} dealing {damage_after} magic damage! (Monster HP: {max(0, monster['hp'])})")
+
+                    # lifesteal (from actual damage dealt)
+                    lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
+                    lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
+                    if random.random() <= lifesteal_chance and lifesteal_percent > 0:
+                        heal_amount = int(damage_after * lifesteal_percent)
+                        if heal_amount > 0:
+                            player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
+                            print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
+                            stats["hp"] = player_hp
+                            stats["mana"] = player_mana
+
+                    # persist
+                    player_data["stats"] = stats
+                    player_data["inventory"] = inventory
+                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+                    conn.commit()
+
+                elif action == "p":
+                    # potion use (keeps original behaviour)
+                    if inventory.get("potion", 0) > 0:
+                        inventory["potion"] -= 1
+                        heal_amount = min(stats.get("hp_max",100) - player_hp, 50)
                         player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
-                        print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
-                        stats["hp"] = player_hp
-                        stats["mana"] = player_mana
-                        update_user()
-
-                lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
-                lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
-                if random.random() <= lifesteal_chance and lifesteal_percent > 0:
-                    heal_amount = int(dmg * lifesteal_percent)
-                    if heal_amount > 0:
-                        player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
-                        print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
-                        stats["hp"] = player_hp
-                        stats["mana"] = player_mana
-                        # Update player data in database
-                        player_data["stats"] = stats
+                        print(f"You used a potion and healed {heal_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
                         player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
+                        player_data["stats"] = stats
+                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
                         conn.commit()
+                    else:
+                        print("No potions available.")
 
-                if monster["hp"] <= 0:
-                    money_reward = random.randint(monster["money_min"], monster["money_max"])
-                    # Apply money boost from titles
-                    money_boost_percent = stats.get("title_money_boost_percent", 0)
-                    if money_boost_percent > 0:
-                        money_reward = int(money_reward * (1 + money_boost_percent / 100.0))
-                    
-                    # Update money in database
+                elif action == "u":
+                    print("Use buff not implemented in this simplified dungeon flow.")
+                    continue
+
+                elif action == "r":
+                    if random.random() < 0.5:
+                        print("You ran away successfully!")
+                        break
+                    else:
+                        print("Failed to run!")
+
+                # ----- Victory check -----
+                if monster.get("hp", 0) <= 0:
+                    # compute money reward
+                    money_reward = random.randint(monster.get("money_min", 1), monster.get("money_max", 1))
+
+                    # --- SYNCHRONIZE money from DB (authoritative) ---
+                    c.execute('SELECT money FROM users WHERE username = ?', (username,))
+                    row = c.fetchone()
+                    if row and row[0] is not None:
+                        money = int(row[0])
+                    else:
+                        # fallback to player_data stored money (if DB column missing or null)
+                        money = int(player_data.get("money", 0))
+
+                    # add monster reward
                     money += money_reward
-                    c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
-                    
+
+                    # Save money into the users.money column (shop reads this)
+                    c.execute('UPDATE users SET money = ? WHERE username = ?', (money, username))
+                    # also update the player_data money field so JSON and DB column stay consistent
+                    player_data["money"] = money
+
+                    # ---- drops / materials ----
                     drops = []
                     for item_name, chance in monster.get("drop", {}).items():
                         if random.random() <= chance:
                             inventory[item_name] = inventory.get(item_name, 0) + 1
                             drops.append(item_name)
-                    
-                    # Apply material boost from titles
-                    material_boost_percent = stats.get("title_material_boost_percent", 0)
-                    if material_boost_percent > 0:
-                        # Temporarily modify drop chances
-                        original_drops = monster.get("drop", {}).copy()
-                        boosted_drops = {}
-                        for item, chance in original_drops.items():
-                            boosted_drops[item] = min(1.0, chance * (1 + material_boost_percent / 100.0))
-                        monster["drop"] = boosted_drops
-                        mat_drops = add_material_drops(monster, inventory, stats)
-                        monster["drop"] = original_drops  # Restore original
-                    else:
-                        mat_drops = add_material_drops(monster, inventory, stats)
-                    
+                    mat_drops = add_material_drops(inventory, monster)
                     if mat_drops:
                         drops.extend(mat_drops)
 
-                    # Boss drops - 100% chance for all permanent upgrades (except Skeleton King)
+                    # Boss guaranteed perm drops
                     if monster.get("is_boss") and monster["name"] != "Skeleton King":
                         for perm_key in PERM_UPGRADES:
                             inventory[perm_key] = inventory.get(perm_key, 0) + 1
                             drops.append(f"{PERM_UPGRADES[perm_key]['name']} (Permanent Upgrade)")
 
-                    # Track achievements
+                    # Track achievements & total money earned
                     stats["monsters_defeated"] = stats.get("monsters_defeated", 0) + 1
                     if monster.get("is_boss"):
                         stats["bosses_defeated"] = stats.get("bosses_defeated", 0) + 1
                     stats["total_money_earned"] = stats.get("total_money_earned", 0) + money_reward
 
-                    exp_gain = max(1, (monster.get("hp",0) * 2) + random.randint(5, 30))
+                    # Experience
+                    exp_gain = max(1, (monster.get("hp", 0) * 2) + random.randint(5, 30))
                     if monster.get("is_boss"):
                         exp_gain *= 2
-                    grant_exp(current_user, exp_gain)
-                    
+                    grant_exp(username, exp_gain)
+
+                    # Score / boss handling (keep your existing logic)
                     if monster.get("is_boss"):
                         boss_bonus = random.randint(50, 150)
                         print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{boss_bonus} score, +{exp_gain} EXP")
                         score += boss_bonus
-                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, current_user))
-                        
+                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, username))
+
+                        # dungeon treasure (if any) - add to money and DB as well
                         if dungeon_treasure > 0:
-                            # Apply treasure boost from titles
+                            # Apply treasure boost from titles if any (keeping your logic)
                             treasure_boost_percent = stats.get("title_treasure_boost_percent", 0)
                             recovered_treasure = dungeon_treasure
                             if treasure_boost_percent > 0:
                                 recovered_treasure = int(dungeon_treasure * (1 + treasure_boost_percent / 100.0))
                             print(f"🏆 You recovered the dungeon treasure: ${recovered_treasure}!")
                             money += recovered_treasure
+                            player_data["money"] = money
                             stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + recovered_treasure
                             dungeon_treasure = 0
                             save_dungeon_treasure()
-                            c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
+                            c.execute('UPDATE users SET money = ? WHERE username = ?', (money, username))
                     else:
                         normal_bonus = random.randint(5, 20)
                         print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{normal_bonus} score, +{exp_gain} EXP")
                         score += normal_bonus
-                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, current_user))
-                    
+                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, username))
+
                     if drops:
                         print("You found:", ", ".join(drops))
 
-                    # Check achievements after defeat
-                    check_achievements(current_user)
+                    # Achievements & save
+                    check_achievements(username)
 
-                    # Update player data in database
+                    # Persist player_data (stats/inventory) and ensure money field is consistent in JSON too
                     stats["hp"] = player_hp
                     stats["mana"] = player_mana
                     player_data["stats"] = stats
                     player_data["inventory"] = inventory
-                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                            (json.dumps(player_data), current_user))
+                    # player_data["money"] already updated above
+                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
                     conn.commit()
                     break
-                    
-                # Monster attacks
-                mon_atk = random.randint(monster["atk_min"], monster["atk_max"])
-                damage_to_player = apply_damage_with_defense(mon_atk, effective_def)
-                player_hp -= damage_to_player
-                print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
-                # Apply regen
-                regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
-                # Apply hp_regen_percent from titles
-                hp_regen_percent = stats.get("title_hp_regen_percent", 0)
-                regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
-                if regen_amount > 0 and player_hp > 0:
-                    player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
-                    print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                    
-                # Apply mana regen
-                mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
-                permanent_mana_regen = stats.get("perm_mana_regen", 0)
-                if mana_regen_amount > 0 or permanent_mana_regen > 0:
-                    total_mana_regen = mana_regen_amount + permanent_mana_regen
-                    if total_mana_regen > 0 and player_mana >= 0:
-                        player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
-                        if permanent_mana_regen > 0:
-                            print(f"🔵 Permanent Mana Regen restored {permanent_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
-                        else:
-                            print(f"🔵 Mana Regen restored {mana_regen_amount} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
                 
-                # Update player data in database
-                stats["hp"] = player_hp
-                stats["mana"] = player_mana
-                player_data["stats"] = stats
-                player_data["inventory"] = inventory
-                c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                        (json.dumps(player_data), current_user))
-                conn.commit()
-
-            elif action == "m":
-                # Check if player has equipped spells
-                equipped_spells = stats.get("equipped_spells", [None, None, None, None])
-                if not any(equipped_spells):
-                    print("You haven't equipped any spells yet. Visit the Magic Spells interface to equip spells!")
-                    continue
-
-                available = [SPELLS_BY_KEY[s] for s in equipped_spells if s is not None]
-                if not available:
-                    print("You don't have any equipped spells.")
-                    continue
-
-                print("Equipped spells:")
-                for i, s in enumerate(available, start=1):
-                    print(f"{i}. {s['name']} (mana {s['mana']}) - {s['desc']}")
-                sel = input("Choose spell number or 'cancel': ").strip().lower()
-                if sel in ("cancel","c"):
-                    continue
-                try:
-                    idx = int(sel) - 1
-                    if idx < 0 or idx >= len(available):
-                        print("Invalid selection.")
-                        continue
-                    s = available[idx]
-                except Exception:
-                    print("Invalid selection.")
-                    continue
-                    
-                if player_mana < s["mana"]:
-                    print("Not enough mana.")
-                    continue
-                    
-                player_mana -= s["mana"]
-
-                # Check if it's a healing spell
-                if "barrier" in s["key"] or "resurgence" in s["key"]:
-                    # Healing spell
-                    heal_amount = s["power"]
-                    player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
-                    print(f"You cast {s['name']} and healed {heal_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                else:
-                    # Damage spell
-                    dmg = s["power"] + random.randint(-s["power"]//8, s["power"]//8)
-                    spell_crit = False
-                    if random.random() < 0.05:
-                        dmg = int(dmg * 1.5)
-                        spell_crit = True
-                        print("✨ Spell Critical!")
-                    monster["hp"] -= dmg
-                    print(f"You cast {s['name']} dealing {dmg} damage! (Monster HP: {max(0, monster['hp'])})")
-
-                    # Apply lifesteal if it triggers
-                    lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
-                    lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
-                    if random.random() <= lifesteal_chance and lifesteal_percent > 0:
-                        heal_amount = int(dmg * lifesteal_percent)
-                        if heal_amount > 0:
-                            player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
-                            print(f"🩸 LIFESTEAL! You stole {heal_amount} HP! (Your HP: {player_hp}/{stats.get('hp_max')})")
-
-                # Update player data in database
-                stats["hp"] = player_hp
-                stats["mana"] = player_mana
-                player_data["stats"] = stats
-                player_data["inventory"] = inventory
-                c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                        (json.dumps(player_data), current_user))
-                conn.commit()
-
-                if monster["hp"] <= 0:
-                    money_reward = random.randint(monster["money_min"], monster["money_max"])
-                    money += money_reward
-                    c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
-                    
-                    drops = []
-                    for item_name, chance in monster.get("drop", {}).items():
-                        if random.random() <= chance:
-                            inventory[item_name] = inventory.get(item_name, 0) + 1
-                            drops.append(item_name)
-                    mat_drops = add_material_drops(monster, inventory, stats)
-                    if mat_drops:
-                        drops.extend(mat_drops)
-
-                    # Boss drops - 100% chance for all permanent upgrades (except Skeleton King)
-                    if monster.get("is_boss") and monster["name"] != "Skeleton King":
-                        for perm_key in PERM_UPGRADES:
-                            inventory[perm_key] = inventory.get(perm_key, 0) + 1
-                            drops.append(f"{PERM_UPGRADES[perm_key]['name']} (Permanent Upgrade)")
-
-                    exp_gain = max(1, (monster.get("hp",0) * 2) + random.randint(5, 30))
-                    if monster.get("is_boss"):
-                        exp_gain *= 2
-                    grant_exp(current_user, exp_gain)
-                    
-                    if monster.get("is_boss"):
-                        boss_bonus = random.randint(50, 150)
-                        print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{boss_bonus} score, +{exp_gain} EXP")
-                        score += boss_bonus
-                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, current_user))
-                        
-                        if dungeon_treasure > 0:
-                            dungeon_treasure_gained = dungeon_treasure
-                            print(f"🏆 You recovered the dungeon treasure: ${dungeon_treasure_gained}!")
-                            money += dungeon_treasure_gained
-                            stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + dungeon_treasure_gained
-                            dungeon_treasure = 0
-                            save_dungeon_treasure()
-                            c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
-                    else:
-                        normal_bonus = random.randint(5, 20)
-                        print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{normal_bonus} score, +{exp_gain} EXP")
-                        score += normal_bonus
-                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, current_user))
-                    
-                    if drops:
-                        print("You found:", ", ".join(drops))
-                    
-                    # Update player data in database
-                    stats["hp"] = player_hp
-                    stats["mana"] = player_mana
-                    player_data["stats"] = stats
-                    player_data["inventory"] = inventory
-                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                            (json.dumps(player_data), current_user))
-                    conn.commit()
-                    break
-                    
-                # Monster attacks
-                mon_atk = random.randint(monster["atk_min"], monster["atk_max"])
-                damage_to_player = apply_damage_with_defense(mon_atk, effective_def)
-                player_hp -= damage_to_player
-                print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
-                
-                # Apply regen
-                regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
-                # Apply hp_regen_percent from titles
-                hp_regen_percent = stats.get("title_hp_regen_percent", 0)
-                regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
-                if regen_amount > 0 and player_hp > 0:
-                    player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
-                    print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                    
-                # Apply mana regen
-                mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
-                permanent_mana_regen = stats.get("perm_mana_regen", 0)
-                if mana_regen_amount > 0 or permanent_mana_regen > 0:
-                    total_mana_regen = mana_regen_amount + permanent_mana_regen
-                    if total_mana_regen > 0 and player_mana >= 0:
-                        player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
-                        if permanent_mana_regen > 0:
-                            print(f"🔵 Permanent Mana Regen restored {permanent_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
-                        else:
-                            print(f"🔵 Mana Regen restored {mana_regen_amount} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
-                
-                # Update player data in database
-                stats["hp"] = player_hp
-                stats["mana"] = player_mana
-                player_data["stats"] = stats
-                player_data["inventory"] = inventory
-                c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                        (json.dumps(player_data), current_user))
-                conn.commit()
-
-            elif action == "p":
-                player_mana_before = player_mana
-                print("Potions available: 1) potion (+30 HP) 2) strong_potion (+80 HP) 3) ultra_potion (+200 HP) 4) instant_mana (full mana)")
-                ch = input("Choice (1-4) or cancel: ").strip().lower()
-                if ch in ("cancel","c"):
-                    continue
-                if ch == "1":
-                    if inventory.get("potion",0) > 0:
-                        heal = 30
-                        inventory["potion"] -= 1
-                        player_hp = min(player_hp + heal, stats.get("hp_max"))
-                        print(f"You used a potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                        # Update player data in database
-                        stats["hp"] = player_hp
-                        player_data["stats"] = stats
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No potion.")
-                elif ch == "2":
-                    if inventory.get("strong_potion",0) > 0:
-                        heal = 80
-                        inventory["strong_potion"] -= 1
-                        player_hp = min(player_hp + heal, stats.get("hp_max"))
-                        print(f"You used a strong potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                        # Update player data in database
-                        stats["hp"] = player_hp
-                        player_data["stats"] = stats
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No strong potion.")
-                elif ch == "3":
-                    if inventory.get("ultra_potion",0) > 0:
-                        heal = 200
-                        inventory["ultra_potion"] -= 1
-                        player_hp = min(player_hp + heal, stats.get("hp_max"))
-                        print(f"You used an ultra potion and healed {heal} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                        # Update player data in database
-                        stats["hp"] = player_hp
-                        player_data["stats"] = stats
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No ultra potion.")
-                elif ch == "4":
-                    if inventory.get("instant_mana",0) > 0:
-                        inventory["instant_mana"] -= 1
-                        player_mana = stats.get("mana_max")
-                        print(f"You used Instant Mana and restored to full! (MANA: {player_mana}/{stats.get('mana_max')})")
-                        # Update player data in database
-                        stats["mana"] = player_mana
-                        player_data["stats"] = stats
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No instant mana potions.")
-                else:
-                    print("Invalid choice.")
-
-            elif action == "u":
-                print("Which buff would you like to use?")
-                print("1. Strength Boost (+5 ATK for next fights)")
-                print("2. Defense Boost (+3 DEF for next fights)")
-                print("3. Regen Potion (+12 HP per fight for next fights)")
-                print("4. Crit Boost (+50% crit chance for next fights)")
-                print("5. Mana Regen Potion (+15 mana per fight for next fights)")
-                print("6. Mana Upgrade Potion (permanent +20 max mana)")
-                choice = input("Choice (1-6 or cancel): ").strip().lower()
-                if choice in ("cancel","c"):
-                    print("Cancelled.")
-                elif choice == "1":
-                    if inventory.get("strength_boost",0) > 0:
-                        inventory["strength_boost"] -= 1
-                        active_buffs.append({"type":"atk","amount":5,"remaining":3})
-                        print("You used Strength Boost! +5 ATK for 3 fights.")
-                        # Update player data in database
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No Strength Boosts.")
-                elif choice == "2":
-                    if inventory.get("defense_boost",0) > 0:
-                        inventory["defense_boost"] -= 1
-                        active_buffs.append({"type":"def","amount":3,"remaining":3})
-                        print("You used Defense Boost! +3 DEF for 3 fights.")
-                        # Update player data in database
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No Defense Boosts.")
-                elif choice == "3":
-                    if inventory.get("regen_potion",0) > 0:
-                        inventory["regen_potion"] -= 1
-                        active_buffs.append({"type":"regen","amount":12,"remaining":3})
-                        print("You used Regen Potion! +12 HP per fight for 3 fights.")
-                        # Update player data in database
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No Regen Potions.")
-                elif choice == "4":
-                    if inventory.get("crit_boost",0) > 0:
-                        inventory["crit_boost"] -= 1
-                        active_buffs.append({"type":"crit","amount":50,"remaining":3})
-                        print("You used Crit Boost! +50% crit chance for 3 fights.")
-                        # Update player data in database
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No Crit Boosts.")
-                elif choice == "5":
-                    if inventory.get("mana_regen_potion",0) > 0:
-                        inventory["mana_regen_potion"] -= 1
-                        active_buffs.append({"type":"mana_regen","amount":15,"remaining":3})
-                        print("You used Mana Regen Potion! +15 mana per fight for 3 fights.")
-                        # Update player data in database
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No Mana Regen Potions.")
-                elif choice == "6":
-                    if inventory.get("mana_upgrade_potion",0) > 0:
-                        inventory["mana_upgrade_potion"] -= 1
-                        stats["mana_max"] = stats.get("mana_max",50) + 20
-                        stats["mana"] = min(stats.get("mana",0) + 10, stats["mana_max"])
-                        print("Your MAX MANA permanently increased by +20!")
-                        # Update player data in database
-                        player_data["stats"] = stats
-                        player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                                (json.dumps(player_data), current_user))
-                        conn.commit()
-                    else:
-                        print("No Mana Upgrade Potions.")
-                else:
-                    print("Invalid choice.")
-
-            elif action == "r":
-                if random.random() <= 0.7:
-                    print("You ran away safely!")
-                    break
-                else:
-                    print("You failed to run away!")
-                    mon_atk = random.randint(monster["atk_min"], monster["atk_max"])
-                    damage_to_player = apply_damage_with_defense(mon_atk, effective_def)
-                    player_hp -= damage_to_player
-                    print(f"The {monster['name']} hits you for {damage_to_player} damage! (Your HP: {max(0, player_hp)})")
-
-                    # Apply regen
-                    regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='regen' and b['remaining']>0)
-                    # Apply hp_regen_percent from titles
-                    hp_regen_percent = stats.get("title_hp_regen_percent", 0)
-                    regen_amount = int(regen_amount * (1 + hp_regen_percent / 100.0))
-                    if regen_amount > 0 and player_hp > 0:
-                        player_hp = min(player_hp + regen_amount, stats.get("hp_max"))
-                        print(f"🌿 Regen healed you for {regen_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                        
-                    # Apply mana regen
-                    mana_regen_amount = sum(b['amount'] for b in active_buffs if b['type']=='mana_regen' and b['remaining']>0)
-                    permanent_mana_regen = stats.get("perm_mana_regen", 0)
-                    if mana_regen_amount > 0 or permanent_mana_regen > 0:
-                        total_mana_regen = mana_regen_amount + permanent_mana_regen
-                        if total_mana_regen > 0 and player_mana >= 0:
-                            player_mana = min(player_mana + total_mana_regen, stats.get("mana_max"))
-                            if permanent_mana_regen > 0:
-                                print(f"🔵 Permanent Mana Regen restored {permanent_mana_regen} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
-                            else:
-                                print(f"🔵 Mana Regen restored {mana_regen_amount} mana! (MANA: {player_mana}/{stats.get('mana_max')})")
-                    
-                    # Update player data in database
-                    stats["hp"] = player_hp
-                    stats["mana"] = player_mana
-                    player_data["stats"] = stats
-                    player_data["inventory"] = inventory
-                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                            (json.dumps(player_data), current_user))
-                    conn.commit()
-            else:
-                print("Invalid choice. Try again.")
-
-        if fight_happened:
-            # Decrease remaining duration for active buffs
-            for b in active_buffs:
-                if b["remaining"] > 0:
-                    b["remaining"] -= 1
-            active_buffs = [b for b in active_buffs if b["remaining"] > 0]
-            
-            # Update player data in database
-            player_data["stats"] = stats
-            player_data["inventory"] = inventory
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                    (json.dumps(player_data), current_user))
-            conn.commit()
-
-        if player_hp <= 0:
-            print("💀 You have fallen in the dungeon...")
-            if money > 0:
-                lost = money // 4
-                if lost < 1:
-                    lost = 1
-                # Apply death penalty percent from titles
-                death_penalty_percent = stats.get("title_death_penalty_percent", 0)
-                lost = int(lost * (1 + death_penalty_percent / 100.0))
-                if lost < 0:
-                    lost = 0
-                if lost < 1:
-                    lost = 1
-                money = max(0, money - lost)
-                dungeon_treasure += lost
-                save_dungeon_treasure()
-                c.execute('UPDATE users SET money = ? WHERE username = ?', (money, current_user))
-                print(f"You wake up outside the dungeon and lost ${lost}. The money has been added to the dungeon treasure.")
-            else:
-                print("You wake up outside the dungeon with no money to lose.")
-
-            # Track death for achievements
-            stats["times_died"] = stats.get("times_died", 0) + 1
-
-            stats["hp"] = max(1, stats.get("hp_max",100))
-            stats["mana"] = stats.get("mana_max",50)
-            
-            # Check achievements after death
-            check_achievements(current_user)
-            
-            # Update player data in database
-            player_data["stats"] = stats
-            player_data["inventory"] = inventory
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                    (json.dumps(player_data), current_user))
-            conn.commit()
-            
-            save_all_data()
-            conn.close()
-            return
-        else:
-            # Update player data in database
-            stats["hp"] = player_hp
-            stats["mana"] = player_mana
-            player_data["stats"] = stats
-            player_data["inventory"] = inventory
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-                    (json.dumps(player_data), current_user))
-            conn.commit()
-            
-            highlights = {k:v for k,v in inventory.items() if v>0 and k in ['potion','mana_regen_potion','instant_mana']}
-            print(f"Current Score: {score}, Money: ${money}, Inventory highlights: {highlights}")
-            conn.close()
-            # continue exploring
-        conn.close()
 # -------------------------
 # Shop Interface
 # -------------------------
@@ -2873,81 +2547,38 @@ def magic_pack_interface(username):
 # Apply permanent upgrades function (needed for leveling)
 # -------------------------
 def apply_permanent_upgrades(username):
-    """
-    Apply all permanent upgrades from inventory to the player's stats.
-    This function should be called after loading user data and before combat.
-    """
-    if username not in [user[0] for user in get_leaderboard()]:  # Simple check if user exists
-        return
+    try:
+        with sqlite3.connect('users.db', timeout=10.0) as conn:
+            c = conn.cursor()
+            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+            result = c.fetchone()
+            if not result:
+                return
 
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
-        conn.close()
-        return
+            player_data = json.loads(result[0])
+            stats = player_data["stats"]
+            inventory = player_data["inventory"]
 
-    player_data = json.loads(result[0])
-    stats = player_data["stats"]
-    inventory = player_data.get("inventory", {})
+            # Apply permanent upgrades
+            stats["perm_atk"] = inventory.get("perm_strength_upgrade", 0) * PERM_UPGRADES["perm_strength_upgrade"]["atk_increase"]
+            stats["perm_def"] = inventory.get("perm_defense_upgrade", 0) * PERM_UPGRADES["perm_defense_upgrade"]["def_increase"]
+            stats["perm_hp_max"] = inventory.get("perm_health_upgrade", 0) * PERM_UPGRADES["perm_health_upgrade"]["hp_increase"]
+            stats["perm_mana_max"] = inventory.get("perm_mana_upgrade", 0) * PERM_UPGRADES["perm_mana_upgrade"]["magic_increase"]
+            stats["perm_magic_def"] = inventory.get("perm_magic_def_upgrade", 0) * PERM_UPGRADES["perm_magic_def_upgrade"]["magic_def_increase"]
+            stats["perm_crit_chance"] = inventory.get("perm_crit_chance_upgrade", 0) * PERM_UPGRADES["perm_crit_chance_upgrade"]["crit_chance_increase"]
+            stats["perm_mana_regen"] = inventory.get("perm_mana_regen_upgrade", 0) * PERM_UPGRADES["perm_mana_regen_upgrade"]["mana_regen_increase"]
+            stats["perm_lifesteal"] = inventory.get("perm_lifesteal_upgrade", 0) * PERM_UPGRADES["perm_lifesteal_upgrade"]["max_lifesteal_increase"]
+            stats["perm_lifesteal_chance"] = inventory.get("perm_lifesteal_chance_upgrade", 0) * PERM_UPGRADES["perm_lifesteal_chance_upgrade"]["lifesteal_chance_increase"]
+            stats["perm_exp_boost"] = inventory.get("perm_exp_upgrade", 0) * PERM_UPGRADES["perm_exp_upgrade"]["exp_increase"]
 
-    # Reset permanent stats to base values
-    base_stats = default_player_data()["stats"]
-    for key in ["perm_atk", "perm_def", "perm_hp_max", "perm_mana_max", "perm_magic_def", "perm_crit_chance", "perm_mana_regen", "perm_lifesteal", "perm_lifesteal_chance", "perm_exp_boost"]:
-        if key in stats:
-            stats[key] = 0
+            # Apply title boosts
+            apply_title_boosts(username)
 
-    # Apply all permanent upgrades from inventory
-    for perm_key, upgrade in PERM_UPGRADES.items():
-        count = inventory.get(perm_key, 0)
-        if count > 0:
-            if "atk_increase" in upgrade:
-                stats["perm_atk"] = stats.get("perm_atk", 0) + (upgrade["atk_increase"] * count)
-            elif "def_increase" in upgrade:
-                stats["perm_def"] = stats.get("perm_def", 0) + (upgrade["def_increase"] * count)
-            elif "hp_increase" in upgrade:
-                stats["perm_hp_max"] = stats.get("perm_hp_max", 0) + (upgrade["hp_increase"] * count)
-            elif "magic_increase" in upgrade:
-                stats["perm_mana_max"] = stats.get("perm_mana_max", 0) + (upgrade["magic_increase"] * count)
-            elif "crit_chance_increase" in upgrade:
-                stats["perm_crit_chance"] = stats.get("perm_crit_chance", 0) + (upgrade["crit_chance_increase"] * count)
-            elif "mana_regen_increase" in upgrade:
-                stats["perm_mana_regen"] = stats.get("perm_mana_regen", 0) + (upgrade["mana_regen_increase"] * count)
-            elif "max_lifesteal_increase" in upgrade:
-                stats["perm_lifesteal"] = stats.get("perm_lifesteal", 0) + (upgrade["max_lifesteal_increase"] * count)
-            elif "lifesteal_chance_increase" in upgrade:
-                stats["perm_lifesteal_chance"] = stats.get("perm_lifesteal_chance", 0) + (upgrade["lifesteal_chance_increase"] * count)
-            elif "exp_increase" in upgrade:
-                stats["perm_exp_boost"] = stats.get("perm_exp_boost", 0) + (upgrade["exp_increase"] * count)
-
-    stats["hp"] = min(stats.get("hp", stats["hp_max"]), stats["hp_max"])
-    stats["mana"] = min(stats.get("mana", stats["mana_max"]), stats["mana_max"])
-
-    # Apply permanent stats to current stats only if they weren't manually set below default
-    default_stats = default_player_data()["stats"]
-
-    if not stats["stats_manually_set"]["atk"]:
-        stats["atk"] = default_stats["atk"] + stats.get("perm_atk", 0)
-    if not stats["stats_manually_set"]["defense"]:
-        stats["defense"] = default_stats["defense"] + stats.get("perm_def", 0)
-    if not stats["stats_manually_set"]["hp_max"]:
-        stats["hp_max"] = default_stats["hp_max"] + stats.get("perm_hp_max", 0)
-    if not stats["stats_manually_set"]["hp"]:
-        stats["hp"] = min(stats.get("hp", stats["hp_max"]) + stats["hp_max"] // 4, stats["hp_max"])
-    if not stats["stats_manually_set"]["mana_max"]:
-        stats["mana_max"] = default_stats["mana_max"] + stats.get("perm_mana_max", 0)
-    if not stats["stats_manually_set"]["mana"]:
-        stats["mana"] = min(stats.get("mana", stats["mana_max"]) + stats["mana_max"] // 3, stats["mana_max"])
-
-    # Ensure current HP/Mana don't exceed new max
-    stats["hp"] = min(stats.get("hp", stats["hp_max"]), stats["hp_max"])
-    stats["mana"] = min(stats.get("mana", stats["mana_max"]), stats["mana_max"])
-
-    player_data["stats"] = stats
-    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-    conn.commit()
-    conn.close()
+            player_data["stats"] = stats
+            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+            conn.commit()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
 
 # -------------------------
 # Magic Pack System
@@ -3312,134 +2943,145 @@ def equip_titles_menu(username, player_data, cursor):
 # -------------------------
 # Apply Title Boosts
 # -------------------------
-def apply_title_boosts(stats):
-    equipped_titles = stats.get("equipped_titles", [None] * 5)
-    total_atk = 0
-    total_def = 0
-    total_hp = 0
-    total_mana = 0
-    total_exp = 0
-    for title_key in equipped_titles:
-        if title_key and title_key in TITLES:
-            title = TITLES[title_key]
-            total_atk += title.get("atk_boost", 0)
-            total_def += title.get("def_boost", 0)
-            total_hp += title.get("hp_boost", 0)
-            total_mana += title.get("mana_boost", 0)
-            total_exp += title.get("exp_boost", 0)
+def apply_title_boosts(username):
+    try:
+        with sqlite3.connect('users.db', timeout=10.0) as conn:
+            c = conn.cursor()
+            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+            result = c.fetchone()
+            if not result:
+                return
 
-    stats["title_atk_boost"] = total_atk
-    stats["title_def_boost"] = total_def
-    stats["title_hp_boost"] = total_hp
-    stats["title_mana_boost"] = total_mana
-    stats["title_exp_boost"] = total_exp
+            player_data = json.loads(result[0])
+            stats = player_data["stats"]
+            
+            # Reset title boosts
+            stats["title_atk_boost"] = 0
+            stats["title_def_boost"] = 0
+            stats["title_hp_boost"] = 0
+            stats["title_mana_boost"] = 0
+            stats["title_exp_boost"] = 0
+            stats["title_magic_def_boost"] = 0
+            
+            # Apply equipped title boosts
+            for title_id in stats.get("equipped_titles", []):
+                if title_id and title_id in TITLES:
+                    title = TITLES[title_id]
+                    stats["title_atk_boost"] += title.get("atk_boost", 0)
+                    stats["title_def_boost"] += title.get("def_boost", 0)
+                    stats["title_hp_boost"] += title.get("hp_boost", 0)
+                    stats["title_mana_boost"] += title.get("mana_boost", 0)
+                    stats["title_exp_boost"] += title.get("exp_boost", 0)
+                    stats["title_magic_def_boost"] += title.get("magic_def_boost", 0)
+            
+            player_data["stats"] = stats
+            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+            conn.commit()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
 
 # -------------------------
 # Auto Equip Items
 # -------------------------
 def auto_equip_items(username):
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
-        conn.close()
-        return
+    try:
+        with sqlite3.connect('users.db', timeout=10.0) as conn:
+            c = conn.cursor()
+            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
+            result = c.fetchone()
+            if not result:
+                return
 
-    player_data = json.loads(result[0])
-    stats = player_data['stats']
-    inventory = player_data['inventory']
-    settings = stats.get('settings', {})
+            player_data = json.loads(result[0])
+            stats = player_data["stats"]
+            inventory = player_data["inventory"]
+            equipped = stats["equipped"]
+            
+            # Only auto-equip if the setting is enabled
+            if not stats["settings"].get("auto_equip_best", False):
+                return
 
-    equipped = stats.get('equipped', {})
+            # Auto-equip best weapon
+            best_weapon = None
+            best_weapon_atk = 0
+            for weapon_id, count in inventory.items():
+                if count > 0 and weapon_id in WEAPONS:
+                    weapon_atk = WEAPONS[weapon_id]["atk"]
+                    if weapon_atk > best_weapon_atk:
+                        best_weapon = weapon_id
+                        best_weapon_atk = weapon_atk
 
-    if settings.get('auto_equip_best') or settings.get('auto_equip_everything'):
-        # Equip best weapon
-        best_weapon = None
-        best_atk = equipped.get('weapon') and WEAPONS.get(equipped['weapon'], {}).get('atk', 0) or 0
-        for w_key, w_data in WEAPONS.items():
-            if inventory.get(w_key, 0) > 0 and w_data['atk'] > best_atk:
-                best_weapon = w_key
-                best_atk = w_data['atk']
-        if best_weapon:
-            equipped['weapon'] = best_weapon
-            print(f"Auto-equipped {WEAPONS[best_weapon]['name']} as weapon.")
+            if best_weapon and best_weapon != equipped["weapon"]:
+                equipped["weapon"] = best_weapon
 
-        # Equip best armor
-        best_armor = None
-        best_def = equipped.get('armor') and ARMORS.get(equipped['armor'], {}).get('def', 0) or 0
-        for a_key, a_data in ARMORS.items():
-            if inventory.get(a_key, 0) > 0 and a_data['def'] > best_def:
-                best_armor = a_key
-                best_def = a_data['def']
-        if best_armor:
-            equipped['armor'] = best_armor
-            print(f"Auto-equipped {ARMORS[best_armor]['name']} as armor.")
+            # Auto-equip best armor
+            best_armor = None
+            best_armor_def = 0
+            for armor_id, count in inventory.items():
+                if count > 0 and armor_id in ARMORS:
+                    armor_def = ARMORS[armor_id]["def"]
+                    if armor_def > best_armor_def:
+                        best_armor = armor_id
+                        best_armor_def = armor_def
 
-        # Equip best wand
-        best_wand = None
-        best_magic_atk = equipped.get('wand') and WANDS.get(equipped['wand'], {}).get('magic_atk', 0) or 0
-        for w_key, w_data in WANDS.items():
-            if inventory.get(w_key, 0) > 0 and w_data['magic_atk'] > best_magic_atk:
-                best_wand = w_key
-                best_magic_atk = w_data['magic_atk']
-        if best_wand:
-            equipped['wand'] = best_wand
-            print(f"Auto-equipped {WANDS[best_wand]['name']} as wand.")
+            if best_armor and best_armor != equipped["armor"]:
+                equipped["armor"] = best_armor
 
-        # Equip best robe
-        best_robe = None
-        best_magic_def = equipped.get('robe') and ROBES.get(equipped['robe'], {}).get('magic_def', 0) or 0
-        for r_key, r_data in ROBES.items():
-            if inventory.get(r_key, 0) > 0 and r_data['magic_def'] > best_magic_def:
-                best_robe = r_key
-                best_magic_def = r_data['magic_def']
-        if best_robe:
-            equipped['robe'] = best_robe
-            print(f"Auto-equipped {ROBES[best_robe]['name']} as robe.")
+            # Auto-equip best wand
+            best_wand = None
+            best_wand_magic_atk = 0
+            for wand_id, count in inventory.items():
+                if count > 0 and wand_id in WANDS:
+                    wand_magic_atk = WANDS[wand_id]["magic_atk"]
+                    if wand_magic_atk > best_wand_magic_atk:
+                        best_wand = wand_id
+                        best_wand_magic_atk = wand_magic_atk
 
-        # Equip best necklace
-        best_necklace = None
-        best_hp = equipped.get('necklace') and NECKLACES.get(equipped['necklace'], {}).get('hp_bonus', 0) or 0
-        for n_key, n_data in NECKLACES.items():
-            if inventory.get(n_key, 0) > 0 and n_data.get('hp_bonus', 0) > best_hp:
-                best_necklace = n_key
-                best_hp = n_data['hp_bonus']
-        if best_necklace:
-            equipped['necklace'] = best_necklace
-            print(f"Auto-equipped {NECKLACES[best_necklace]['name']} as necklace.")
+            if best_wand and best_wand != equipped["wand"]:
+                equipped["wand"] = best_wand
 
-    if settings.get('auto_equip_spells') or settings.get('auto_equip_everything'):
-        learned_spells = stats.get('learned_spells', [])
-        equipped_spells = stats.get('equipped_spells', [None, None, None, None])
-        # Sort learned spells by power desc
-        sorted_spells = sorted(learned_spells, key=lambda s: SPELLS_BY_KEY.get(s, {}).get('power', 0), reverse=True)
-        for i in range(4):
-            if i < len(sorted_spells):
-                equipped_spells[i] = sorted_spells[i]
-        stats['equipped_spells'] = equipped_spells
-        print("Auto-equipped best spells.")
+            # Auto-equip best robe
+            best_robe = None
+            best_robe_magic_def = 0
+            for robe_id, count in inventory.items():
+                if count > 0 and robe_id in ROBES:
+                    robe_magic_def = ROBES[robe_id]["magic_def"]
+                    if robe_magic_def > best_robe_magic_def:
+                        best_robe = robe_id
+                        best_robe_magic_def = robe_magic_def
 
-    if settings.get('auto_equip_titles') or settings.get('auto_equip_everything'):
-        available_titles = stats.get('available_titles', [])
-        equipped_titles = stats.get('equipped_titles', [None] * 5)
-        # Sort by rarity or some score
-        title_scores = {}
-        for t_key in available_titles:
-            title_scores[t_key] = get_rarity_value(TITLES.get(t_key, {}).get('rarity', 'common'))
-        sorted_titles = sorted(available_titles, key=lambda t: title_scores.get(t, 0), reverse=True)
-        for i in range(5):
-            if i < len(sorted_titles):
-                equipped_titles[i] = sorted_titles[i]
-        stats['equipped_titles'] = equipped_titles
-        apply_title_boosts(stats)
-        print("Auto-equipped best titles.")
+            if best_robe and best_robe != equipped["robe"]:
+                equipped["robe"] = best_robe
 
-    player_data['stats'] = stats
-    player_data['inventory'] = inventory
-    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-    conn.commit()
-    conn.close()
+            # Auto-equip best necklace
+            best_necklace = None
+            best_necklace_value = 0
+            for necklace_id, count in inventory.items():
+                if count > 0 and necklace_id in NECKLACES:
+                    # Calculate total value of necklace bonuses
+                    necklace = NECKLACES[necklace_id]
+                    total_value = (
+                        necklace.get("hp_bonus", 0) * 1 +
+                        necklace.get("mana_bonus", 0) * 1 +
+                        necklace.get("atk_bonus", 0) * 2 +
+                        necklace.get("def_bonus", 0) * 2 +
+                        necklace.get("magic_atk_bonus", 0) * 2 +
+                        necklace.get("magic_def_bonus", 0) * 2 +
+                        necklace.get("crit_bonus", 0) * 3 +
+                        necklace.get("lifesteal_bonus", 0) * 3
+                    )
+                    if total_value > best_necklace_value:
+                        best_necklace = necklace_id
+                        best_necklace_value = total_value
+
+            if best_necklace and best_necklace != equipped["necklace"]:
+                equipped["necklace"] = best_necklace
+
+            player_data["stats"]["equipped"] = equipped
+            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+            conn.commit()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
 
 # -------------------------
 # Manage Inventory Menu
