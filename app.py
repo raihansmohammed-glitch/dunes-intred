@@ -488,7 +488,7 @@ def grant_exp(username, amount):
 def save_dungeon_treasure():
     global dungeon_treasure
     try:
-        conn = sqlite3.connect('users.db')
+        conn = sqlite3.connect('users.db', timeout=10.0)
         c = conn.cursor()
         c.execute('UPDATE dungeon_treasure SET treasure = ? WHERE id = 1', (int(dungeon_treasure),))
         conn.commit()
@@ -504,7 +504,7 @@ def save_dungeon_treasure():
 def load_dungeon_treasure():
     global dungeon_treasure
     try:
-        conn = sqlite3.connect('users.db')
+        conn = sqlite3.connect('users.db', timeout=10.0)
         c = conn.cursor()
         c.execute('''CREATE TABLE IF NOT EXISTS dungeon_treasure (
             id INTEGER PRIMARY KEY,
@@ -575,8 +575,10 @@ def stop_autosave():
 # -------------------------
 
 def setup_db():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
+    c.execute('PRAGMA journal_mode=WAL;')
+    c.execute('PRAGMA synchronous=NORMAL;')
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY,
         password TEXT NOT NULL,
@@ -593,7 +595,7 @@ def setup_db():
     conn.close()
 
 def signup(username, password):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     try:
         c.execute('INSERT INTO users (username, password, player_data) VALUES (?, ?, ?)',
@@ -608,7 +610,7 @@ def signup(username, password):
         conn.close()
 
 def signin(username, password):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT password, score, money, player_data FROM users WHERE username = ?', (username,))
     result = c.fetchone()
@@ -619,7 +621,7 @@ def signin(username, password):
         return None, None, None
 
 def update_user(username, score, money, player_data):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('UPDATE users SET score = ?, money = ?, player_data = ? WHERE username = ?',
               (score, money, json.dumps(player_data), username))
@@ -941,7 +943,7 @@ MONSTERS = [
 
 def get_leaderboard():
     """Get leaderboard from SQLite database"""
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT username, score FROM users ORDER BY score DESC LIMIT 10')
     results = c.fetchall()
@@ -971,7 +973,7 @@ def guessing_game(current_user, score):
 
 def explore_dungeon(username):
     """Explore the dungeon to find treasure"""
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
     result = c.fetchone()
@@ -1036,7 +1038,7 @@ def explore_dungeon(username):
 # Debug Console
 # -------------------------
 def debug_console(current_user, score, money, player_data, users_db_path='users.db'):
-    conn = sqlite3.connect(users_db_path)
+    conn = sqlite3.connect(users_db_path, timeout=10.0)
     c = conn.cursor()
     print("\n--- Debug Console --- (Type 'help' for commands)")
     while True:
@@ -1414,7 +1416,7 @@ def dungeon(username):
       - calculate_total_crit_chance(...)
     """
     users_db_path = 'users.db'
-    conn = sqlite3.connect(users_db_path)
+    conn = sqlite3.connect(users_db_path, timeout=10.0)
     c = conn.cursor()
 
     # Ensure permanent upgrades applied first to populate perm_* fields
@@ -1500,7 +1502,8 @@ def dungeon(username):
             name_display = username
             if stats.get("settings", {}).get("call_including_title", True) and stats.get("title"):
                 name_display = f"{stats['title']} {username}"
-            print(f"HP: {player_hp}/{stats.get('hp_max')}, MANA: {player_mana}/{stats.get('mana_max')}, ATK: {effective_atk}, DEF: {effective_def}, Money: ${player_data.get('money',0)}, LVL: {stats.get('level')}, EXP: {stats.get('exp')}/{next_exp}, AREA: {stats.get('current_area', 1)}")
+            exp_display = create_exp_bar(stats.get('exp'), next_exp) if stats.get("settings", {}).get("show_exp_bar", False) else f"{stats.get('exp')}/{next_exp}"
+            print(f"{name_display} - HP: {player_hp}/{stats.get('hp_max')}, MANA: {player_mana}/{stats.get('mana_max')}, ATK: {effective_atk}, DEF: {effective_def}, Money: ${player_data.get('money',0)}, LVL: {stats.get('level')}, EXP: {exp_display}, AREA: {stats.get('current_area', 1)}")
             if active_buffs:
                 print("Active buffs:")
                 for b in active_buffs:
@@ -1862,7 +1865,7 @@ def shop():
         print("You must be logged in to access the shop.")
         return
 
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT score, money, player_data FROM users WHERE username = ?', (current_user,))
     result = c.fetchone()
@@ -2426,7 +2429,7 @@ def parse_qty_from_choice(choice_str):
 # Permanent Upgrades Interface
 # -------------------------
 def permanent_upgrades_interface(username):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
     result = c.fetchone()
@@ -2494,7 +2497,7 @@ def permanent_upgrades_interface(username):
 # Magic Pack Interface
 # -------------------------
 def magic_pack_interface(username):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
     result = c.fetchone()
@@ -2692,7 +2695,7 @@ def open_magic_pack(username, pack_key, quantity=1):
     if pack_key not in MAGIC_PACKS:
         return False, "Unknown magic pack."
 
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
     result = c.fetchone()
@@ -2760,7 +2763,7 @@ def ensure_user_fields(username):
     Normalize a user's data to ensure all expected keys exist so older saves won't crash.
     Call this after loading, signup, login, and before any operation that uses stats/inventory.
     """
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
     result = c.fetchone()
@@ -2831,7 +2834,7 @@ def settings_menu(username):
     if not username:
         return
 
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
     result = c.fetchone()
@@ -3177,7 +3180,7 @@ def manage_inventory_menu(username, player_data, cursor):
 # View Achievements Menu
 # -------------------------
 def view_achievements_menu(username):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', timeout=10.0)
     c = conn.cursor()
     c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
     result = c.fetchone()
