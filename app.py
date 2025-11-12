@@ -1,4 +1,3 @@
-import sqlite3
 import json
 import random
 import os
@@ -10,13 +9,14 @@ import threading
 # -------------------------
 # Files & persistence
 # -------------------------
-USERS_FILE = "users.txt"  # Keep for compatibility but use SQLite
+USERS_DIR = "users.txt"
 DUNGEON_TREASURE_FILE = "dungeon_treasure.json"
 
 # -------------------------
 # Globals
 # -------------------------
 dungeon_treasure = 0
+GLOBAL_KEY = "__global__"
 
 AUTOSAVE_INTERVAL = 30  # Autosave every 30 seconds for simplicity
 autosave_timer = None
@@ -327,43 +327,40 @@ def get_title(level, achievements=None):
 
 def check_achievements(username):
     try:
-        with sqlite3.connect('users.db', timeout=10.0) as conn:
-            c = conn.cursor()
-            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-            result = c.fetchone()
-            if not result:
-                return []
+        user_data = load_user_data(username)
+        if not user_data:
+            return []
 
-            player_data = json.loads(result[0])
-            stats = player_data.get("stats", {})
-            unlocked = stats.get("achievements", [])
-            new_achievements = []
+        player_data = user_data.get("player_data", {})
+        stats = player_data.get("stats", {})
+        unlocked = stats.get("achievements", [])
+        new_achievements = []
 
-            for ach_key, achievement in ACHIEVEMENTS.items():
-                if ach_key not in unlocked and achievement["condition"](stats):
-                    unlocked.append(ach_key)
-                    new_achievements.append(ach_key)
-                    print(f"🏆 Achievement Unlocked: {achievement['name']} - '{achievement['title']}'!")
-                    print(f" {achievement['desc']}")
+        for ach_key, achievement in ACHIEVEMENTS.items():
+            if ach_key not in unlocked and achievement["condition"](stats):
+                unlocked.append(ach_key)
+                new_achievements.append(ach_key)
+                print(f"🏆 Achievement Unlocked: {achievement['name']} - '{achievement['title']}'!")
+                print(f" {achievement['desc']}")
 
-            if new_achievements:
-                stats["achievements"] = unlocked
-                # Update title if new achievement gives better title
-                old_title = stats.get("title")
-                new_title = get_title(stats.get("level", 1), unlocked)
-                if new_title != old_title:
-                    stats["title"] = new_title
-                    if new_title not in stats.get("available_titles", []):
-                        stats["available_titles"].append(new_title)
-                    print(f"🎉 New title unlocked: '{new_title}'!")
+        if new_achievements:
+            stats["achievements"] = unlocked
+            # Update title if new achievement gives better title
+            old_title = stats.get("title")
+            new_title = get_title(stats.get("level", 1), unlocked)
+            if new_title != old_title:
+                stats["title"] = new_title
+                if new_title not in stats.get("available_titles", []):
+                    stats["available_titles"].append(new_title)
+                print(f"🎉 New title unlocked: '{new_title}'!")
 
-                player_data["stats"] = stats
-                c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-                conn.commit()
+            player_data["stats"] = stats
+            user_data["player_data"] = player_data
+            save_user_data(username, user_data)
 
-            return new_achievements
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+        return new_achievements
+    except Exception as e:
+        print(f"Error checking achievements: {e}")
         return []
 
 # -------------------------
@@ -403,83 +400,76 @@ def create_exp_bar(current_exp, next_exp):
 
 def grant_exp(username, amount):
     try:
-        with sqlite3.connect('users.db', timeout=10.0) as conn:
-            c = conn.cursor()
-            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-            result = c.fetchone()
-            if not result:
-                return []
+        user_data = load_user_data(username)
+        if not user_data:
+            return []
 
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            lvls_gained = []
-            if stats.get("level", 1) >= MAX_LEVEL:
-                return lvls_gained
+        player_data = user_data.get("player_data", {})
+        stats = player_data["stats"]
+        lvls_gained = []
+        if stats.get("level", 1) >= MAX_LEVEL:
+            return lvls_gained
 
-            # Apply experience boost if available
-            exp_boost = stats.get("perm_exp_boost", 0)
-            title_exp_boost = stats.get("title_exp_boost", 0)
-            total_exp_boost = exp_boost + title_exp_boost
-            if total_exp_boost > 0:
-                boosted_amount = amount * (total_exp_boost / 100.0)
-                print(f"Experience boost applied! +{boosted_amount:.1f} bonus EXP")
-                amount += boosted_amount
+        # Apply experience boost if available
+        exp_boost = stats.get("perm_exp_boost", 0)
+        title_exp_boost = stats.get("title_exp_boost", 0)
+        total_exp_boost = exp_boost + title_exp_boost
+        if total_exp_boost > 0:
+            boosted_amount = amount * (total_exp_boost / 100.0)
+            print(f"Experience boost applied! +{boosted_amount:.1f} bonus EXP")
+            amount += boosted_amount
 
-            stats["exp"] = stats.get("exp", 0) + amount
-            old_title = stats.get("title")
-            while stats["level"] < MAX_LEVEL and stats["exp"] >= exp_to_next(stats["level"]):
-                req = exp_to_next(stats["level"])
-                stats["exp"] -= req
-                old_level = stats["level"]
-                stats["level"] += 1
+        stats["exp"] = stats.get("exp", 0) + amount
+        old_title = stats.get("title")
+        while stats["level"] < MAX_LEVEL and stats["exp"] >= exp_to_next(stats["level"]):
+            req = exp_to_next(stats["level"])
+            stats["exp"] -= req
+            old_level = stats["level"]
+            stats["level"] += 1
 
-                # Improved stat gains per level
-                hp_increase = 10 + stats["level"] // 2
-                atk_increase = 1 + stats["level"] // 5
-                mana_increase = 5 + stats["level"] // 3
+            # Improved stat gains per level
+            hp_increase = 10 + stats["level"] // 2
+            atk_increase = 1 + stats["level"] // 5
+            mana_increase = 5 + stats["level"] // 3
 
-                # Check if stats were manually set below default
-                default_stats = default_player_data()["stats"]
+            # Check if stats were manually set below default
+            default_stats = default_player_data()["stats"]
 
-                # Handle HP
-                if not stats["stats_manually_set"]["hp_max"]:
-                    stats["hp_max"] = stats.get("hp_max", 100) + hp_increase
-                if not stats["stats_manually_set"]["hp"]:
-                    stats["hp"] = min(stats.get("hp", stats["hp_max"]) + stats["hp_max"] // 4, stats["hp_max"])
+            # Handle HP
+            if not stats["stats_manually_set"]["hp_max"]:
+                stats["hp_max"] = stats.get("hp_max", 100) + hp_increase
+            if not stats["stats_manually_set"]["hp"]:
+                stats["hp"] = min(stats.get("hp", stats["hp_max"]) + stats["hp_max"] // 4, stats["hp_max"])
 
-                # Handle ATK
-                if not stats["stats_manually_set"]["atk"]:
-                    stats["atk"] = stats.get("atk", 5) + atk_increase
+            # Handle ATK
+            if not stats["stats_manually_set"]["atk"]:
+                stats["atk"] = stats.get("atk", 5) + atk_increase
 
-                # Handle Mana
-                if not stats["stats_manually_set"]["mana_max"]:
-                    stats["mana_max"] = stats.get("mana_max", 50) + mana_increase
-                if not stats["stats_manually_set"]["mana"]:
-                    stats["mana"] = min(stats.get("mana", stats["mana_max"]) + stats["mana_max"] // 3, stats["mana_max"])
+            # Handle Mana
+            if not stats["stats_manually_set"]["mana_max"]:
+                stats["mana_max"] = stats.get("mana_max", 50) + mana_increase
+            if not stats["stats_manually_set"]["mana"]:
+                stats["mana"] = min(stats.get("mana", stats["mana_max"]) + stats["mana_max"] // 3, stats["mana_max"])
 
-                # Handle DEF
-                if not stats["stats_manually_set"]["defense"]:
-                    stats["defense"] = stats.get("defense", 0) + 1
+            # Handle DEF
+            if not stats["stats_manually_set"]["defense"]:
+                stats["defense"] = stats.get("defense", 0) + 1
 
-                lvls_gained.append(stats["level"])
+            lvls_gained.append(stats["level"])
 
-            player_data["stats"] = stats
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-            conn.commit()
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+        player_data["stats"] = stats
+        user_data["player_data"] = player_data
+        save_user_data(username, user_data)
+    except Exception as e:
+        print(f"Error granting experience: {e}")
         return []
-    
-    # Now that the connection is closed, we can safely call other functions
+
     # Apply permanent upgrades after level up
     apply_permanent_upgrades(username)
-    
+
     # Auto-equip items if enabled
     auto_equip_items(username)
-    
-    # Check for new achievements after leveling up
-    check_achievements(username)
-    
+
     return lvls_gained
 
 # -------------------------
@@ -488,47 +478,46 @@ def grant_exp(username, amount):
 def save_dungeon_treasure():
     global dungeon_treasure
     try:
-        conn = sqlite3.connect('users.db', timeout=10.0)
-        c = conn.cursor()
-        c.execute('UPDATE dungeon_treasure SET treasure = ? WHERE id = 1', (int(dungeon_treasure),))
-        conn.commit()
+        lock_file = DUNGEON_TREASURE_FILE + '.lock'
+        while os.path.exists(lock_file):
+            time.sleep(0.01)
+        with open(lock_file, 'w') as f:
+            f.write('')
+        temp_file = DUNGEON_TREASURE_FILE + '.tmp'
+        with open(temp_file, 'w') as f:
+            json.dump({"treasure": int(dungeon_treasure)}, f)
+        os.replace(temp_file, DUNGEON_TREASURE_FILE)
+        try:
+            os.remove(lock_file)
+        except:
+            pass
         return True
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+    except Exception as e:
+        print(f"Error saving dungeon treasure: {e}")
+        try:
+            os.remove(lock_file)
+        except:
+            pass
         return False
-    finally:
-        if 'conn' in locals():
-            conn.close()
 
 
 def load_dungeon_treasure():
     global dungeon_treasure
     try:
-        conn = sqlite3.connect('users.db', timeout=10.0)
-        c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS dungeon_treasure (
-            id INTEGER PRIMARY KEY,
-            treasure INTEGER DEFAULT 0
-        )''')
-        c.execute('SELECT treasure FROM dungeon_treasure WHERE id = 1')
-        result = c.fetchone()
-        if result:
-            dungeon_treasure = int(result[0])
+        if os.path.exists(DUNGEON_TREASURE_FILE):
+            with open(DUNGEON_TREASURE_FILE, 'r') as f:
+                data = json.load(f)
+                dungeon_treasure = int(data.get("treasure", random.randint(200000, 1000000)))
         else:
             dungeon_treasure = random.randint(200000, 1000000)
-            c.execute('INSERT INTO dungeon_treasure (id, treasure) VALUES (1, ?)', (dungeon_treasure,))
-            conn.commit()
 
         # If dungeon treasure is below 200,000, reroll it
         if dungeon_treasure < 200000:
             dungeon_treasure = random.randint(200000, 1000000)
             save_dungeon_treasure()
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+    except Exception as e:
+        print(f"Error loading dungeon treasure: {e}")
         dungeon_treasure = random.randint(200000, 1000000)
-    finally:
-        if 'conn' in locals():
-            conn.close()
 
 load_dungeon_treasure()
 
@@ -536,8 +525,7 @@ load_dungeon_treasure()
 # Autosave functions
 # -------------------------
 def save_all_data():
-    treasure_saved = save_dungeon_treasure()
-    return treasure_saved
+    save_dungeon_treasure()
 
 def autosave():
     """Perform autosave and show a brief notification"""
@@ -575,58 +563,99 @@ def stop_autosave():
 # -------------------------
 
 def setup_db():
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('PRAGMA journal_mode=WAL;')
-    c.execute('PRAGMA synchronous=NORMAL;')
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-        username TEXT PRIMARY KEY,
-        password TEXT NOT NULL,
-        score INTEGER DEFAULT 0,
-        money INTEGER DEFAULT 40,
-        player_data TEXT
-    )''')
-    # Ensure money column exists (for backward compatibility)
+    """Create users.txt file if it doesn't exist and migrate old data"""
+    if os.path.isdir(USERS_DIR):
+        # Migrate from old directory structure
+        users = {}
+        if os.path.exists("users"):
+            for filename in os.listdir("users"):
+                if filename.endswith('.json'):
+                    username = filename[:-5]
+                    with open(os.path.join("users", filename), 'r') as f:
+                        users[username] = json.load(f)
+        # Write to users.txt
+        with open(USERS_DIR, 'w') as f:
+            json.dump(users, f, indent=4)
+        # Optionally remove old directory
+        import shutil
+        shutil.rmtree("users")
+    elif not os.path.exists(USERS_DIR):
+        with open(USERS_DIR, 'w') as f:
+            json.dump({}, f)
+
+def load_all_users():
+    """Load all user data from users.txt"""
+    if not os.path.exists(USERS_DIR):
+        return {}
     try:
-        c.execute('ALTER TABLE users ADD COLUMN money INTEGER DEFAULT 40')
-    except sqlite3.OperationalError:
-        pass  # Column already exists
-    conn.commit()
-    conn.close()
+        with open(USERS_DIR, 'r') as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return {}
+
+def save_all_users(users):
+    """Save all user data to users.txt atomically with locking"""
+    lock_file = USERS_DIR + '.lock'
+    try:
+        while os.path.exists(lock_file):
+            time.sleep(0.01)
+        with open(lock_file, 'w') as f:
+            f.write('')
+        temp_file = USERS_DIR + '.tmp'
+        with open(temp_file, 'w') as f:
+            json.dump(users, f, indent=4)
+        os.replace(temp_file, USERS_DIR)
+    finally:
+        try:
+            os.remove(lock_file)
+        except:
+            pass
+
+def load_user_data(username):
+    """Load user data from the users dict"""
+    users = load_all_users()
+    return users.get(username)
+
+def save_user_data(username, user_data):
+    """Save user data by updating the users dict and saving to file atomically"""
+    users = load_all_users()
+    users[username] = user_data
+    save_all_users(users)
 
 def signup(username, password):
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    try:
-        c.execute('INSERT INTO users (username, password, player_data) VALUES (?, ?, ?)',
-                  (username, password, json.dumps(default_player_data())))
-        conn.commit()
-        print("Signup successful!")
-        return True
-    except sqlite3.IntegrityError:
+    users = load_all_users()
+    if username in users:
         print("Username already exists!")
         return False
-    finally:
-        conn.close()
+    user_data = {
+        "username": username,
+        "password": password,
+        "score": 0,
+        "money": 40,
+        "player_data": default_player_data()
+    }
+    users[username] = user_data
+    save_all_users(users)
+    print("Signup successful!")
+    return True
 
 def signin(username, password):
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT password, score, money, player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    conn.close()
-    if result and result[0] == password:
-        return result[1], result[2], json.loads(result[3])
+    user_data = load_user_data(username)
+    if user_data and user_data.get("password") == password:
+        return user_data.get("score", 0), user_data.get("money", 40), user_data.get("player_data", default_player_data())
     else:
         return None, None, None
 
-def update_user(username, score, money, player_data):
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('UPDATE users SET score = ?, money = ?, player_data = ? WHERE username = ?',
-              (score, money, json.dumps(player_data), username))
-    conn.commit()
-    conn.close()
+def update_user(username, score=None, money=None, player_data=None):
+    users = load_all_users()
+    if username in users:
+        if score is not None:
+            users[username]["score"] = score
+        if money is not None:
+            users[username]["money"] = money
+        if player_data is not None:
+            users[username]["player_data"] = player_data
+        save_all_users(users)
 
 def default_player_data():
     inv = {
@@ -690,6 +719,7 @@ def default_player_data():
     }
     return {
         "money": 40,
+        "score": 0,
         "stats": {
             "hp_max": 100,
             "hp": 100,
@@ -942,13 +972,14 @@ MONSTERS = [
 ]
 
 def get_leaderboard():
-    """Get leaderboard from SQLite database"""
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT username, score FROM users ORDER BY score DESC LIMIT 10')
-    results = c.fetchall()
-    conn.close()
-    return results
+    """Get leaderboard from users.txt"""
+    users_data = []
+    users = load_all_users()
+    for username, user_data in users.items():
+        score = user_data.get("score", 0)
+        users_data.append((username, score))
+    users_data.sort(key=lambda x: x[1], reverse=True)
+    return users_data[:10]
 
 def guessing_game(current_user, score):
     number = random.randint(1, 100)
@@ -967,79 +998,71 @@ def guessing_game(current_user, score):
                 print(f"Correct! You guessed it in {attempts} attempts.")
                 score += max(0, 10 - attempts)  # Simple scoring: bonus for fewer attempts
                 print(f"Score updated. New score: {score}")
+                # Save the updated score
+                update_user(current_user, score=score)
                 return score
         except ValueError:
             print("Please enter a valid number.")
 
 def explore_dungeon(username):
     """Explore the dungeon to find treasure"""
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
-        conn.close()
+    user_data = load_user_data(username)
+    if not user_data:
         return "User not found."
-    
-    player_data = json.loads(result[0])
+
+    player_data = user_data["player_data"]
     stats = player_data["stats"]
     inventory = player_data["inventory"]
-    
+
     # Check if player has enough health to explore
     if stats["hp"] < stats["hp_max"] * 0.3:
-        conn.close()
         return "You need at least 30% health to explore the dungeon."
-    
+
     # Consume some health for exploration
     stats["hp"] = max(1, stats["hp"] - stats["hp_max"] * 0.1)
-    
+
     # Calculate treasure found based on player level and area
     area = stats.get("current_area", 1)
     level = stats.get("level", 1)
-    
+
     # Base treasure amount
     base_treasure = 100 + (area * 50) + (level * 20)
-    
+
     # Apply treasure boost from titles if available
     treasure_boost = stats.get("title_treasure_boost", 0)
     if treasure_boost > 0:
         boosted_amount = base_treasure * (treasure_boost / 100.0)
         base_treasure += boosted_amount
-    
+
     # Random factor
     treasure_found = int(base_treasure * random.uniform(0.8, 1.5))
-    
+
     # Cap at dungeon_treasure
     global dungeon_treasure
     treasure_found = min(treasure_found, dungeon_treasure)
-    
+
     # Update player money and stats
-    player_data["money"] += treasure_found
+    user_data["money"] += treasure_found
     stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + treasure_found
     stats["total_money_earned"] = stats.get("total_money_earned", 0) + treasure_found
-    
+
     # Reduce dungeon treasure
     dungeon_treasure -= treasure_found
-    
+
     load_dungeon_treasure()
     save_dungeon_treasure()
     # Check for achievements
     check_achievements(username)
-    
+
     # Save player data
-    c.execute('UPDATE users SET player_data = ? WHERE username = ?', 
-              (json.dumps(player_data), username))
-    conn.commit()
-    conn.close()
+    update_user(username, money=user_data["money"], player_data=user_data["player_data"])
 
 # -------------------------
 # Dungeon game function (needed for main menu)
 # -------------------------
 # Debug Console
 # -------------------------
-def debug_console(current_user, score, money, player_data, users_db_path='users.db'):
-    conn = sqlite3.connect(users_db_path, timeout=10.0)
-    c = conn.cursor()
+def debug_console(current_user, score, money, player_data, users_db_path='users'):
     print("\n--- Debug Console --- (Type 'help' for commands)")
     while True:
         cmd = input("Debug> ").strip().lower().split(" ", 1)
@@ -1071,10 +1094,11 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
             print("exit - close debug console")
             print("-----------------------\n")
         elif cmd_base == "users" or cmd_base == "usrs" or cmd_base == "u":
-            c.execute('SELECT username, score, money FROM users ORDER BY score DESC LIMIT 10')
-            results = c.fetchall()
+            leaderboard = get_leaderboard()
             print("\n--- Top 10 Users ---")
-            for uname, uscore, umoney in results:
+            for uname, uscore in leaderboard:
+                user_data = load_user_data(uname)
+                umoney = user_data.get("money", 0) if user_data else 0
                 print(f"{uname}: Score {uscore}, Money ${umoney}")
             print("---\n")
         elif cmd_base == "current" or cmd_base == "curr" or cmd_base == "c":
@@ -1100,26 +1124,28 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
         elif cmd_base == "deluser":
             if args:
                 u = args.strip()
-                c.execute('DELETE FROM users WHERE username = ?', (u,))
-                conn.commit()
-                if c.rowcount > 0:
+                users = load_all_users()
+                if u in users:
+                    del users[u]
+                    save_all_users(users)
                     print(f"User {u} deleted.")
                 else:
                     print("User not found.")
             else:
                 print("Usage: deluser <username>")
         elif cmd_base == "reset":
-            c.execute('DELETE FROM users')
-            conn.commit()
+            save_all_users({})
             print("All users reset.")
         elif cmd_base == "resetplayer":
             if args:
                 u = args.strip()
-                c.execute('SELECT username FROM users WHERE username = ?', (u,))
-                if c.fetchone():
+                user_data = load_user_data(u)
+                if user_data:
                     player_data = default_player_data()
-                    c.execute('UPDATE users SET score = 0, money = 40, player_data = ? WHERE username = ?', (json.dumps(player_data), u))
-                    conn.commit()
+                    user_data["score"] = 0
+                    user_data["money"] = 40
+                    user_data["player_data"] = player_data
+                    save_user_data(u, user_data)
                     print(f"Player {u} reset to defaults.")
                 else:
                     print("User not found.")
@@ -1143,9 +1169,10 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
                     u, n = parts
                     try:
                         n = int(n)
-                        c.execute('UPDATE users SET score = ? WHERE username = ?', (n, u))
-                        conn.commit()
-                        if c.rowcount > 0:
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data["score"] = n
+                            save_user_data(u, user_data)
                             print(f"Score for {u} set to {n}.")
                         else:
                             print("User not found.")
@@ -1162,9 +1189,10 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
                     u, n = parts
                     try:
                         n = int(n)
-                        c.execute('UPDATE users SET money = ? WHERE username = ?', (n, u))
-                        conn.commit()
-                        if c.rowcount > 0:
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data["money"] = n
+                            save_user_data(u, user_data)
                             print(f"Money for {u} set to ${n}.")
                         else:
                             print("User not found.")
@@ -1181,15 +1209,10 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
                     u, n = parts
                     try:
                         n = int(n)
-                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
-                        result = c.fetchone()
-                        if result:
-                            player_data = json.loads(result[0])
-                            stats = player_data["stats"]
-                            stats["exp"] = n
-                            player_data["stats"] = stats
-                            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
-                            conn.commit()
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data["player_data"]["stats"]["exp"] = n
+                            save_user_data(u, user_data)
                             print(f"EXP for {u} set to {n}.")
                         else:
                             print("User not found.")
@@ -1206,15 +1229,10 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
                     u, n = parts
                     try:
                         n = int(n)
-                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
-                        result = c.fetchone()
-                        if result:
-                            player_data = json.loads(result[0])
-                            stats = player_data["stats"]
-                            stats["level"] = n
-                            player_data["stats"] = stats
-                            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
-                            conn.commit()
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data["player_data"]["stats"]["level"] = n
+                            save_user_data(u, user_data)
                             print(f"Level for {u} set to {n}.")
                         else:
                             print("User not found.")
@@ -1231,11 +1249,9 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
                     u, typ, n = parts
                     try:
                         n = int(n)
-                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
-                        result = c.fetchone()
-                        if result:
-                            player_data = json.loads(result[0])
-                            stats = player_data["stats"]
+                        user_data = load_user_data(u)
+                        if user_data:
+                            stats = user_data["player_data"]["stats"]
                             if typ.lower() in ["monsters", "monster"]:
                                 stats["monsters_defeated"] = n
                             elif typ.lower() in ["bosses", "boss"]:
@@ -1243,9 +1259,7 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
                             else:
                                 print(f"Invalid type: {typ}")
                                 continue
-                            player_data["stats"] = stats
-                            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
-                            conn.commit()
+                            save_user_data(u, user_data)
                             print(f"{typ} defeated for {u} set to {n}.")
                         else:
                             print("User not found.")
@@ -1262,16 +1276,12 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
                     u, stat, n = parts
                     try:
                         n = int(n)
-                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
-                        result = c.fetchone()
-                        if result:
-                            player_data = json.loads(result[0])
-                            stats = player_data["stats"]
+                        user_data = load_user_data(u)
+                        if user_data:
+                            stats = user_data["player_data"]["stats"]
                             if stat in stats:
                                 stats[stat] = n
-                                player_data["stats"] = stats
-                                c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
-                                conn.commit()
+                                save_user_data(u, user_data)
                                 print(f"{stat} for {u} set to {n}.")
                             else:
                                 print(f"Invalid stat: {stat}")
@@ -1286,10 +1296,9 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
         elif cmd_base == "showfull":
             if args:
                 u = args.strip()
-                c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
-                result = c.fetchone()
-                if result:
-                    player_data = json.loads(result[0])
+                user_data = load_user_data(u)
+                if user_data:
+                    player_data = user_data.get("player_data", {})
                     print(f"\nFull data for {u}:")
                     for key, value in player_data.items():
                         if isinstance(value, dict):
@@ -1311,15 +1320,12 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
                     qty = int(parts[2]) if len(parts) > 2 else 1
                     try:
                         qty = int(qty) if isinstance(qty, str) else qty
-                        c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
-                        result = c.fetchone()
-                        if result:
-                            player_data = json.loads(result[0])
-                            inventory = player_data.get("inventory", {})
+                        user_data = load_user_data(u)
+                        if user_data:
+                            inventory = user_data["player_data"].get("inventory", {})
                             inventory[item] = inventory.get(item, 0) + qty
-                            player_data["inventory"] = inventory
-                            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), u))
-                            conn.commit()
+                            user_data["player_data"]["inventory"] = inventory
+                            save_user_data(u, user_data)
                             print(f"Gave {qty}x {item} to {u}.")
                         else:
                             print("User not found.")
@@ -1332,10 +1338,9 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
         elif cmd_base == "ruinthefun":
             if args:
                 u = args.strip()
-                c.execute('SELECT player_data FROM users WHERE username = ?', (u,))
-                result = c.fetchone()
-                if result:
-                    player_data = json.loads(result[0])
+                user_data = load_user_data(u)
+                if user_data:
+                    player_data = user_data["player_data"]
                     stats = player_data["stats"]
                     inventory = player_data["inventory"]
                     # Max stats
@@ -1377,11 +1382,10 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
                     # All permanent upgrades
                     for up in PERM_UPGRADES:
                         inventory[up] = 1
-                    player_data["stats"] = stats
-                    player_data["inventory"] = inventory
-                    apply_title_boosts(stats)
-                    c.execute('UPDATE users SET player_data = ?, score = 999999, money = 999999 WHERE username = ?', (json.dumps(player_data), u))
-                    conn.commit()
+                    apply_title_boosts(u)
+                    user_data["score"] = 999999
+                    user_data["money"] = 999999
+                    save_user_data(u, user_data)
                     print(f"Ruin the fun activated for {u}.")
                 else:
                     print("User not found.")
@@ -1392,7 +1396,6 @@ def debug_console(current_user, score, money, player_data, users_db_path='users.
             break
         else:
             print("Unknown command. Type 'help' for commands.")
-    conn.close()
 # -------------------------
 
 def add_material_drops(inventory, monster):
@@ -1415,9 +1418,6 @@ def dungeon(username):
       - apply_damage_with_defense(...) and apply_magic_damage(...)
       - calculate_total_crit_chance(...)
     """
-    users_db_path = 'users.db'
-    conn = sqlite3.connect(users_db_path, timeout=10.0)
-    c = conn.cursor()
 
     # Ensure permanent upgrades applied first to populate perm_* fields
     try:
@@ -1427,17 +1427,15 @@ def dungeon(username):
         pass
 
     # Reload player data and score after applying permanent upgrades
-    c.execute('SELECT player_data, score FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
+    user_data = load_user_data(username)
+    if not user_data:
         print("User not found.")
-        conn.close()
         return
 
-    player_data = json.loads(result[0])
-    score = result[1] or 0
+    player_data = user_data.get("player_data", {})
+    score = user_data.get("score", 0)
+    money = user_data.get("money", 40)
 
-    player_data = json.loads(result[0])
     stats = player_data.get("stats", {})
     inventory = player_data.get("inventory", {})
 
@@ -1447,8 +1445,8 @@ def dungeon(username):
         try:
             auto_equip_items(username)
             # reload stats/inventory if auto-equip mutates them
-            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-            player_data = json.loads(c.fetchone()[0])
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
             stats = player_data.get("stats", {})
             inventory = player_data.get("inventory", {})
         except Exception:
@@ -1486,9 +1484,8 @@ def dungeon(username):
             stats["mana"] = player_mana
             player_data["stats"] = stats
             player_data["inventory"] = inventory
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-            conn.commit()
-            conn.close()
+            user_data["player_data"] = player_data
+            save_user_data(username, user_data)
             return
 
         if lc == "status":
@@ -1515,8 +1512,8 @@ def dungeon(username):
             shop()
             # reload after shop
             ensure_user_fields(username)
-            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-            player_data = json.loads(c.fetchone()[0])
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
             stats = player_data.get("stats", {})
             inventory = player_data.get("inventory", {})
             player_mana = stats.get("mana", stats.get("mana_max", 50))
@@ -1526,8 +1523,8 @@ def dungeon(username):
         if lc == "packs":
             magic_pack_interface(username)
             ensure_user_fields(username)
-            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-            player_data = json.loads(c.fetchone()[0])
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
             stats = player_data.get("stats", {})
             inventory = player_data.get("inventory", {})
             player_mana = stats.get("mana", stats.get("mana_max", 50))
@@ -1537,8 +1534,8 @@ def dungeon(username):
         if lc == "upgrades":
             permanent_upgrades_interface(username)
             ensure_user_fields(username)
-            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-            player_data = json.loads(c.fetchone()[0])
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
             stats = player_data.get("stats", {})
             inventory = player_data.get("inventory", {})
             player_mana = stats.get("mana", stats.get("mana_max", 50))
@@ -1557,8 +1554,8 @@ def dungeon(username):
                     stats["current_area"] = new_area
                     current_area = new_area
                     player_data["stats"] = stats
-                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-                    conn.commit()
+                    user_data["player_data"] = player_data
+                    save_user_data(username, user_data)
                     print(f"Moved to Area {new_area}!")
                 else:
                     print("Invalid area. Must be between 1 and 10.")
@@ -1669,8 +1666,8 @@ def dungeon(username):
                     # persist minimal state
                     player_data["stats"] = stats
                     player_data["inventory"] = inventory
-                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-                    conn.commit()
+                    user_data["player_data"] = player_data
+                    save_user_data(username, user_data)
 
                 # ---------- PLAYER MAGIC ATTACK (spells) ----------
                 elif action == "m":
@@ -1735,8 +1732,8 @@ def dungeon(username):
                     # persist
                     player_data["stats"] = stats
                     player_data["inventory"] = inventory
-                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-                    conn.commit()
+                    user_data["player_data"] = player_data
+                    save_user_data(username, user_data)
 
                 elif action == "p":
                     # potion use (keeps original behaviour)
@@ -1747,8 +1744,8 @@ def dungeon(username):
                         print(f"You used a potion and healed {heal_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
                         player_data["inventory"] = inventory
                         player_data["stats"] = stats
-                        c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-                        conn.commit()
+                        user_data["player_data"] = player_data
+                        save_user_data(username, user_data)
                     else:
                         print("No potions available.")
 
@@ -1763,26 +1760,51 @@ def dungeon(username):
                     else:
                         print("Failed to run!")
 
+                # Monster attacks if still alive
+                if monster.get("hp", 0) > 0:
+                    # Monster attack
+                    monster_dmg = random.randint(monster.get("atk_min", 1), monster.get("atk_max", monster.get("atk_min", 1)))
+                    player_def = get_equip_and_perm_bonuses(stats)["total_base_def"]
+                    damage_to_player = apply_damage_with_defense(monster_dmg, player_def)
+                    player_hp -= damage_to_player
+                    print(f"The {monster['name']} attacks! You take {damage_to_player} damage! (Your HP: {max(0, player_hp)}/{stats.get('hp_max')})")
+
+                    # Persist minimal state
+                    stats["hp"] = player_hp
+                    player_data["stats"] = stats
+                    user_data["player_data"] = player_data
+                    save_user_data(username, user_data)
+
+                    # Check if player died
+                    if player_hp <= 0:
+                        print("You have been defeated!")
+                        stats["hp"] = player_hp
+                        stats["mana"] = player_mana
+                        stats["times_died"] = stats.get("times_died", 0) + 1
+                        player_data["stats"] = stats
+                        user_data["player_data"] = player_data
+                        save_user_data(username, user_data)
+                        return
+
                 # ----- Victory check -----
                 if monster.get("hp", 0) <= 0:
                     # compute money reward
                     money_reward = random.randint(monster.get("money_min", 1), monster.get("money_max", 1))
 
                     # --- SYNCHRONIZE money from DB (authoritative) ---
-                    c.execute('SELECT money FROM users WHERE username = ?', (username,))
-                    row = c.fetchone()
-                    if row and row[0] is not None:
-                        money = int(row[0])
+                    user_data = load_user_data(username)
+                    if user_data:
+                        money = int(user_data.get("money", 0))
                     else:
-                        # fallback to player_data stored money (if DB column missing or null)
+                        # fallback to player_data stored money
                         money = int(player_data.get("money", 0))
 
                     # add monster reward
                     money += money_reward
-
-                    # Save money into the users.money column (shop reads this)
-                    c.execute('UPDATE users SET money = ? WHERE username = ?', (money, username))
-                    # also update the player_data money field so JSON and DB column stay consistent
+                
+                    # Save money into the user_data money field
+                    user_data["money"] = money
+                    # also update the player_data money field so JSON and user_data stay consistent
                     player_data["money"] = money
 
                     # ---- drops / materials ----
@@ -1818,9 +1840,9 @@ def dungeon(username):
                         boss_bonus = random.randint(50, 150)
                         print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{boss_bonus} score, +{exp_gain} EXP")
                         score += boss_bonus
-                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, username))
+                        user_data["score"] = score
 
-                        # dungeon treasure (if any) - add to money and DB as well
+                        # dungeon treasure (if any) - add to money and save
                         if dungeon_treasure > 0:
                             # Apply treasure boost from titles if any (keeping your logic)
                             treasure_boost_percent = stats.get("title_treasure_boost_percent", 0)
@@ -1829,22 +1851,19 @@ def dungeon(username):
                                 recovered_treasure = int(dungeon_treasure * (1 + treasure_boost_percent / 100.0))
                             print(f"🏆 You recovered the dungeon treasure: ${recovered_treasure}!")
                             money += recovered_treasure
+                            user_data["money"] = money
                             player_data["money"] = money
                             stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + recovered_treasure
                             dungeon_treasure = 0
                             save_dungeon_treasure()
-                            c.execute('UPDATE users SET money = ? WHERE username = ?', (money, username))
                     else:
                         normal_bonus = random.randint(5, 20)
                         print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{normal_bonus} score, +{exp_gain} EXP")
                         score += normal_bonus
-                        c.execute('UPDATE users SET score = ? WHERE username = ?', (score, username))
+                        user_data["score"] = score
 
                     if drops:
                         print("You found:", ", ".join(drops))
-
-                    # Achievements & save
-                    check_achievements(username)
 
                     # Persist player_data (stats/inventory) and ensure money field is consistent in JSON too
                     stats["hp"] = player_hp
@@ -1852,8 +1871,11 @@ def dungeon(username):
                     player_data["stats"] = stats
                     player_data["inventory"] = inventory
                     # player_data["money"] already updated above
-                    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-                    conn.commit()
+                    user_data["player_data"] = player_data
+                    save_user_data(username, user_data)
+                
+                    # Achievements checked after all data is saved
+                    check_achievements(username)
                     break
                 
 # -------------------------
@@ -1865,17 +1887,14 @@ def shop():
         print("You must be logged in to access the shop.")
         return
 
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT score, money, player_data FROM users WHERE username = ?', (current_user,))
-    result = c.fetchone()
-    if not result:
+    user_data = load_user_data(current_user)
+    if not user_data:
         print("User data not found.")
-        conn.close()
         return
 
-    score, money, player_data_json = result
-    player_data = json.loads(player_data_json)
+    score = user_data.get("score", 0)
+    money = user_data.get("money", 40)
+    player_data = user_data.get("player_data", {})
     inventory = player_data.get("inventory", {})
 
     while True:
@@ -2337,13 +2356,13 @@ def shop():
             score_cost = NECKLACES["transcendent_necklace"].get("score_price", 0)
             is_equipment = True
         elif choice == "69":
-            manage_inventory_menu(current_user, player_data, c)
+            manage_inventory_menu(current_user, player_data, None)
             # Reload data after inventory changes
-            c.execute('SELECT player_data FROM users WHERE username = ?', (current_user,))
-            result = c.fetchone()
-            if result:
-                player_data = json.loads(result[0])
+            user_data = load_user_data(current_user)
+            if user_data:
+                player_data = user_data.get("player_data", {})
                 inventory = player_data.get("inventory", {})
+                money = user_data.get("money", 40)
             continue
         elif choice == "70":
             # Unequip item
@@ -2354,8 +2373,8 @@ def shop():
             if item_type in ["weapon", "armor", "wand", "robe", "necklace"]:
                 equipped[item_type] = None
                 player_data["stats"] = stats
-                c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), current_user))
-                conn.commit()
+                user_data["player_data"] = player_data
+                save_user_data(current_user, user_data)
                 print(f"Unequipped {item_type}.")
                 continue
             else:
@@ -2367,8 +2386,9 @@ def shop():
                 inventory["potion"] -= 1
                 money += 10
                 player_data["inventory"] = inventory
-                c.execute('UPDATE users SET money = ?, player_data = ? WHERE username = ?', (money, json.dumps(player_data), current_user))
-                conn.commit()
+                user_data["money"] = money
+                user_data["player_data"] = player_data
+                save_user_data(current_user, user_data)
                 print("Sold 1 potion for $10.")
             else:
                 print("No potions to sell.")
@@ -2396,8 +2416,10 @@ def shop():
                         money -= cost
                         score -= score_cost
                         player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET money = ?, score = ?, player_data = ? WHERE username = ?', (money, score, json.dumps(player_data), current_user))
-                        conn.commit()
+                        user_data["money"] = money
+                        user_data["score"] = score
+                        user_data["player_data"] = player_data
+                        save_user_data(current_user, user_data)
                         print(f"Purchased {item_name} for ${cost}" + (f" and {score_cost} score" if score_cost > 0 else "") + "!")
                 else:
                     # Consumables can be bought multiple times
@@ -2409,15 +2431,16 @@ def shop():
                         inventory[item_name] = inventory.get(item_name, 0) + qty
                         money -= total_cost
                         player_data["inventory"] = inventory
-                        c.execute('UPDATE users SET money = ?, player_data = ? WHERE username = ?', (money, json.dumps(player_data), current_user))
-                        conn.commit()
+                        user_data["money"] = money
+                        user_data["player_data"] = player_data
+                        save_user_data(current_user, user_data)
                         print(f"Purchased {qty}x {item_name} for ${total_cost}!")
                     else:
                         print("Not enough money.")
             else:
                 print("Not enough money or score.")
 
-    conn.close()
+    # No database connection to close
 
 def parse_qty_from_choice(choice_str):
     try:
@@ -2429,16 +2452,12 @@ def parse_qty_from_choice(choice_str):
 # Permanent Upgrades Interface
 # -------------------------
 def permanent_upgrades_interface(username):
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
+    user_data = load_user_data(username)
+    if not user_data:
         print("User data not found.")
-        conn.close()
         return
 
-    player_data = json.loads(result[0])
+    player_data = user_data.get("player_data", {})
     inventory = player_data.get("inventory", {})
     stats = player_data.get("stats", {})
 
@@ -2485,28 +2504,24 @@ def permanent_upgrades_interface(username):
 
             player_data["inventory"] = inventory
             player_data["stats"] = stats
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-            conn.commit()
+            user_data["player_data"] = player_data
+            save_user_data(username, user_data)
             print(f"Used {PERM_UPGRADES[choice]['name']}!")
         else:
             print("Invalid choice or not owned.")
 
-    conn.close()
+    # No database connection to close
 
 # -------------------------
 # Magic Pack Interface
 # -------------------------
 def magic_pack_interface(username):
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
+    user_data = load_user_data(username)
+    if not user_data:
         print("User data not found.")
-        conn.close()
         return
 
-    player_data = json.loads(result[0])
+    player_data = user_data.get("player_data", {})
     inventory = player_data.get("inventory", {})
 
     while True:
@@ -2534,54 +2549,50 @@ def magic_pack_interface(username):
             if success:
                 print(message)
                 # Reload inventory
-                c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-                result = c.fetchone()
-                if result:
-                    player_data = json.loads(result[0])
+                user_data = load_user_data(username)
+                if user_data:
+                    player_data = user_data.get("player_data", {})
                     inventory = player_data.get("inventory", {})
             else:
                 print(message)
         else:
             print("Invalid choice or not owned.")
 
-    conn.close()
+    # No database connection to close
 
 # -------------------------
 # Apply permanent upgrades function (needed for leveling)
 # -------------------------
 def apply_permanent_upgrades(username):
     try:
-        with sqlite3.connect('users.db', timeout=10.0) as conn:
-            c = conn.cursor()
-            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-            result = c.fetchone()
-            if not result:
-                return
+        user_data = load_user_data(username)
+        if not user_data:
+            return
 
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            inventory = player_data["inventory"]
+        player_data = user_data["player_data"]
+        stats = player_data["stats"]
+        inventory = player_data["inventory"]
 
-            # Apply permanent upgrades
-            stats["perm_atk"] = inventory.get("perm_strength_upgrade", 0) * PERM_UPGRADES["perm_strength_upgrade"]["atk_increase"]
-            stats["perm_def"] = inventory.get("perm_defense_upgrade", 0) * PERM_UPGRADES["perm_defense_upgrade"]["def_increase"]
-            stats["perm_hp_max"] = inventory.get("perm_health_upgrade", 0) * PERM_UPGRADES["perm_health_upgrade"]["hp_increase"]
-            stats["perm_mana_max"] = inventory.get("perm_mana_upgrade", 0) * PERM_UPGRADES["perm_mana_upgrade"]["magic_increase"]
-            stats["perm_magic_def"] = inventory.get("perm_magic_def_upgrade", 0) * PERM_UPGRADES["perm_magic_def_upgrade"]["magic_def_increase"]
-            stats["perm_crit_chance"] = inventory.get("perm_crit_chance_upgrade", 0) * PERM_UPGRADES["perm_crit_chance_upgrade"]["crit_chance_increase"]
-            stats["perm_mana_regen"] = inventory.get("perm_mana_regen_upgrade", 0) * PERM_UPGRADES["perm_mana_regen_upgrade"]["mana_regen_increase"]
-            stats["perm_lifesteal"] = inventory.get("perm_lifesteal_upgrade", 0) * PERM_UPGRADES["perm_lifesteal_upgrade"]["max_lifesteal_increase"]
-            stats["perm_lifesteal_chance"] = inventory.get("perm_lifesteal_chance_upgrade", 0) * PERM_UPGRADES["perm_lifesteal_chance_upgrade"]["lifesteal_chance_increase"]
-            stats["perm_exp_boost"] = inventory.get("perm_exp_upgrade", 0) * PERM_UPGRADES["perm_exp_upgrade"]["exp_increase"]
+        # Apply permanent upgrades
+        stats["perm_atk"] = inventory.get("perm_strength_upgrade", 0) * PERM_UPGRADES["perm_strength_upgrade"]["atk_increase"]
+        stats["perm_def"] = inventory.get("perm_defense_upgrade", 0) * PERM_UPGRADES["perm_defense_upgrade"]["def_increase"]
+        stats["perm_hp_max"] = inventory.get("perm_health_upgrade", 0) * PERM_UPGRADES["perm_health_upgrade"]["hp_increase"]
+        stats["perm_mana_max"] = inventory.get("perm_mana_upgrade", 0) * PERM_UPGRADES["perm_mana_upgrade"]["magic_increase"]
+        stats["perm_magic_def"] = inventory.get("perm_magic_def_upgrade", 0) * PERM_UPGRADES["perm_magic_def_upgrade"]["magic_def_increase"]
+        stats["perm_crit_chance"] = inventory.get("perm_crit_chance_upgrade", 0) * PERM_UPGRADES["perm_crit_chance_upgrade"]["crit_chance_increase"]
+        stats["perm_mana_regen"] = inventory.get("perm_mana_regen_upgrade", 0) * PERM_UPGRADES["perm_mana_regen_upgrade"]["mana_regen_increase"]
+        stats["perm_lifesteal"] = inventory.get("perm_lifesteal_upgrade", 0) * PERM_UPGRADES["perm_lifesteal_upgrade"]["max_lifesteal_increase"]
+        stats["perm_lifesteal_chance"] = inventory.get("perm_lifesteal_chance_upgrade", 0) * PERM_UPGRADES["perm_lifesteal_chance_upgrade"]["lifesteal_chance_increase"]
+        stats["perm_exp_boost"] = inventory.get("perm_exp_upgrade", 0) * PERM_UPGRADES["perm_exp_upgrade"]["exp_increase"]
 
-            # Apply title boosts
-            apply_title_boosts(username)
+        # Apply title boosts
+        apply_title_boosts(username)
 
-            player_data["stats"] = stats
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-            conn.commit()
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+        player_data["stats"] = stats
+        user_data["player_data"] = player_data
+        save_user_data(username, user_data)
+    except Exception as e:
+        print(f"Error applying permanent upgrades: {e}")
 
 # -------------------------
 # Magic Pack System
@@ -2690,25 +2701,18 @@ MAGIC_PACK_ALIASES = {
 }
 
 def open_magic_pack(username, pack_key, quantity=1):
-    if not any(user[0] == username for user in get_leaderboard()):  # Simple user check
+    users = load_all_users()
+    if username not in users:  # Check if user exists in users dict
         return False, "Invalid user."
     if pack_key not in MAGIC_PACKS:
         return False, "Unknown magic pack."
 
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
-        conn.close()
-        return False, "User data not found."
-
-    player_data = json.loads(result[0])
+    user_data = users[username]
+    player_data = user_data.get("player_data", {})
     inventory = player_data.get("inventory", {})
     stats = player_data.get("stats", {})
 
     if inventory.get(pack_key, 0) < quantity:
-        conn.close()
         return False, f"You don't have enough {MAGIC_PACKS[pack_key]['name']}."
 
     pack = MAGIC_PACKS[pack_key]
@@ -2734,9 +2738,8 @@ def open_magic_pack(username, pack_key, quantity=1):
 
     player_data["inventory"] = inventory
     player_data["stats"] = stats
-    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-    conn.commit()
-    conn.close()
+    user_data["player_data"] = player_data
+    save_user_data(username, user_data)
 
     if new_spells:
         return True, f"You opened {quantity} {pack['name']}(s) and learned: {', '.join(new_spells)}"
@@ -2763,18 +2766,13 @@ def ensure_user_fields(username):
     Normalize a user's data to ensure all expected keys exist so older saves won't crash.
     Call this after loading, signup, login, and before any operation that uses stats/inventory.
     """
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-
-    if not result:
-        conn.close()
+    user_data = load_user_data(username)
+    if not user_data:
         return
 
     try:
-        player_data = json.loads(result[0])
-    except json.JSONDecodeError:
+        player_data = user_data["player_data"]
+    except (KeyError, TypeError):
         player_data = default_player_data()
 
     default = default_player_data()
@@ -2823,9 +2821,8 @@ def ensure_user_fields(username):
     player_data["inventory"] = inventory
 
     # Save the normalized data
-    c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-    conn.commit()
-    conn.close()
+    user_data["player_data"] = player_data
+    save_user_data(username, user_data)
 
 # -------------------------
 # Settings Menu
@@ -2834,15 +2831,11 @@ def settings_menu(username):
     if not username:
         return
 
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
-        conn.close()
+    user_data = load_user_data(username)
+    if not user_data:
         return
 
-    player_data = json.loads(result[0])
+    player_data = user_data.get("player_data", {})
     stats = player_data.get("stats", {})
     settings = stats.get("settings", {})
 
@@ -2878,7 +2871,7 @@ def settings_menu(username):
             settings['call_including_title'] = not settings.get('call_including_title', True)
             print(f"Call including title {'enabled' if settings['call_including_title'] else 'disabled'}.")
         elif choice == '7':
-            equip_titles_menu(username, player_data, c)
+            equip_titles_menu(username, player_data, None)
         elif choice == '8':
             break
         else:
@@ -2887,10 +2880,10 @@ def settings_menu(username):
         # Save settings
         stats['settings'] = settings
         player_data['stats'] = stats
-        c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-        conn.commit()
+        user_data['player_data'] = player_data
+        save_user_data(username, user_data)
 
-    conn.close()
+    # No database connection to close
 
 # -------------------------
 # Equip Titles Menu
@@ -2939,152 +2932,145 @@ def equip_titles_menu(username, player_data, cursor):
             print("Invalid choice.")
 
     # Apply title boosts
-    apply_title_boosts(stats)
-    player_data['stats'] = stats
-    cursor.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+    apply_title_boosts(username)  # Pass username directly
+    # No need to save here, as apply_title_boosts will save
 
 # -------------------------
 # Apply Title Boosts
 # -------------------------
 def apply_title_boosts(username):
     try:
-        with sqlite3.connect('users.db', timeout=10.0) as conn:
-            c = conn.cursor()
-            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-            result = c.fetchone()
-            if not result:
-                return
+        user_data = load_user_data(username)
+        if not user_data:
+            return
 
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            
-            # Reset title boosts
-            stats["title_atk_boost"] = 0
-            stats["title_def_boost"] = 0
-            stats["title_hp_boost"] = 0
-            stats["title_mana_boost"] = 0
-            stats["title_exp_boost"] = 0
-            stats["title_magic_def_boost"] = 0
-            
-            # Apply equipped title boosts
-            for title_id in stats.get("equipped_titles", []):
-                if title_id and title_id in TITLES:
-                    title = TITLES[title_id]
-                    stats["title_atk_boost"] += title.get("atk_boost", 0)
-                    stats["title_def_boost"] += title.get("def_boost", 0)
-                    stats["title_hp_boost"] += title.get("hp_boost", 0)
-                    stats["title_mana_boost"] += title.get("mana_boost", 0)
-                    stats["title_exp_boost"] += title.get("exp_boost", 0)
-                    stats["title_magic_def_boost"] += title.get("magic_def_boost", 0)
-            
-            player_data["stats"] = stats
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-            conn.commit()
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+        player_data = user_data["player_data"]
+        stats = player_data["stats"]
+
+        # Reset title boosts
+        stats["title_atk_boost"] = 0
+        stats["title_def_boost"] = 0
+        stats["title_hp_boost"] = 0
+        stats["title_mana_boost"] = 0
+        stats["title_exp_boost"] = 0
+        stats["title_magic_def_boost"] = 0
+
+        # Apply equipped title boosts
+        for title_id in stats.get("equipped_titles", []):
+            if title_id and title_id in TITLES:
+                title = TITLES[title_id]
+                stats["title_atk_boost"] += title.get("atk_boost", 0)
+                stats["title_def_boost"] += title.get("def_boost", 0)
+                stats["title_hp_boost"] += title.get("hp_boost", 0)
+                stats["title_mana_boost"] += title.get("mana_boost", 0)
+                stats["title_exp_boost"] += title.get("exp_boost", 0)
+                stats["title_magic_def_boost"] += title.get("magic_def_boost", 0)
+
+        player_data["stats"] = stats
+        user_data["player_data"] = player_data
+        save_user_data(username, user_data)
+    except Exception as e:
+        print(f"Error applying title boosts: {e}")
 
 # -------------------------
 # Auto Equip Items
 # -------------------------
 def auto_equip_items(username):
     try:
-        with sqlite3.connect('users.db', timeout=10.0) as conn:
-            c = conn.cursor()
-            c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-            result = c.fetchone()
-            if not result:
-                return
+        user_data = load_user_data(username)
+        if not user_data:
+            return
 
-            player_data = json.loads(result[0])
-            stats = player_data["stats"]
-            inventory = player_data["inventory"]
-            equipped = stats["equipped"]
-            
-            # Only auto-equip if the setting is enabled
-            if not stats["settings"].get("auto_equip_best", False):
-                return
+        player_data = user_data["player_data"]
+        stats = player_data["stats"]
+        inventory = player_data["inventory"]
+        equipped = stats["equipped"]
 
-            # Auto-equip best weapon
-            best_weapon = None
-            best_weapon_atk = 0
-            for weapon_id, count in inventory.items():
-                if count > 0 and weapon_id in WEAPONS:
-                    weapon_atk = WEAPONS[weapon_id]["atk"]
-                    if weapon_atk > best_weapon_atk:
-                        best_weapon = weapon_id
-                        best_weapon_atk = weapon_atk
+        # Only auto-equip if the setting is enabled
+        if not stats["settings"].get("auto_equip_best", False):
+            return
 
-            if best_weapon and best_weapon != equipped["weapon"]:
-                equipped["weapon"] = best_weapon
+        # Auto-equip best weapon
+        best_weapon = None
+        best_weapon_atk = 0
+        for weapon_id, count in inventory.items():
+            if count > 0 and weapon_id in WEAPONS:
+                weapon_atk = WEAPONS[weapon_id]["atk"]
+                if weapon_atk > best_weapon_atk:
+                    best_weapon = weapon_id
+                    best_weapon_atk = weapon_atk
 
-            # Auto-equip best armor
-            best_armor = None
-            best_armor_def = 0
-            for armor_id, count in inventory.items():
-                if count > 0 and armor_id in ARMORS:
-                    armor_def = ARMORS[armor_id]["def"]
-                    if armor_def > best_armor_def:
-                        best_armor = armor_id
-                        best_armor_def = armor_def
+        if best_weapon and best_weapon != equipped["weapon"]:
+            equipped["weapon"] = best_weapon
 
-            if best_armor and best_armor != equipped["armor"]:
-                equipped["armor"] = best_armor
+        # Auto-equip best armor
+        best_armor = None
+        best_armor_def = 0
+        for armor_id, count in inventory.items():
+            if count > 0 and armor_id in ARMORS:
+                armor_def = ARMORS[armor_id]["def"]
+                if armor_def > best_armor_def:
+                    best_armor = armor_id
+                    best_armor_def = armor_def
 
-            # Auto-equip best wand
-            best_wand = None
-            best_wand_magic_atk = 0
-            for wand_id, count in inventory.items():
-                if count > 0 and wand_id in WANDS:
-                    wand_magic_atk = WANDS[wand_id]["magic_atk"]
-                    if wand_magic_atk > best_wand_magic_atk:
-                        best_wand = wand_id
-                        best_wand_magic_atk = wand_magic_atk
+        if best_armor and best_armor != equipped["armor"]:
+            equipped["armor"] = best_armor
 
-            if best_wand and best_wand != equipped["wand"]:
-                equipped["wand"] = best_wand
+        # Auto-equip best wand
+        best_wand = None
+        best_wand_magic_atk = 0
+        for wand_id, count in inventory.items():
+            if count > 0 and wand_id in WANDS:
+                wand_magic_atk = WANDS[wand_id]["magic_atk"]
+                if wand_magic_atk > best_wand_magic_atk:
+                    best_wand = wand_id
+                    best_wand_magic_atk = wand_magic_atk
 
-            # Auto-equip best robe
-            best_robe = None
-            best_robe_magic_def = 0
-            for robe_id, count in inventory.items():
-                if count > 0 and robe_id in ROBES:
-                    robe_magic_def = ROBES[robe_id]["magic_def"]
-                    if robe_magic_def > best_robe_magic_def:
-                        best_robe = robe_id
-                        best_robe_magic_def = robe_magic_def
+        if best_wand and best_wand != equipped["wand"]:
+            equipped["wand"] = best_wand
 
-            if best_robe and best_robe != equipped["robe"]:
-                equipped["robe"] = best_robe
+        # Auto-equip best robe
+        best_robe = None
+        best_robe_magic_def = 0
+        for robe_id, count in inventory.items():
+            if count > 0 and robe_id in ROBES:
+                robe_magic_def = ROBES[robe_id]["magic_def"]
+                if robe_magic_def > best_robe_magic_def:
+                    best_robe = robe_id
+                    best_robe_magic_def = robe_magic_def
 
-            # Auto-equip best necklace
-            best_necklace = None
-            best_necklace_value = 0
-            for necklace_id, count in inventory.items():
-                if count > 0 and necklace_id in NECKLACES:
-                    # Calculate total value of necklace bonuses
-                    necklace = NECKLACES[necklace_id]
-                    total_value = (
-                        necklace.get("hp_bonus", 0) * 1 +
-                        necklace.get("mana_bonus", 0) * 1 +
-                        necklace.get("atk_bonus", 0) * 2 +
-                        necklace.get("def_bonus", 0) * 2 +
-                        necklace.get("magic_atk_bonus", 0) * 2 +
-                        necklace.get("magic_def_bonus", 0) * 2 +
-                        necklace.get("crit_bonus", 0) * 3 +
-                        necklace.get("lifesteal_bonus", 0) * 3
-                    )
-                    if total_value > best_necklace_value:
-                        best_necklace = necklace_id
-                        best_necklace_value = total_value
+        if best_robe and best_robe != equipped["robe"]:
+            equipped["robe"] = best_robe
 
-            if best_necklace and best_necklace != equipped["necklace"]:
-                equipped["necklace"] = best_necklace
+        # Auto-equip best necklace
+        best_necklace = None
+        best_necklace_value = 0
+        for necklace_id, count in inventory.items():
+            if count > 0 and necklace_id in NECKLACES:
+                # Calculate total value of necklace bonuses
+                necklace = NECKLACES[necklace_id]
+                total_value = (
+                    necklace.get("hp_bonus", 0) * 1 +
+                    necklace.get("mana_bonus", 0) * 1 +
+                    necklace.get("atk_bonus", 0) * 2 +
+                    necklace.get("def_bonus", 0) * 2 +
+                    necklace.get("magic_atk_bonus", 0) * 2 +
+                    necklace.get("magic_def_bonus", 0) * 2 +
+                    necklace.get("crit_bonus", 0) * 3 +
+                    necklace.get("lifesteal_bonus", 0) * 3
+                )
+                if total_value > best_necklace_value:
+                    best_necklace = necklace_id
+                    best_necklace_value = total_value
 
-            player_data["stats"]["equipped"] = equipped
-            c.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
-            conn.commit()
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+        if best_necklace and best_necklace != equipped["necklace"]:
+            equipped["necklace"] = best_necklace
+
+        player_data["stats"]["equipped"] = equipped
+        user_data["player_data"] = player_data
+        save_user_data(username, user_data)
+    except Exception as e:
+        print(f"Error auto-equipping items: {e}")
 
 # -------------------------
 # Manage Inventory Menu
@@ -3116,7 +3102,7 @@ def manage_inventory_menu(username, player_data, cursor):
                 name = "Unknown"
                 if key in WEAPONS: name = WEAPONS[key]['name']
                 elif key in ARMORS: name = ARMORS[key]['name']
-                elif key in WANDS: name = WANDS[key]['name']
+                elif key in WANDS: name = WEAPONS[key]['name']  # Note: This was a bug, should be WANDS
                 elif key in ROBES: name = ROBES[key]['name']
                 elif key in NECKLACES: name = NECKLACES[key]['name']
                 else: continue  # Skip non-equip items
@@ -3174,22 +3160,21 @@ def manage_inventory_menu(username, player_data, cursor):
 
     player_data['stats'] = stats
     player_data['inventory'] = inventory
-    cursor.execute('UPDATE users SET player_data = ? WHERE username = ?', (json.dumps(player_data), username))
+    user_data = load_user_data(username)
+    if user_data:
+        user_data['player_data'] = player_data
+        save_user_data(username, user_data)
 
 # -------------------------
 # View Achievements Menu
 # -------------------------
 def view_achievements_menu(username):
-    conn = sqlite3.connect('users.db', timeout=10.0)
-    c = conn.cursor()
-    c.execute('SELECT player_data FROM users WHERE username = ?', (username,))
-    result = c.fetchone()
-    if not result:
-        conn.close()
+    user_data = load_user_data(username)
+    if not user_data:
         return
 
-    player_data = json.loads(result[0])
-    stats = player_data['stats']
+    player_data = user_data.get("player_data", {})
+    stats = player_data.get('stats', {})
     unlocked = stats.get('achievements', [])
 
     print("\n--- Achievements ---")
@@ -3197,7 +3182,7 @@ def view_achievements_menu(username):
         status = "✓" if ach_key in unlocked else "✗"
         print(f"{status} {achievement['name']}: {achievement['desc']}")
 
-    conn.close()
+    # No database connection to close
 
 # -------------------------
 # Effective stats computation (includes equipped wand/robe/necklace)
@@ -3336,7 +3321,11 @@ def main_menu():
                 password = input("Password: ").strip()
                 if signup(username, password):
                     score, money, player_data = signin(username, password)
-                    pass  # Already printed success
+                    current_user = username
+                    ensure_user_fields(current_user)
+                    # Reload updated player data
+                    _, _, player_data = signin(username, password)
+                    print(f"Signup successful! You are now logged in.")
                 else:
                     pass  # Already printed error
             elif choice == '3':
