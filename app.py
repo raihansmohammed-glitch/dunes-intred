@@ -5,6 +5,7 @@ import math
 import time
 import atexit
 import threading
+import socket
 
 # -------------------------
 # Files & persistence
@@ -21,6 +22,17 @@ GLOBAL_KEY = "__global__"
 AUTOSAVE_INTERVAL = 30  # Autosave every 30 seconds for simplicity
 autosave_timer = None
 last_autosave_time = time.time()
+
+# -------------------------
+# Machine Identification
+# -------------------------
+def get_machine_id():
+    """Get a unique identifier for this machine"""
+    try:
+        hostname = socket.gethostname()
+        return hostname
+    except:
+        return "unknown_machine"
 
 # -------------------------
 # Permanent Upgrades
@@ -285,25 +297,25 @@ def get_title(level, achievements=None):
 
     # Level-based titles (base)
     level_title = "Novice"
-    if level <= 10:
+    if level <= 10 and level >= 20:
         level_title = "Novice"
-    elif level <= 20:
+    elif level <= 20 and level >= 20:
         level_title = "Apprentice"
-    elif level <= 30:
+    elif level <= 30 and level >= 20:
         level_title = "Warrior"
-    elif level <= 40:
+    elif level <= 40 and level >= 20:
         level_title = "Champion"
-    elif level <= 50:
+    elif level <= 50 and level >= 20:
         level_title = "Hero"
-    elif level <= 60:
+    elif level <= 60 and level >= 20:
         level_title = "Legend"
-    elif level <= 70:
+    elif level <= 70 and level >= 20:
         level_title = "Master"
-    elif level <= 80:
+    elif level <= 80 and level >= 20:
         level_title = "Grandmaster"
-    elif level <= 90:
+    elif level <= 90 and level >= 20:
         level_title = "Mythic"
-    elif level <= 99:
+    elif level <= 99 and level >= 20:
         level_title = "Transcendent"
     else:  # level 100
         level_title = "Godlike"
@@ -350,8 +362,14 @@ def check_achievements(username):
             new_title = get_title(stats.get("level", 1), unlocked)
             if new_title != old_title:
                 stats["title"] = new_title
-                if new_title not in stats.get("available_titles", []):
-                    stats["available_titles"].append(new_title)
+                # Find the key for the new title
+                title_key = None
+                for k, v in TITLES.items():
+                    if v['name'] == new_title:
+                        title_key = k
+                        break
+                if title_key and title_key not in stats.get("available_titles", []):
+                    stats["available_titles"].append(title_key)
                 print(f"🎉 New title unlocked: '{new_title}'!")
 
             player_data["stats"] = stats
@@ -550,6 +568,8 @@ def schedule_autosave():
     autosave_timer.daemon = True  # Allows program to exit even if timer is running
     autosave_timer.start()
 
+adminQanswers = ["31,10,2011","31\10\2011","31/10/2011","31.10.2011"]
+
 def stop_autosave():
     """Stop the autosave timer"""
     global autosave_timer
@@ -632,7 +652,8 @@ def signup(username, password):
         "password": password,
         "score": 0,
         "money": 40,
-        "player_data": default_player_data()
+        "player_data": default_player_data(),
+        "machine_homes": []  # List of machine IDs where this account is set as home
     }
     users[username] = user_data
     save_all_users(users)
@@ -645,6 +666,34 @@ def signin(username, password):
         return user_data.get("score", 0), user_data.get("money", 40), user_data.get("player_data", default_player_data())
     else:
         return None, None, None
+
+def set_machine_home(username, machine_id=None):
+    """Set this machine as a home machine for the account"""
+    if not machine_id:
+        machine_id = get_machine_id()
+    users = load_all_users()
+    if username in users:
+        if "machine_homes" not in users[username]:
+            users[username]["machine_homes"] = []
+        if machine_id not in users[username]["machine_homes"]:
+            users[username]["machine_homes"].append(machine_id)
+            save_all_users(users)
+            print(f"This machine ({machine_id}) is now set as a home machine for {username}.")
+        else:
+            print(f"This machine is already set as a home machine for {username}.")
+    else:
+        print("User not found.")
+
+def get_home_accounts_for_machine(machine_id=None):
+    """Get list of accounts that have this machine set as home"""
+    if not machine_id:
+        machine_id = get_machine_id()
+    users = load_all_users()
+    home_accounts = []
+    for username, user_data in users.items():
+        if machine_id in user_data.get("machine_homes", []):
+            home_accounts.append(username)
+    return home_accounts
 
 def update_user(username, score=None, money=None, player_data=None):
     users = load_all_users()
@@ -1062,9 +1111,22 @@ def explore_dungeon(username):
 # -------------------------
 # Debug Console
 # -------------------------
-def debug_console(current_user, score, money, player_data, users_db_path='users'):
-    print("\n--- Debug Console --- (Type 'help' for commands)")
+def debug_console(current_user, score, money, player_data, USERS_DIR):
+    debugconsoleaccess = "accepted" if current_user == "tester01" else None
+    if current_user != "tester01":
+        adminQ = input("When is the game developer's bestfriends BOD?: ")
+        if adminQ in adminQanswers:
+            print("Access Accepted")
+            debugconsoleaccess = "accepted"
+        else:
+            print("Access Denied")
+            debugconsoleaccess = "denied"
+    print("\nOpening DEBUG Console...\n...\n...")
     while True:
+        if debugconsoleaccess == "denied":
+            break
+        else:
+            pass
         cmd = input("Debug> ").strip().lower().split(" ", 1)
         cmd_base = cmd[0] if cmd else ""
         args = cmd[1] if len(cmd) > 1 else ""
@@ -1488,6 +1550,62 @@ def dungeon(username):
             save_user_data(username, user_data)
             return
 
+        if lc == "shop":
+            shop()
+            # reload after shop
+            ensure_user_fields(username)
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
+            player_hp = stats.get("hp", stats.get("hp_max", 100))
+            continue
+
+        if lc == "packs":
+            magic_pack_interface(username)
+            ensure_user_fields(username)
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
+            player_hp = stats.get("hp", stats.get("hp_max", 100))
+            continue
+
+        if lc == "titles":
+            equip_titles_menu(username, player_data, None)
+            ensure_user_fields(username)
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
+            player_hp = stats.get("hp", stats.get("hp_max", 100))
+            continue
+
+        if lc == "inventory":
+            manage_inventory_menu(username, player_data, None)
+            ensure_user_fields(username)
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
+            player_hp = stats.get("hp", stats.get("hp_max", 100))
+            continue
+
+        if lc == "spells":
+            magic_spell_interface(username)
+            ensure_user_fields(username)
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
+            player_mana = stats.get("mana", stats.get("mana_max", 50))
+            player_hp = stats.get("hp", stats.get("hp_max", 100))
+            continue
+
         if lc == "status":
             # ensure perm is applied and effective stats are fresh
             try:
@@ -1835,6 +1953,15 @@ def dungeon(username):
                         exp_gain *= 2
                     grant_exp(username, exp_gain)
 
+                    # Reload data after grant_exp in case of level up changes
+                    user_data = load_user_data(username)
+                    player_data = user_data.get("player_data", {})
+                    stats = player_data.get("stats", {})
+                    inventory = player_data.get("inventory", {})
+                    # Update local hp/mana in case level up changed them
+                    player_hp = stats.get("hp", player_hp)
+                    player_mana = stats.get("mana", player_mana)
+
                     # Score / boss handling (keep your existing logic)
                     if monster.get("is_boss"):
                         boss_bonus = random.randint(50, 150)
@@ -1876,6 +2003,8 @@ def dungeon(username):
                 
                     # Achievements checked after all data is saved
                     check_achievements(username)
+                    save_all_data()
+                    save_user_data(username, user_data)
                     break
                 
 # -------------------------
@@ -1984,8 +2113,16 @@ def shop():
         print("73. View dungeon treasure")
         print("74. Exit shop")
 
-        choice = input("\nChoose an option: ").strip().lower()
-        if choice in ("exit", "74"):
+        choice = input("\nChoose an option (e.g., 1 or 1 5 for quantity 5): ").strip().lower()
+        parts = choice.split()
+        if not parts:
+            continue
+        opt = parts[0]
+        qty = int(parts[1]) if len(parts) > 1 else 1
+        if qty < 1:
+            qty = 1
+
+        if opt in ("exit", "74"):
             break
 
         item_name = None
@@ -1994,368 +2131,368 @@ def shop():
         score_cost = 0
         is_equipment = False
 
-        if choice == "1":
+        if opt == "1":
             item_name = "potion"
             cost = 20
-        elif choice == "2":
+        elif opt == "2":
             item_name = "strong_potion"
             cost = 80
-        elif choice == "3":
+        elif opt == "3":
             item_name = "ultra_potion"
             cost = 350
-        elif choice == "4":
+        elif opt == "4":
             item_name = "mana_regen_potion"
             cost = 120
-        elif choice == "5":
+        elif opt == "5":
             item_name = "instant_mana"
             cost = 60
-        elif choice == "6":
+        elif opt == "6":
             item_name = "strength_boost"
             cost = 60
-        elif choice == "7":
+        elif opt == "7":
             item_name = "defense_boost"
             cost = 60
-        elif choice == "8":
+        elif opt == "8":
             item_name = "regen_potion"
             cost = 80
-        elif choice == "9":
+        elif opt == "9":
             item_name = "crit_boost"
             cost = 80
-        elif choice == "10":
+        elif opt == "10":
             item_name = "wooden_sword"
             item_dict = WEAPONS
             cost = WEAPONS["wooden_sword"]["price"]
             is_equipment = True
-        elif choice == "11":
+        elif opt == "11":
             item_name = "iron_sword"
             item_dict = WEAPONS
             cost = WEAPONS["iron_sword"]["price"]
             is_equipment = True
-        elif choice == "12":
+        elif opt == "12":
             item_name = "steel_sword"
             item_dict = WEAPONS
             cost = WEAPONS["steel_sword"]["price"]
             is_equipment = True
-        elif choice == "13":
+        elif opt == "13":
             item_name = "diamond_sword"
             item_dict = WEAPONS
             cost = WEAPONS["diamond_sword"]["price"]
             is_equipment = True
-        elif choice == "14":
+        elif opt == "14":
             item_name = "void_sword"
             item_dict = WEAPONS
             cost = WEAPONS["void_sword"]["price"]
             is_equipment = True
-        elif choice == "15":
+        elif opt == "15":
             item_name = "infinitium_sword"
             item_dict = WEAPONS
             cost = WEAPONS["infinitium_sword"]["price"]
             score_cost = WEAPONS["infinitium_sword"].get("score_price", 0)
             is_equipment = True
-        elif choice == "16":
+        elif opt == "16":
             item_name = "frostblade"
             item_dict = WEAPONS
             cost = WEAPONS["frostblade"]["price"]
             score_cost = WEAPONS["frostblade"].get("score_price", 0)
             is_equipment = True
-        elif choice == "17":
+        elif opt == "17":
             item_name = "flameblade"
             item_dict = WEAPONS
             cost = WEAPONS["flameblade"]["price"]
             score_cost = WEAPONS["flameblade"].get("score_price", 0)
             is_equipment = True
-        elif choice == "18":
+        elif opt == "18":
             item_name = "thunder_sword"
             item_dict = WEAPONS
             cost = WEAPONS["thunder_sword"]["price"]
             score_cost = WEAPONS["thunder_sword"].get("score_price", 0)
             is_equipment = True
-        elif choice == "19":
+        elif opt == "19":
             item_name = "holy_avenger"
             item_dict = WEAPONS
             cost = WEAPONS["holy_avenger"]["price"]
             score_cost = WEAPONS["holy_avenger"].get("score_price", 0)
             is_equipment = True
-        elif choice == "20":
+        elif opt == "20":
             item_name = "dragon_slayer"
             item_dict = WEAPONS
             cost = WEAPONS["dragon_slayer"]["price"]
             score_cost = WEAPONS["dragon_slayer"].get("score_price", 0)
             is_equipment = True
-        elif choice == "21":
+        elif opt == "21":
             item_name = "cosmic_blade"
             item_dict = WEAPONS
             cost = WEAPONS["cosmic_blade"]["price"]
             score_cost = WEAPONS["cosmic_blade"].get("score_price", 0)
             is_equipment = True
-        elif choice == "22":
+        elif opt == "22":
             item_name = "transcendent_edge"
             item_dict = WEAPONS
             cost = WEAPONS["transcendent_edge"]["price"]
             score_cost = WEAPONS["transcendent_edge"].get("score_price", 0)
             is_equipment = True
-        elif choice == "23":
+        elif opt == "23":
             item_name = "leather_armor"
             item_dict = ARMORS
             cost = ARMORS["leather_armor"]["price"]
             is_equipment = True
-        elif choice == "24":
+        elif opt == "24":
             item_name = "chainmail"
             item_dict = ARMORS
             cost = ARMORS["chainmail"]["price"]
             is_equipment = True
-        elif choice == "25":
+        elif opt == "25":
             item_name = "plate_armor"
             item_dict = ARMORS
             cost = ARMORS["plate_armor"]["price"]
             is_equipment = True
-        elif choice == "26":
+        elif opt == "26":
             item_name = "diamond_armor"
             item_dict = ARMORS
             cost = ARMORS["diamond_armor"]["price"]
             is_equipment = True
-        elif choice == "27":
+        elif opt == "27":
             item_name = "void_armor"
             item_dict = ARMORS
             cost = ARMORS["void_armor"]["price"]
             is_equipment = True
-        elif choice == "28":
+        elif opt == "28":
             item_name = "infinitium_armor"
             item_dict = ARMORS
             cost = ARMORS["infinitium_armor"]["price"]
             score_cost = ARMORS["infinitium_armor"].get("score_price", 0)
             is_equipment = True
-        elif choice == "29":
+        elif opt == "29":
             item_name = "frost_armor"
             item_dict = ARMORS
             cost = ARMORS["frost_armor"]["price"]
             score_cost = ARMORS["frost_armor"].get("score_price", 0)
             is_equipment = True
-        elif choice == "30":
+        elif opt == "30":
             item_name = "flame_armor"
             item_dict = ARMORS
             cost = ARMORS["flame_armor"]["price"]
             score_cost = ARMORS["flame_armor"].get("score_price", 0)
             is_equipment = True
-        elif choice == "31":
+        elif opt == "31":
             item_name = "thunder_armor"
             item_dict = ARMORS
             cost = ARMORS["thunder_armor"]["price"]
             score_cost = ARMORS["thunder_armor"].get("score_price", 0)
             is_equipment = True
-        elif choice == "32":
+        elif opt == "32":
             item_name = "holy_armor"
             item_dict = ARMORS
             cost = ARMORS["holy_armor"]["price"]
             score_cost = ARMORS["holy_armor"].get("score_price", 0)
             is_equipment = True
-        elif choice == "33":
+        elif opt == "33":
             item_name = "dragon_scale_armor"
             item_dict = ARMORS
             cost = ARMORS["dragon_scale_armor"]["price"]
             score_cost = ARMORS["dragon_scale_armor"].get("score_price", 0)
             is_equipment = True
-        elif choice == "34":
+        elif opt == "34":
             item_name = "cosmic_armor"
             item_dict = ARMORS
             cost = ARMORS["cosmic_armor"]["price"]
             score_cost = ARMORS["cosmic_armor"].get("score_price", 0)
             is_equipment = True
-        elif choice == "35":
+        elif opt == "35":
             item_name = "transcendent_armor"
             item_dict = ARMORS
             cost = ARMORS["transcendent_armor"]["price"]
             score_cost = ARMORS["transcendent_armor"].get("score_price", 0)
             is_equipment = True
-        elif choice == "36":
+        elif opt == "36":
             item_name = "apprentice_wand"
             item_dict = WANDS
             cost = WANDS["apprentice_wand"]["price"]
             is_equipment = True
-        elif choice == "37":
+        elif opt == "37":
             item_name = "mage_wand"
             item_dict = WANDS
             cost = WANDS["mage_wand"]["price"]
             is_equipment = True
-        elif choice == "38":
+        elif opt == "38":
             item_name = "archmage_staff"
             item_dict = WANDS
             cost = WANDS["archmage_staff"]["price"]
             score_cost = WANDS["archmage_staff"].get("score_price", 0)
             is_equipment = True
-        elif choice == "39":
+        elif opt == "39":
             item_name = "frost_wand"
             item_dict = WANDS
             cost = WANDS["frost_wand"]["price"]
             score_cost = WANDS["frost_wand"].get("score_price", 0)
             is_equipment = True
-        elif choice == "40":
+        elif opt == "40":
             item_name = "flame_wand"
             item_dict = WANDS
             cost = WANDS["flame_wand"]["price"]
             score_cost = WANDS["flame_wand"].get("score_price", 0)
             is_equipment = True
-        elif choice == "41":
+        elif opt == "41":
             item_name = "thunder_wand"
             item_dict = WANDS
             cost = WANDS["thunder_wand"]["price"]
             score_cost = WANDS["thunder_wand"].get("score_price", 0)
             is_equipment = True
-        elif choice == "42":
+        elif opt == "42":
             item_name = "holy_scepter"
             item_dict = WANDS
             cost = WANDS["holy_scepter"]["price"]
             score_cost = WANDS["holy_scepter"].get("score_price", 0)
             is_equipment = True
-        elif choice == "43":
+        elif opt == "43":
             item_name = "dragon_staff"
             item_dict = WANDS
             cost = WANDS["dragon_staff"]["price"]
             score_cost = WANDS["dragon_staff"].get("score_price", 0)
             is_equipment = True
-        elif choice == "44":
+        elif opt == "44":
             item_name = "cosmic_scepter"
             item_dict = WANDS
             cost = WANDS["cosmic_scepter"]["price"]
             score_cost = WANDS["cosmic_scepter"].get("score_price", 0)
             is_equipment = True
-        elif choice == "45":
+        elif opt == "45":
             item_name = "transcendent_staff"
             item_dict = WANDS
             cost = WANDS["transcendent_staff"]["price"]
             score_cost = WANDS["transcendent_staff"].get("score_price", 0)
             is_equipment = True
-        elif choice == "46":
+        elif opt == "46":
             item_name = "cloth_robe"
             item_dict = ROBES
             cost = ROBES["cloth_robe"]["price"]
             is_equipment = True
-        elif choice == "47":
+        elif opt == "47":
             item_name = "silk_robe"
             item_dict = ROBES
             cost = ROBES["silk_robe"]["price"]
             is_equipment = True
-        elif choice == "48":
+        elif opt == "48":
             item_name = "void_robe"
             item_dict = ROBES
             cost = ROBES["void_robe"]["price"]
             score_cost = ROBES["void_robe"].get("score_price", 0)
             is_equipment = True
-        elif choice == "49":
+        elif opt == "49":
             item_name = "frost_robe"
             item_dict = ROBES
             cost = ROBES["frost_robe"]["price"]
             score_cost = ROBES["frost_robe"].get("score_price", 0)
             is_equipment = True
-        elif choice == "50":
+        elif opt == "50":
             item_name = "flame_robe"
             item_dict = ROBES
             cost = ROBES["flame_robe"]["price"]
             score_cost = ROBES["flame_robe"].get("score_price", 0)
             is_equipment = True
-        elif choice == "51":
+        elif opt == "51":
             item_name = "thunder_robe"
             item_dict = ROBES
             cost = ROBES["thunder_robe"]["price"]
             score_cost = ROBES["thunder_robe"].get("score_price", 0)
             is_equipment = True
-        elif choice == "52":
+        elif opt == "52":
             item_name = "holy_robe"
             item_dict = ROBES
             cost = ROBES["holy_robe"]["price"]
             score_cost = ROBES["holy_robe"].get("score_price", 0)
             is_equipment = True
-        elif choice == "53":
+        elif opt == "53":
             item_name = "dragon_robe"
             item_dict = ROBES
             cost = ROBES["dragon_robe"]["price"]
             score_cost = ROBES["dragon_robe"].get("score_price", 0)
             is_equipment = True
-        elif choice == "54":
+        elif opt == "54":
             item_name = "cosmic_robe"
             item_dict = ROBES
             cost = ROBES["cosmic_robe"]["price"]
             score_cost = ROBES["cosmic_robe"].get("score_price", 0)
             is_equipment = True
-        elif choice == "55":
+        elif opt == "55":
             item_name = "transcendent_robe"
             item_dict = ROBES
             cost = ROBES["transcendent_robe"]["price"]
             score_cost = ROBES["transcendent_robe"].get("score_price", 0)
             is_equipment = True
-        elif choice == "56":
+        elif opt == "56":
             item_name = "health_amulet"
             item_dict = NECKLACES
             cost = NECKLACES["health_amulet"]["price"]
             is_equipment = True
-        elif choice == "57":
+        elif opt == "57":
             item_name = "mana_amulet"
             item_dict = NECKLACES
             cost = NECKLACES["mana_amulet"]["price"]
             is_equipment = True
-        elif choice == "58":
+        elif opt == "58":
             item_name = "strength_amulet"
             item_dict = NECKLACES
             cost = NECKLACES["strength_amulet"]["price"]
             is_equipment = True
-        elif choice == "59":
+        elif opt == "59":
             item_name = "defense_amulet"
             item_dict = NECKLACES
             cost = NECKLACES["defense_amulet"]["price"]
             is_equipment = True
-        elif choice == "60":
+        elif opt == "60":
             item_name = "crit_amulet"
             item_dict = NECKLACES
             cost = NECKLACES["crit_amulet"]["price"]
             is_equipment = True
-        elif choice == "61":
+        elif opt == "61":
             item_name = "lifesteal_amulet"
             item_dict = NECKLACES
             cost = NECKLACES["lifesteal_amulet"]["price"]
             is_equipment = True
-        elif choice == "62":
+        elif opt == "62":
             item_name = "frost_necklace"
             item_dict = NECKLACES
             cost = NECKLACES["frost_necklace"]["price"]
             score_cost = NECKLACES["frost_necklace"].get("score_price", 0)
             is_equipment = True
-        elif choice == "63":
+        elif opt == "63":
             item_name = "flame_necklace"
             item_dict = NECKLACES
             cost = NECKLACES["flame_necklace"]["price"]
             score_cost = NECKLACES["flame_necklace"].get("score_price", 0)
             is_equipment = True
-        elif choice == "64":
+        elif opt == "64":
             item_name = "thunder_necklace"
             item_dict = NECKLACES
             cost = NECKLACES["thunder_necklace"]["price"]
             score_cost = NECKLACES["thunder_necklace"].get("score_price", 0)
             is_equipment = True
-        elif choice == "65":
+        elif opt == "65":
             item_name = "holy_pendant"
             item_dict = NECKLACES
             cost = NECKLACES["holy_pendant"]["price"]
             score_cost = NECKLACES["holy_pendant"].get("score_price", 0)
             is_equipment = True
-        elif choice == "66":
+        elif opt == "66":
             item_name = "dragon_necklace"
             item_dict = NECKLACES
             cost = NECKLACES["dragon_necklace"]["price"]
             score_cost = NECKLACES["dragon_necklace"].get("score_price", 0)
             is_equipment = True
-        elif choice == "67":
+        elif opt == "67":
             item_name = "cosmic_necklace"
             item_dict = NECKLACES
             cost = NECKLACES["cosmic_necklace"]["price"]
             score_cost = NECKLACES["cosmic_necklace"].get("score_price", 0)
             is_equipment = True
-        elif choice == "68":
+        elif opt == "68":
             item_name = "transcendent_necklace"
             item_dict = NECKLACES
             cost = NECKLACES["transcendent_necklace"]["price"]
             score_cost = NECKLACES["transcendent_necklace"].get("score_price", 0)
             is_equipment = True
-        elif choice == "69":
+        elif opt == "69":
             manage_inventory_menu(current_user, player_data, None)
             # Reload data after inventory changes
             user_data = load_user_data(current_user)
@@ -2364,7 +2501,7 @@ def shop():
                 inventory = player_data.get("inventory", {})
                 money = user_data.get("money", 40)
             continue
-        elif choice == "70":
+        elif opt == "70":
             # Unequip item
             print("Unequip which item? (weapon/armor/wand/robe/necklace)")
             item_type = input("Item type: ").strip().lower()
@@ -2380,7 +2517,7 @@ def shop():
             else:
                 print("Invalid item type.")
                 continue
-        elif choice == "71":
+        elif opt == "71":
             # Sell potion
             if inventory.get("potion", 0) > 0:
                 inventory["potion"] -= 1
@@ -2393,11 +2530,11 @@ def shop():
             else:
                 print("No potions to sell.")
             continue
-        elif choice == "72":
+        elif opt == "72":
             # Craft items - placeholder
             print("Crafting not implemented yet.")
             continue
-        elif choice == "73":
+        elif opt == "73":
             # View dungeon treasure
             global dungeon_treasure
             print(f"Current dungeon treasure: ${dungeon_treasure}")
@@ -2423,9 +2560,6 @@ def shop():
                         print(f"Purchased {item_name} for ${cost}" + (f" and {score_cost} score" if score_cost > 0 else "") + "!")
                 else:
                     # Consumables can be bought multiple times
-                    qty = parse_qty_from_choice(input("How many? (default 1): ").strip())
-                    if qty <= 0:
-                        qty = 1
                     total_cost = cost * qty
                     if money >= total_cost:
                         inventory[item_name] = inventory.get(item_name, 0) + qty
@@ -2536,16 +2670,24 @@ def magic_pack_interface(username):
 
         print("0. Back")
 
-        choice = input("Choose pack to open: ").strip().lower()
-        if choice == "0":
+        choice = input("Choose pack to open (e.g., transcendent 5): ").strip().lower()
+        parts = choice.split()
+        if not parts:
+            continue
+        pack_alias = parts[0]
+        qty = int(parts[1]) if len(parts) > 1 else 1
+        if qty < 1:
+            qty = 1
+
+        if pack_alias == "0":
             break
 
         # Handle aliases
-        if choice in MAGIC_PACK_ALIASES:
-            choice = MAGIC_PACK_ALIASES[choice]
+        if pack_alias in MAGIC_PACK_ALIASES:
+            pack_alias = MAGIC_PACK_ALIASES[pack_alias]
 
-        if choice in MAGIC_PACKS and inventory.get(choice, 0) > 0:
-            success, message = open_magic_pack(username, choice, 1)
+        if pack_alias in MAGIC_PACKS and inventory.get(pack_alias, 0) >= qty:
+            success, message = open_magic_pack(username, pack_alias, qty)
             if success:
                 print(message)
                 # Reload inventory
@@ -2556,7 +2698,7 @@ def magic_pack_interface(username):
             else:
                 print(message)
         else:
-            print("Invalid choice or not owned.")
+            print("Invalid choice or not enough owned.")
 
     # No database connection to close
 
@@ -2848,7 +2990,8 @@ def settings_menu(username):
         print(f"5. Auto-equip everything: {'ON' if settings.get('auto_equip_everything', False) else 'OFF'}")
         print(f"6. Call including title: {'ON' if settings.get('call_including_title', True) else 'OFF'}")
         print("7. Equip Titles")
-        print("8. Back to Main Menu")
+        print("8. Set this machine as home")
+        print("9. Back to Main Menu")
 
         choice = input("Choose setting: ").strip()
 
@@ -2873,6 +3016,8 @@ def settings_menu(username):
         elif choice == '7':
             equip_titles_menu(username, player_data, None)
         elif choice == '8':
+            set_machine_home(username)
+        elif choice == '9':
             break
         else:
             print("Invalid choice.")
@@ -3102,7 +3247,7 @@ def manage_inventory_menu(username, player_data, cursor):
                 name = "Unknown"
                 if key in WEAPONS: name = WEAPONS[key]['name']
                 elif key in ARMORS: name = ARMORS[key]['name']
-                elif key in WANDS: name = WEAPONS[key]['name']  # Note: This was a bug, should be WANDS
+                elif key in WANDS: name = WANDS[key]['name']
                 elif key in ROBES: name = ROBES[key]['name']
                 elif key in NECKLACES: name = NECKLACES[key]['name']
                 else: continue  # Skip non-equip items
@@ -3245,6 +3390,66 @@ def compute_effective_stats(stats, active_buffs):
 
     return effective_atk, effective_def, effective_magic_atk, effective_magic_def, effective_hp_bonus, effective_mana_bonus, n_crit, n_lifesteal
 
+def magic_spell_interface(username):
+    user_data = load_user_data(username)
+    if not user_data:
+        print("User data not found.")
+        return
+
+    player_data = user_data.get("player_data", {})
+    stats = player_data.get("stats", {})
+    learned_spells = stats.get("learned_spells", [])
+    equipped_spells = stats.get("equipped_spells", [None, None, None, None])
+
+    while True:
+        print("\n--- Magic Spells ---")
+        print("Equipped Spells:")
+        for i in range(4):
+            spell = equipped_spells[i]
+            if spell and spell in SPELLS_BY_KEY:
+                s = SPELLS_BY_KEY[spell]
+                print(f"{i+1}. Slot {i+1}: {s['name']} ({s['mana']} mana)")
+            else:
+                print(f"{i+1}. Slot {i+1}: None")
+
+        print("\nLearned Spells:")
+        for i, spell_key in enumerate(learned_spells, start=1):
+            s = SPELLS_BY_KEY.get(spell_key, {})
+            print(f"{i+4}. {s.get('name', 'Unknown')} (lvl {s.get('lvl', '?')}, {s.get('mana', '?')} mana) - {s.get('desc', '')}")
+
+        print("0. Back")
+
+        choice = input("Choose slot to equip/unequip or spell to equip: ").strip()
+
+        if choice == '0':
+            break
+        elif choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < 4:  # Unequip slot
+                equipped_spells[idx] = None
+                print(f"Unequipped slot {idx+1}.")
+            elif 4 <= idx < 4 + len(learned_spells):  # Equip spell
+                spell_idx = idx - 4
+                spell_key = learned_spells[spell_idx]
+                s = SPELLS_BY_KEY.get(spell_key, {})
+                # Find first empty slot
+                empty_slots = [i for i, sp in enumerate(equipped_spells) if sp is None]
+                if empty_slots:
+                    slot = empty_slots[0]
+                    equipped_spells[slot] = spell_key
+                    print(f"Equipped {s.get('name', 'Unknown')} in slot {slot+1}.")
+                else:
+                    print("No empty slots. Unequip a slot first.")
+            else:
+                print("Invalid choice.")
+        else:
+            print("Invalid choice.")
+
+    stats["equipped_spells"] = equipped_spells
+    player_data["stats"] = stats
+    user_data["player_data"] = player_data
+    save_user_data(username, user_data)
+
 def main_menu():
     global current_user, score, player_data, money
     current_user = None
@@ -3257,10 +3462,16 @@ def main_menu():
             print(f"\nLogged in as: {current_user}")
             print("1. Play number guessing game")
             print("2. Explore dungeons")
-            print("3. Settings")
-            print("4. Leaderboard")
-            print("5. Logout")
-            print("6. Exit")
+            print("3. Shop")
+            print("4. Magic packs")
+            print("5. Permanent upgrades")
+            print("6. Equip titles")
+            print("7. Manage inventory")
+            print("8. Equip spells")
+            print("9. Settings")
+            print("10. Leaderboard")
+            print("11. Logout")
+            print("12. Exit")
         else:
             print("\nMain Menu")
             print("1. Login")
@@ -3275,14 +3486,34 @@ def main_menu():
                 score = guessing_game(current_user, score)
                 # Data is already saved via update_user in the functions
             elif choice == '2':
-                dungeon(username)
+                dungeon(current_user)
                 # Reload data after dungeon
                 score, money, player_data = signin(current_user, password="")
             elif choice == '3':
+                shop()
+                # Reload data after shop
+                score, money, player_data = signin(current_user, password="")
+            elif choice == '4':
+                magic_pack_interface(current_user)
+                # Reload data after packs
+                score, money, player_data = signin(current_user, password="")
+            elif choice == '5':
+                equip_titles_menu(current_user, player_data, None)
+                # Reload data after titles
+                score, money, player_data = signin(current_user, password="")
+            elif choice == '6':
+                manage_inventory_menu(current_user, player_data, None)
+                # Reload data after inventory
+                score, money, player_data = signin(current_user, password="")
+            elif choice == '7':
+                magic_spell_interface(current_user)
+                # Reload data after spells
+                score, money, player_data = signin(current_user, password="")
+            elif choice == '8':
                 settings_menu(current_user)
                 # Reload data after settings
                 score, money, player_data = signin(current_user, password="")
-            elif choice == '4':
+            elif choice == '9':
                 if get_leaderboard():
                     print("\n--- Leaderboard ---")
                     leaderboard = get_leaderboard()
@@ -3290,32 +3521,80 @@ def main_menu():
                         print(f"{rank}. {uname} - {user_score}")
                 else:
                     print("No users yet!")
-            elif choice == '5':
+            elif choice == '10':
                 print("Logged out.")
                 stop_autosave()  # Stop autosave when logging out
                 current_user = None
                 score = 0
                 player_data = None
                 money = 40
-            elif choice == '6':
+            elif choice == '11':
                 print("Goodbye! Data saved automatically.")
                 save_all_data()
                 break
+            elif choice == '5':
+                permanent_upgrades_interface(current_user)
+                # Reload data after upgrades
+                score, money, player_data = signin(current_user, password="")
+            elif choice == '10234':
+                debug_console(current_user, score, money, player_data, USERS_DIR)
             else:
                 print("Invalid choice.")
         else:
             if choice == '1':
-                username = input("Username: ").strip().lower()
-                password = input("Password: ").strip()
-                score, money, player_data = signin(username, password)
-                if score is not None:
-                    current_user = username
-                    ensure_user_fields(current_user)
-                    # Reload updated player data
-                    _, _, player_data = signin(username, password)
-                    print(f"Login successful! Highscore = {score}")
+                machine_id = get_machine_id()
+                home_accounts = get_home_accounts_for_machine(machine_id)
+
+                if home_accounts:
+                    if len(home_accounts) == 1:
+                        username = home_accounts[0]
+                        print(f"Home account detected: {username}")
+                        confirm = input("Login to this account? (y/n): ").strip().lower()
+                        if confirm in ['y', 'yes']:
+                            password = input("Password: ").strip()
+                            score, money, player_data = signin(username, password)
+                            if score is not None:
+                                current_user = username
+                                ensure_user_fields(current_user)
+                                _, _, player_data = signin(username, password)
+                                print(f"Login successful! Highscore = {score}")
+                            else:
+                                print("Login failed!")
+                        else:
+                            print("Login cancelled.")
+                    else:
+                        print("Multiple home accounts detected:")
+                        for i, acc in enumerate(home_accounts, 1):
+                            print(f"{i}. {acc}")
+                        choice_idx = input("Choose account number or enter username manually: ").strip()
+                        if choice_idx.isdigit():
+                            idx = int(choice_idx) - 1
+                            if 0 <= idx < len(home_accounts):
+                                username = home_accounts[idx]
+                            else:
+                                username = input("Username: ").strip().lower()
+                        else:
+                            username = choice_idx.strip().lower()
+                        password = input("Password: ").strip()
+                        score, money, player_data = signin(username, password)
+                        if score is not None:
+                            current_user = username
+                            ensure_user_fields(current_user)
+                            _, _, player_data = signin(username, password)
+                            print(f"Login successful! Highscore = {score}")
+                        else:
+                            print("Login failed!")
                 else:
-                    print("Login failed!")
+                    username = input("Username: ").strip().lower()
+                    password = input("Password: ").strip()
+                    score, money, player_data = signin(username, password)
+                    if score is not None:
+                        current_user = username
+                        ensure_user_fields(current_user)
+                        _, _, player_data = signin(username, password)
+                        print(f"Login successful! Highscore = {score}")
+                    else:
+                        print("Login failed!")
             elif choice == '2':
                 username = input("\nUsername: ").strip()
                 password = input("Password: ").strip()
