@@ -30,7 +30,11 @@ def get_machine_id():
     """Get a unique identifier for this machine"""
     try:
         hostname = socket.gethostname()
-        return hostname
+        # Also include some system info for better uniqueness
+        import platform
+        system = platform.system()
+        machine = platform.machine()
+        return f"{hostname}_{system}_{machine}"
     except:
         return "unknown_machine"
 
@@ -3498,22 +3502,26 @@ def main_menu():
                 # Reload data after packs
                 score, money, player_data = signin(current_user, password="")
             elif choice == '5':
+                permanent_upgrades_interface(current_user)
+                # Reload data after upgrades
+                score, money, player_data = signin(current_user, password="")
+            elif choice == '6':
                 equip_titles_menu(current_user, player_data, None)
                 # Reload data after titles
                 score, money, player_data = signin(current_user, password="")
-            elif choice == '6':
+            elif choice == '7':
                 manage_inventory_menu(current_user, player_data, None)
                 # Reload data after inventory
                 score, money, player_data = signin(current_user, password="")
-            elif choice == '7':
+            elif choice == '8':
                 magic_spell_interface(current_user)
                 # Reload data after spells
                 score, money, player_data = signin(current_user, password="")
-            elif choice == '8':
+            elif choice == '9':
                 settings_menu(current_user)
                 # Reload data after settings
                 score, money, player_data = signin(current_user, password="")
-            elif choice == '9':
+            elif choice == '10':
                 if get_leaderboard():
                     print("\n--- Leaderboard ---")
                     leaderboard = get_leaderboard()
@@ -3521,21 +3529,17 @@ def main_menu():
                         print(f"{rank}. {uname} - {user_score}")
                 else:
                     print("No users yet!")
-            elif choice == '10':
+            elif choice == '11':
                 print("Logged out.")
                 stop_autosave()  # Stop autosave when logging out
                 current_user = None
                 score = 0
                 player_data = None
                 money = 40
-            elif choice == '11':
+            elif choice == '12':
                 print("Goodbye! Data saved automatically.")
                 save_all_data()
                 break
-            elif choice == '5':
-                permanent_upgrades_interface(current_user)
-                # Reload data after upgrades
-                score, money, player_data = signin(current_user, password="")
             elif choice == '10234':
                 debug_console(current_user, score, money, player_data, USERS_DIR)
             else:
@@ -3546,11 +3550,25 @@ def main_menu():
                 home_accounts = get_home_accounts_for_machine(machine_id)
 
                 if home_accounts:
+                    print(f"Home accounts found: {home_accounts}")
                     if len(home_accounts) == 1:
                         username = home_accounts[0]
                         print(f"Home account detected: {username}")
-                        confirm = input("Login to this account? (y/n): ").strip().lower()
+                        confirm = input("Auto-login to this account? (y/n): ").strip().lower()
                         if confirm in ['y', 'yes']:
+                            # Auto-login for home account - no password needed
+                            user_data = load_user_data(username)
+                            if user_data:
+                                score = user_data.get("score", 0)
+                                money = user_data.get("money", 40)
+                                player_data = user_data.get("player_data", default_player_data())
+                                current_user = username
+                                ensure_user_fields(current_user)
+                                print(f"Auto-login successful! Highscore = {score}")
+                            else:
+                                print("Auto-login failed!")
+                        else:
+                            username = input("Username: ").strip().lower()
                             password = input("Password: ").strip()
                             score, money, player_data = signin(username, password)
                             if score is not None:
@@ -3560,31 +3578,53 @@ def main_menu():
                                 print(f"Login successful! Highscore = {score}")
                             else:
                                 print("Login failed!")
-                        else:
-                            print("Login cancelled.")
                     else:
                         print("Multiple home accounts detected:")
                         for i, acc in enumerate(home_accounts, 1):
                             print(f"{i}. {acc}")
-                        choice_idx = input("Choose account number or enter username manually: ").strip()
+                        print(f"{len(home_accounts)+1}. Enter username manually")
+                        choice_idx = input("Choose account number for auto-login: ").strip()
                         if choice_idx.isdigit():
                             idx = int(choice_idx) - 1
                             if 0 <= idx < len(home_accounts):
                                 username = home_accounts[idx]
-                            else:
+                                # Auto-login for home account
+                                user_data = load_user_data(username)
+                                if user_data:
+                                    score = user_data.get("score", 0)
+                                    money = user_data.get("money", 40)
+                                    player_data = user_data.get("player_data", default_player_data())
+                                    current_user = username
+                                    ensure_user_fields(current_user)
+                                    print(f"Auto-login successful! Highscore = {score}")
+                                else:
+                                    print("Auto-login failed!")
+                            elif idx == len(home_accounts):
                                 username = input("Username: ").strip().lower()
+                                password = input("Password: ").strip()
+                                score, money, player_data = signin(username, password)
+                                if score is not None:
+                                    current_user = username
+                                    ensure_user_fields(current_user)
+                                    _, _, player_data = signin(username, password)
+                                    print(f"Login successful! Highscore = {score}")
+                                else:
+                                    print("Login failed!")
+                            else:
+                                print("Invalid choice.")
                         else:
-                            username = choice_idx.strip().lower()
-                        password = input("Password: ").strip()
-                        score, money, player_data = signin(username, password)
-                        if score is not None:
-                            current_user = username
-                            ensure_user_fields(current_user)
-                            _, _, player_data = signin(username, password)
-                            print(f"Login successful! Highscore = {score}")
-                        else:
-                            print("Login failed!")
+                            username = input("Username: ").strip().lower()
+                            password = input("Password: ").strip()
+                            score, money, player_data = signin(username, password)
+                            if score is not None:
+                                current_user = username
+                                ensure_user_fields(current_user)
+                                _, _, player_data = signin(username, password)
+                                print(f"Login successful! Highscore = {score}")
+                            else:
+                                print("Login failed!")
                 else:
+                    print(f"No home accounts found for machine {machine_id}")
                     username = input("Username: ").strip().lower()
                     password = input("Password: ").strip()
                     score, money, player_data = signin(username, password)
