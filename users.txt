@@ -2,18 +2,18 @@
     "tester01": {
         "username": "tester01",
         "password": "e=mc2",
-        "score": 225,
+        "score": 231,
         "money": 50,
         "player_data": {
             "money": 150,
             "score": 0,
             "stats": {
                 "hp_max": 100,
-                "hp": 82,
+                "hp": 50,
                 "atk": 5,
                 "defense": 0,
                 "level": 1,
-                "exp": 75,
+                "exp": 84,
                 "mana_max": 50,
                 "mana": 50,
                 "current_area": 1,
@@ -98,7 +98,7 @@
                 "title_exp_boost": 0
             },
             "inventory": {
-                "potion": 9,
+                "potion": 8,
                 "strong_potion": 0,
                 "ultra_potion": 0,
                 "strength_boost": 0,

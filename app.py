@@ -55,6 +55,22 @@ PERM_UPGRADES = {
 }
 
 # -------------------------
+# Potions
+# -------------------------
+POTIONS = {
+    "potion": {"name": "Potion", "effect": "heal", "amount": 30},
+    "strong_potion": {"name": "Strong Potion", "effect": "heal", "amount": 80},
+    "ultra_potion": {"name": "Ultra Potion", "effect": "heal", "amount": 200},
+    "strength_boost": {"name": "Strength Boost", "effect": "buff_atk", "amount": 5, "duration": 4},
+    "defense_boost": {"name": "Defense Boost", "effect": "buff_def", "amount": 3, "duration": 4},
+    "regen_potion": {"name": "Regen Potion", "effect": "buff_hp_regen", "amount": 12, "duration": 4},
+    "crit_boost": {"name": "Crit Boost", "effect": "buff_crit", "amount": 50, "duration": 4},
+    "mana_regen_potion": {"name": "Mana Regen Potion", "effect": "buff_mana_regen", "amount": 15, "duration": 4},
+    "instant_mana": {"name": "Instant Mana", "effect": "full_mana"},
+    "mana_upgrade_potion": {"name": "Mana Upgrade Potion", "effect": "heal_mana", "amount": 50},
+}
+
+# -------------------------
 # Equipment: weapons, armors, wands, robes, necklaces
 # -------------------------
 WEAPONS = {
@@ -661,6 +677,8 @@ def signup(username, password):
     }
     users[username] = user_data
     save_all_users(users)
+    # Automatically set this machine as home for new accounts
+    set_machine_home(username)
     print("Signup successful!")
     return True
 
@@ -1111,6 +1129,73 @@ def explore_dungeon(username):
     update_user(username, money=user_data["money"], player_data=user_data["player_data"])
 
 # -------------------------
+# Use Potions Interface
+# -------------------------
+def use_potions_interface(username, player_hp, player_mana, stats, inventory, active_buffs):
+    while True:
+        print("\n--- Use Potions ---")
+        print(f"HP: {player_hp}/{stats.get('hp_max')} | Mana: {player_mana}/{stats.get('mana_max')}")
+        print("Available potions:")
+        potion_list = []
+        for key, count in inventory.items():
+            if count > 0 and key in POTIONS:
+                potion_list.append((key, POTIONS[key]["name"], count))
+                print(f"{len(potion_list)}. {POTIONS[key]['name']} x{count}")
+
+        print("0. Back")
+
+        choice = input("Choose potion to use: ").strip()
+        if choice == '0':
+            break
+        elif choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(potion_list):
+                potion_key, potion_name, count = potion_list[idx]
+                if count > 0:
+                    effect = POTIONS[potion_key]["effect"]
+                    amount = POTIONS[potion_key]["amount"]
+                    if effect == "heal":
+                        heal_amount = min(amount, stats.get("hp_max", 100) - player_hp)
+                        if heal_amount > 0:
+                            player_hp += heal_amount
+                            print(f"You used {potion_name} and healed {heal_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                        else:
+                            print("You are already at full HP.")
+                            continue
+                    elif effect == "heal_mana":
+                        mana_heal = min(amount, stats.get("mana_max", 50) - player_mana)
+                        if mana_heal > 0:
+                            player_mana += mana_heal
+                            print(f"You used {potion_name} and restored {mana_heal} Mana! (Mana: {player_mana}/{stats.get('mana_max')})")
+                        else:
+                            print("You are already at full Mana.")
+                            continue
+                    elif effect == "full_mana":
+                        player_mana = stats.get("mana_max", 50)
+                        print(f"You used {potion_name} and restored full Mana! (Mana: {player_mana}/{stats.get('mana_max')})")
+                    elif effect.startswith("buff"):
+                        buff_type = effect[5:]  # Remove "buff_"
+                        duration = POTIONS[potion_key]["duration"]
+                        active_buffs.append({"type": buff_type, "amount": amount, "remaining": duration})
+                        print(f"You used {potion_name} and gained {amount} {buff_type.replace('_', ' ')} for {duration} fights!")
+
+                    inventory[potion_key] -= 1
+                    # Save changes
+                    player_data = {"stats": stats, "inventory": inventory}
+                    user_data = load_user_data(username)
+                    if user_data:
+                        user_data["player_data"] = player_data
+                        save_user_data(username, user_data)
+                else:
+                    print("No more of this potion.")
+            else:
+                print("Invalid choice.")
+        else:
+            print("Invalid choice.")
+
+    return player_hp, player_mana, active_buffs
+
+# -------------------------
 # Dungeon game function (needed for main menu)
 # -------------------------
 # Debug Console
@@ -1539,7 +1624,7 @@ def dungeon(username):
 
     # Main loop
     while True:
-        cmd = input("\nType 'explore' to find a monster, 'status' to view stats, 'shop' to access shop, 'packs' to open magic packs, 'upgrades' to use permanent upgrades, 'move' to change areas, or 'exit' to leave the dungeon: ").strip()
+        cmd = input("\nType 'explore' to find a monster, 'status' to view stats, 'shop' to access shop, 'packs' to open magic packs, 'upgrades' to use permanent upgrades, 'potions' to use potions, 'move' to change areas, or 'exit' to leave the dungeon: ").strip()
         if not cmd:
             continue
         lc = cmd.lower().strip()
@@ -1662,6 +1747,15 @@ def dungeon(username):
             inventory = player_data.get("inventory", {})
             player_mana = stats.get("mana", stats.get("mana_max", 50))
             player_hp = stats.get("hp", stats.get("hp_max", 100))
+            continue
+
+        if lc == "potions":
+            player_hp, player_mana, active_buffs = use_potions_interface(username, player_hp, player_mana, stats, inventory, active_buffs)
+            ensure_user_fields(username)
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
+            stats = player_data.get("stats", {})
+            inventory = player_data.get("inventory", {})
             continue
 
         if lc == "move":
@@ -3572,6 +3666,7 @@ def main_menu():
                             password = input("Password: ").strip()
                             score, money, player_data = signin(username, password)
                             if score is not None:
+                                set_machine_home(username)
                                 current_user = username
                                 ensure_user_fields(current_user)
                                 _, _, player_data = signin(username, password)
@@ -3604,6 +3699,7 @@ def main_menu():
                                 password = input("Password: ").strip()
                                 score, money, player_data = signin(username, password)
                                 if score is not None:
+                                    set_machine_home(username)
                                     current_user = username
                                     ensure_user_fields(current_user)
                                     _, _, player_data = signin(username, password)
@@ -3617,6 +3713,7 @@ def main_menu():
                             password = input("Password: ").strip()
                             score, money, player_data = signin(username, password)
                             if score is not None:
+                                set_machine_home(username)
                                 current_user = username
                                 ensure_user_fields(current_user)
                                 _, _, player_data = signin(username, password)
@@ -3629,6 +3726,7 @@ def main_menu():
                     password = input("Password: ").strip()
                     score, money, player_data = signin(username, password)
                     if score is not None:
+                        set_machine_home(username)
                         current_user = username
                         ensure_user_fields(current_user)
                         _, _, player_data = signin(username, password)
