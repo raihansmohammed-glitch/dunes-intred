@@ -1952,18 +1952,13 @@ def dungeon(username):
                     save_user_data(username, user_data)
 
                 elif action == "p":
-                    # potion use (keeps original behaviour)
-                    if inventory.get("potion", 0) > 0:
-                        inventory["potion"] -= 1
-                        heal_amount = min(stats.get("hp_max",100) - player_hp, 50)
-                        player_hp = min(player_hp + heal_amount, stats.get("hp_max"))
-                        print(f"You used a potion and healed {heal_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                        player_data["inventory"] = inventory
-                        player_data["stats"] = stats
-                        user_data["player_data"] = player_data
-                        save_user_data(username, user_data)
-                    else:
-                        print("No potions available.")
+                    # Use potions interface
+                    player_hp, player_mana, active_buffs = use_potions_interface(username, player_hp, player_mana, stats, inventory, active_buffs)
+                    # Reload data after potion use
+                    user_data = load_user_data(username)
+                    player_data = user_data.get("player_data", {})
+                    stats = player_data.get("stats", {})
+                    inventory = player_data.get("inventory", {})
 
                 elif action == "u":
                     print("Use buff not implemented in this simplified dungeon flow.")
