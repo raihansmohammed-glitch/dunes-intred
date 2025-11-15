@@ -652,10 +652,10 @@ def grant_exp(username, amount):
             old_level = stats["level"]
             stats["level"] += 1
 
-            # Improved stat gains per level (base 10)
-            hp_increase = 10 + stats["level"] // 2
+            # Improved stat gains per level (base 10 increases for HP/Mana)
+            hp_increase = 10
             atk_increase = 1 + stats["level"] // 5
-            mana_increase = 5 + stats["level"] // 3
+            mana_increase = 10
 
             # Check if stats were manually set below default
             default_stats = default_player_data()["stats"]
@@ -1000,14 +1000,14 @@ def default_player_data():
         "money": 40,
         "score": 0,
         "stats": {
-            "hp_max": 10,
-            "hp": 10,
-            "atk": 10,
-            "defense": 10,
+            "hp_max": 100,
+            "hp": 100,
+            "atk": 5,
+            "defense": 0,
             "level": 1,
             "exp": 0,
-            "mana_max": 10,
-            "mana": 10,
+            "mana_max": 100,
+            "mana": 100,
             "current_area": 1,
             "equipped": {"weapon": None, "armor": None, "wand": None, "robe": None, "necklace": None},
             "settings": {"call_including_title": True, "show_exp_bar": False, "auto_equip_best": False, "auto_equip_spells": False, "auto_equip_titles": False, "auto_equip_everything": False},
@@ -2111,7 +2111,12 @@ def dungeon(username):
                 # compute total crit chance from perm + active buffs
                 total_crit_chance = calculate_total_crit_chance(stats, active_buffs)
 
-                action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
+                while True:
+                    action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
+                    if action in ["a", "m", "p", "u", "r"]:
+                        break
+                    else:
+                        print("Invalid action. Please choose (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un.")
 
                 # ---------- PLAYER PHYSICAL ATTACK ----------
                 if action == "a":
@@ -4110,6 +4115,9 @@ def main_menu():
             elif choice == '2':
                 username = input("\nUsername: ").strip()
                 password = input("Password: ").strip()
+                if username in ["", " ", "  ", "   ","    "] or password in ["", " ", "  ", "   ","    "]:
+                    print("Password or Username cannot be empty!")
+                    break
                 if signup(username, password):
                     score, money, player_data = signin(username, password)
                     current_user = username
