@@ -1045,7 +1045,7 @@ def default_player_data():
             # Magic and Title systems
             "learned_spells": [],
             "equipped_spells": [None, None, None, None],
-            "available_titles": [],
+            "available_titles": ["novice"],
             "equipped_titles": [None, None, None, None, None],
             # Title boost tracking
             "title_atk_boost": 0,
@@ -1365,42 +1365,119 @@ def use_potions_interface(username, player_hp, player_mana, stats, inventory, ac
 
         print("0. Back")
 
-        choice = input("Choose potion to use: ").strip()
-        if choice == '0':
+        choice = input("Choose potion to use (e.g., 1 or 1 3 for quantity): ").strip()
+        parts = choice.split()
+        if not parts or not parts[0].isdigit():
+            print("Invalid choice.")
+            continue
+        opt = parts[0]
+        qty = int(parts[1]) if len(parts) > 1 else 1
+        if qty < 1:
+            qty = 1
+
+        if opt == '0':
             break
-        elif choice.isdigit():
-            idx = int(choice) - 1
+        elif opt.isdigit():
+            idx = int(opt) - 1
             if 0 <= idx < len(potion_list):
                 potion_key, potion_name, count = potion_list[idx]
-                if count > 0:
+                if count >= qty:
                     effect = POTIONS[potion_key]["effect"]
                     amount = POTIONS[potion_key]["amount"]
-                    if effect == "heal":
-                        heal_amount = min(amount, stats.get("hp_max", 100) - player_hp)
-                        if heal_amount > 0:
-                            player_hp += heal_amount
-                            print(f"You used {potion_name} and healed {heal_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
-                        else:
-                            print("You are already at full HP.")
-                            continue
-                    elif effect == "heal_mana":
-                        mana_heal = min(amount, stats.get("mana_max", 50) - player_mana)
-                        if mana_heal > 0:
-                            player_mana += mana_heal
-                            print(f"You used {potion_name} and restored {mana_heal} Mana! (Mana: {player_mana}/{stats.get('mana_max')})")
-                        else:
-                            print("You are already at full Mana.")
-                            continue
-                    elif effect == "full_mana":
-                        player_mana = stats.get("mana_max", 50)
-                        print(f"You used {potion_name} and restored full Mana! (Mana: {player_mana}/{stats.get('mana_max')})")
-                    elif effect.startswith("buff"):
-                        buff_type = effect[5:]  # Remove "buff_"
-                        duration = POTIONS[potion_key]["duration"]
-                        active_buffs.append({"type": buff_type, "amount": amount, "remaining": duration})
-                        print(f"You used {potion_name} and gained {amount} {buff_type.replace('_', ' ')} for {duration} fights!")
+                    for _ in range(qty):
+                        if effect == "heal":
+                            heal_amount = min(amount, stats.get("hp_max", 100) - player_hp)
+                            if heal_amount > 0:
+                                player_hp += heal_amount
+                                print(f"You used {potion_name} and healed {heal_amount} HP! (HP: {player_hp}/{stats.get('hp_max')})")
+                            else:
+                                print("You are already at full HP.")
+                        elif effect == "heal_mana":
+                            mana_heal = min(amount, stats.get("mana_max", 50) - player_mana)
+                            if mana_heal > 0:
+                                player_mana += mana_heal
+                                print(f"You used {potion_name} and restored {mana_heal} Mana! (Mana: {player_mana}/{stats.get('mana_max')})")
+                            else:
+                                print("You are already at full Mana.")
+                        elif effect == "full_mana":
+                            player_mana = stats.get("mana_max", 50)
+                            print(f"You used {potion_name} and restored full Mana! (Mana: {player_mana}/{stats.get('mana_max')})")
+                        elif effect.startswith("buff"):
+                            buff_type = effect[5:]  # Remove "buff_"
+                            duration = POTIONS[potion_key]["duration"]
+                            active_buffs.append({"type": buff_type, "amount": amount, "remaining": duration})
+                            print(f"You used {potion_name} and gained {amount} {buff_type.replace('_', ' ')} for {duration} fights!")
 
-                    inventory[potion_key] -= 1
+                    inventory[potion_key] -= qty
+                    # Save changes
+                    stats["hp"] = player_hp
+                    stats["mana"] = player_mana
+                    player_data = {"stats": stats, "inventory": inventory}
+                    user_data = load_user_data(username)
+                    if user_data:
+                        user_data["player_data"] = player_data
+                        save_user_data(username, user_data)
+                else:
+                    print(f"Not enough {potion_name} (have {count}).")
+            else:
+                print("Invalid choice.")
+        else:
+            print("Invalid choice.")
+
+    return player_hp, player_mana, active_buffs
+
+# -------------------------
+# Use Buff Interface
+# -------------------------
+def use_buff_interface(username, player_hp, player_mana, stats, inventory, active_buffs):
+    # Sync with latest saved data to ensure inventory is current
+    try:
+        user_data = load_user_data(username)
+        if user_data:
+            saved_player_data = user_data.get("player_data", {})
+            saved_inventory = saved_player_data.get("inventory", {})
+            inventory = saved_inventory
+    except Exception as e:
+        pass
+
+    while True:
+        print("\n--- Use Buffs ---")
+        print("Available buffs:")
+        buff_list = []
+        for key, count in inventory.items():
+            if count > 0 and key in POTIONS and POTIONS[key]["effect"].startswith("buff"):
+                buff_list.append((key, POTIONS[key]["name"], count))
+                print(f"{len(buff_list)}. {POTIONS[key]['name']} x{count}")
+
+        print("0. Back")
+
+        choice = input("Choose buff to use (e.g., 1 or 1 3 for quantity): ").strip()
+        parts = choice.split()
+        if not parts or not parts[0].isdigit():
+            print("Invalid choice.")
+            continue
+        opt = parts[0]
+        qty = int(parts[1]) if len(parts) > 1 else 1
+        if qty < 1:
+            qty = 1
+
+        if opt == '0':
+            break
+        elif opt.isdigit():
+            idx = int(opt) - 1
+            if 0 <= idx < len(buff_list):
+                buff_key, buff_name, count = buff_list[idx]
+                if count >= qty:
+                    effect = POTIONS[buff_key]["effect"]
+                    amount = POTIONS[buff_key]["amount"]
+                    for _ in range(qty):
+                        if effect.startswith("buff"):
+                            buff_type = effect[5:]  # Remove "buff_"
+                            duration = POTIONS[buff_key]["duration"]
+                            active_buffs.append({"type": buff_type, "amount": amount, "remaining": duration})
+                            print(f"You used {buff_name} and gained {amount} {buff_type.replace('_', ' ')} for {duration} fights!")
+
+                    inventory[buff_key] -= qty
                     # Save changes
                     player_data = {"stats": stats, "inventory": inventory}
                     user_data = load_user_data(username)
@@ -1408,7 +1485,7 @@ def use_potions_interface(username, player_hp, player_mana, stats, inventory, ac
                         user_data["player_data"] = player_data
                         save_user_data(username, user_data)
                 else:
-                    print("No more of this potion.")
+                    print(f"Not enough {buff_name} (have {count}).")
             else:
                 print("Invalid choice.")
         else:
@@ -1692,6 +1769,23 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     qty = int(parts[2]) if len(parts) > 2 else 1
                     try:
                         qty = int(qty) if isinstance(qty, str) else qty
+
+                        # Handle aliases for permanent upgrades
+                        upgrade_aliases = {
+                            "str": "perm_strength_upgrade",
+                            "def": "perm_defense_upgrade",
+                            "hp": "perm_health_upgrade",
+                            "mana": "perm_mana_upgrade",
+                            "crit": "perm_crit_chance_upgrade",
+                            "magic_def": "perm_magic_def_upgrade",
+                            "lifesteal": "perm_lifesteal_upgrade",
+                            "lifesteal_chance": "perm_lifesteal_chance_upgrade",
+                            "exp": "perm_exp_upgrade",
+                            "perm_def": "perm_defense_upgrade"  # Add specific alias for the user's issue
+                        }
+                        if item in upgrade_aliases:
+                            item = upgrade_aliases[item]
+
                         user_data = load_user_data(u)
                         if user_data:
                             inventory = user_data["player_data"].get("inventory", {})
@@ -1861,7 +1955,10 @@ def dungeon(username):
     active_buffs = []
     forced_monster = None
 
-    print("\n⚔️ Welcome to the Dungeon, brave adventurer!")
+    if stats.get("settings", {}).get("call_including_title", True) and stats.get("title"):
+        name_display = f"{stats['title']} {username}"
+
+    print(f"\n⚔️ Welcome to the Dungeon, brave {name_display}!")
     check_stats(username)
     player_hp = stats.get("hp", stats.get("hp_max", 100))
     player_mana = stats.get("mana", stats.get("mana_max", 50))
@@ -1959,11 +2056,12 @@ def dungeon(username):
                 pass
             effective_atk, effective_def, effective_magic_atk, effective_magic_def, _, _, _, _ = compute_effective_stats(stats, active_buffs)
             next_exp = exp_to_next(stats.get("level",1)) if stats.get("level",1) < MAX_LEVEL else "MAX"
+            money = user_data.get("money")
             name_display = username
             if stats.get("settings", {}).get("call_including_title", True) and stats.get("title"):
                 name_display = f"{stats['title']} {username}"
             exp_display = create_exp_bar(stats.get('exp'), next_exp) if stats.get("settings", {}).get("show_exp_bar", False) else f"{stats.get('exp')}/{next_exp}"
-            print(f"{name_display} - HP: {player_hp}/{stats.get('hp_max')}, MANA: {player_mana}/{stats.get('mana_max')}, ATK: {effective_atk}, DEF: {effective_def}, Money: ${player_data.get('money',0)}, LVL: {stats.get('level')}, EXP: {exp_display}, AREA: {stats.get('current_area', 1)}")
+            print(f"{name_display} - HP: {player_hp}/{stats.get('hp_max')}, MANA: {player_mana}/{stats.get('mana_max')}, ATK: {effective_atk}, DEF: {effective_def}, Money: ${money}, LVL: {stats.get('level')}, EXP: {exp_display}, AREA: {stats.get('current_area', 1)}")
             if active_buffs:
                 print("Active buffs:")
                 for b in active_buffs:
@@ -2235,8 +2333,13 @@ def dungeon(username):
                     inventory = player_data.get("inventory", {})
 
                 elif action == "u":
-                    print("Use buff not implemented in this simplified dungeon flow.")
-                    continue
+                    # Use buff interface
+                    player_hp, player_mana, active_buffs = use_buff_interface(username, player_hp, player_mana, stats, inventory, active_buffs)
+                    # Reload data after buff use
+                    user_data = load_user_data(username)
+                    player_data = user_data.get("player_data", {})
+                    stats = player_data.get("stats", {})
+                    inventory = player_data.get("inventory", {})
 
                 elif action == "r":
                     if random.random() < 0.5:
@@ -2325,6 +2428,8 @@ def dungeon(username):
                     # also update the player_data money field so JSON and user_data stay consistent
                     player_data["money"] = money
 
+                    save_user_data(username, user_data)
+
                     # ---- drops / materials ----
                     drops = []
                     for item_name, chance in monster.get("drop", {}).items():
@@ -2369,41 +2474,32 @@ def dungeon(username):
                         score += boss_bonus
                         user_data["score"] = score
 
-                        # dungeon treasure (if any) - add to money and save
+                        # dungeon treasure (if any) - add 20% to money and save
                         if dungeon_treasure["money"] > 0:
-                            # Apply treasure boost from titles if any (keeping your logic)
+                            # Apply treasure boost from titles if any
                             treasure_boost_percent = stats.get("title_treasure_boost_percent", 0)
-                            recovered_treasure = dungeon_treasure["money"]
+                            recovered_treasure = int(dungeon_treasure["money"] * 0.2)
                             if treasure_boost_percent > 0:
-                                recovered_treasure = int(dungeon_treasure["money"] * (1 + treasure_boost_percent / 100.0))
-                            print(f"🏆 You recovered the dungeon treasure: ${recovered_treasure}!")
+                                recovered_treasure = int(recovered_treasure * (1 + treasure_boost_percent / 100.0))
+                            print(f"🏆 You recovered 20% of the dungeon treasure: ${recovered_treasure}!")
                             money += recovered_treasure
                             user_data["money"] = money
                             player_data["money"] = money
                             stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + recovered_treasure
-                            dungeon_treasure["money"] = 0
+                            dungeon_treasure["money"] -= int(dungeon_treasure["money"] * 0.2)
 
-                        # Boss reward: 20% of dungeon treasure money
-                        boss_money_reward = int(dungeon_treasure["money"] * 0.2)
-                        if boss_money_reward > 0:
-                            money += boss_money_reward
-                            user_data["money"] = money
-                            player_data["money"] = money
-                            dungeon_treasure["money"] -= boss_money_reward
-                            print(f"🎉 Boss reward: ${boss_money_reward} from dungeon treasure!")
-
-                        # Difficulty-based items from dungeon treasure
-                        boss_difficulty = get_rarity_value(get_item_rarity(monster["name"]))  # Approximate difficulty
+                        # Boss reward items: 20% of dungeon treasure items
                         if not dungeon_treasure["items"]:
                             replenish_dungeon_treasure()
                         if dungeon_treasure["items"]:
-                            num_items = min(boss_difficulty, len(dungeon_treasure["items"]))
-                            rewarded_items = random.sample(dungeon_treasure["items"], num_items)
-                            for item in rewarded_items:
-                                inventory[item] = inventory.get(item, 0) + 1
-                                dungeon_treasure["items"].remove(item)
-                            if rewarded_items:
-                                print(f"🎁 Boss reward items: {', '.join(rewarded_items)}!")
+                            num_items = int(len(dungeon_treasure["items"]) * 0.2)
+                            if num_items > 0:
+                                rewarded_items = random.sample(dungeon_treasure["items"], min(num_items, len(dungeon_treasure["items"])))
+                                for item in rewarded_items:
+                                    inventory[item] = inventory.get(item, 0) + 1
+                                    dungeon_treasure["items"].remove(item)
+                                if rewarded_items:
+                                    print(f"🎁 Boss reward items: {', '.join(rewarded_items)}!")
 
                         save_dungeon_treasure()
                     else:
@@ -2538,8 +2634,6 @@ def shop():
 
         choice = input("\nChoose an option (e.g., 1 or 1 5 for quantity 5): ").strip().lower()
         parts = choice.split()
-        if not parts:
-            continue
         opt = parts[0]
         qty = int(parts[1]) if len(parts) > 1 else 1
         if qty < 1:
@@ -3027,6 +3121,20 @@ def permanent_upgrades_interface(username):
     inventory = player_data.get("inventory", {})
     stats = player_data.get("stats", {})
 
+    # Define aliases for upgrades
+    upgrade_aliases = {
+        "str": "perm_strength_upgrade",
+        "def": "perm_defense_upgrade",
+        "hp": "perm_health_upgrade",
+        "mana": "perm_mana_upgrade",
+        "crit": "perm_crit_chance_upgrade",
+        "magic_def": "perm_magic_def_upgrade",
+        "lifesteal": "perm_lifesteal_upgrade",
+        "lifesteal_chance": "perm_lifesteal_chance_upgrade",
+        "exp": "perm_exp_upgrade",
+        "perm_def": "perm_defense_upgrade"
+    }
+
     while True:
         print("\n--- Permanent Upgrades ---")
         print("Available upgrades (use permanent upgrade items from inventory):")
@@ -3040,42 +3148,49 @@ def permanent_upgrades_interface(username):
         print("0. Back")
 
         choice = input("Choose upgrade to use: ").strip().lower()
-        if choice == "0":
+        parts = choice.split()
+        if not parts or parts[0] == "0":
             break
+        opt = parts[0]
+        qty = int(parts[1]) if len(parts) > 1 else 1
+        if qty < 1:
+            qty = 1
 
-        if choice in PERM_UPGRADES and inventory.get(choice, 0) > 0:
-            inventory[choice] -= 1
-            # Apply the upgrade
-            if "atk_increase" in PERM_UPGRADES[choice]:
-                stats["perm_atk"] = stats.get("perm_atk", 0) + PERM_UPGRADES[choice]["atk_increase"]
-            elif "def_increase" in PERM_UPGRADES[choice]:
-                stats["perm_def"] = stats.get("perm_def", 0) + PERM_UPGRADES[choice]["def_increase"]
-            elif "hp_increase" in PERM_UPGRADES[choice]:
-                stats["perm_hp_max"] = stats.get("perm_hp_max", 0) + PERM_UPGRADES[choice]["hp_increase"]
-            elif "magic_increase" in PERM_UPGRADES[choice]:
-                stats["perm_mana_max"] = stats.get("perm_mana_max", 0) + PERM_UPGRADES[choice]["magic_increase"]
-            elif "crit_chance_increase" in PERM_UPGRADES[choice]:
-                stats["perm_crit_chance"] = stats.get("perm_crit_chance", 0) + PERM_UPGRADES[choice]["crit_chance_increase"]
-            elif "mana_regen_increase" in PERM_UPGRADES[choice]:
-                stats["perm_mana_regen"] = stats.get("perm_mana_regen", 0) + PERM_UPGRADES[choice]["mana_regen_increase"]
-            elif "max_lifesteal_increase" in PERM_UPGRADES[choice]:
-                stats["perm_lifesteal"] = stats.get("perm_lifesteal", 0) + PERM_UPGRADES[choice]["max_lifesteal_increase"]
-            elif "lifesteal_chance_increase" in PERM_UPGRADES[choice]:
-                stats["perm_lifesteal_chance"] = stats.get("perm_lifesteal_chance", 0) + PERM_UPGRADES[choice]["lifesteal_chance_increase"]
-            elif "exp_increase" in PERM_UPGRADES[choice]:
-                stats["perm_exp_boost"] = stats.get("perm_exp_boost", 0) + PERM_UPGRADES[choice]["exp_increase"]
+        # Handle aliases
+        if opt in upgrade_aliases:
+            opt = upgrade_aliases[opt]
 
-            # Reapply permanent upgrades to current stats
-            apply_permanent_upgrades(username)
+        if opt in PERM_UPGRADES and inventory.get(opt, 0) >= qty:
+            inventory[opt] -= qty
+            for _ in range(qty):
+                # Apply the upgrade directly to stats
+                if "atk_increase" in PERM_UPGRADES[opt]:
+                    stats["perm_atk"] = stats.get("perm_atk", 0) + PERM_UPGRADES[opt]["atk_increase"]
+                elif "def_increase" in PERM_UPGRADES[opt]:
+                    stats["perm_def"] = stats.get("perm_def", 0) + PERM_UPGRADES[opt]["def_increase"]
+                elif "hp_increase" in PERM_UPGRADES[opt]:
+                    stats["perm_hp_max"] = stats.get("perm_hp_max", 0) + PERM_UPGRADES[opt]["hp_increase"]
+                elif "magic_increase" in PERM_UPGRADES[opt]:
+                    stats["perm_mana_max"] = stats.get("perm_mana_max", 0) + PERM_UPGRADES[opt]["magic_increase"]
+                elif "crit_chance_increase" in PERM_UPGRADES[opt]:
+                    stats["perm_crit_chance"] = stats.get("perm_crit_chance", 0) + PERM_UPGRADES[opt]["crit_chance_increase"]
+                elif "mana_regen_increase" in PERM_UPGRADES[opt]:
+                    stats["perm_mana_regen"] = stats.get("perm_mana_regen", 0) + PERM_UPGRADES[opt]["mana_regen_increase"]
+                elif "max_lifesteal_increase" in PERM_UPGRADES[opt]:
+                    stats["perm_lifesteal"] = stats.get("perm_lifesteal", 0) + PERM_UPGRADES[opt]["max_lifesteal_increase"]
+                elif "lifesteal_chance_increase" in PERM_UPGRADES[opt]:
+                    stats["perm_lifesteal_chance"] = stats.get("perm_lifesteal_chance", 0) + PERM_UPGRADES[opt]["lifesteal_chance_increase"]
+                elif "exp_increase" in PERM_UPGRADES[opt]:
+                    stats["perm_exp_boost"] = stats.get("perm_exp_boost", 0) + PERM_UPGRADES[opt]["exp_increase"]
 
             player_data["inventory"] = inventory
             player_data["stats"] = stats
             user_data["player_data"] = player_data
             save_user_data(username, user_data)
             check_achievements(username)
-            print(f"Used {PERM_UPGRADES[choice]['name']}!")
+            print(f"Used {qty}x {PERM_UPGRADES[opt]['name']}!")
         else:
-            print("Invalid choice or not owned.")
+            print("Invalid choice or not enough owned.")
 
     # No database connection to close
 
@@ -3148,17 +3263,8 @@ def apply_permanent_upgrades(username):
         stats = player_data["stats"]
         inventory = player_data["inventory"]
 
-        # Apply permanent upgrades
-        stats["perm_atk"] = inventory.get("perm_strength_upgrade", 0) * PERM_UPGRADES["perm_strength_upgrade"]["atk_increase"]
-        stats["perm_def"] = inventory.get("perm_defense_upgrade", 0) * PERM_UPGRADES["perm_defense_upgrade"]["def_increase"]
-        stats["perm_hp_max"] = inventory.get("perm_health_upgrade", 0) * PERM_UPGRADES["perm_health_upgrade"]["hp_increase"]
-        stats["perm_mana_max"] = inventory.get("perm_mana_upgrade", 0) * PERM_UPGRADES["perm_mana_upgrade"]["magic_increase"]
-        stats["perm_magic_def"] = inventory.get("perm_magic_def_upgrade", 0) * PERM_UPGRADES["perm_magic_def_upgrade"]["magic_def_increase"]
-        stats["perm_crit_chance"] = inventory.get("perm_crit_chance_upgrade", 0) * PERM_UPGRADES["perm_crit_chance_upgrade"]["crit_chance_increase"]
-        stats["perm_mana_regen"] = inventory.get("perm_mana_regen_upgrade", 0) * PERM_UPGRADES["perm_mana_regen_upgrade"]["mana_regen_increase"]
-        stats["perm_lifesteal"] = inventory.get("perm_lifesteal_upgrade", 0) * PERM_UPGRADES["perm_lifesteal_upgrade"]["max_lifesteal_increase"]
-        stats["perm_lifesteal_chance"] = inventory.get("perm_lifesteal_chance_upgrade", 0) * PERM_UPGRADES["perm_lifesteal_chance_upgrade"]["lifesteal_chance_increase"]
-        stats["perm_exp_boost"] = inventory.get("perm_exp_upgrade", 0) * PERM_UPGRADES["perm_exp_upgrade"]["exp_increase"]
+        # Apply permanent upgrades based on used items (not inventory count)
+        # The perm_* fields are already set in permanent_upgrades_interface
 
         # Apply title boosts
         apply_title_boosts(username)
