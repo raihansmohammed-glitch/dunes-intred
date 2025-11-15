@@ -16,7 +16,7 @@ DUNGEON_TREASURE_FILE = "dungeon_treasure.json"
 # -------------------------
 # Globals
 # -------------------------
-dungeon_treasure = 0
+dungeon_treasure = {"money": 0, "items": []}
 GLOBAL_KEY = "__global__"
 
 AUTOSAVE_INTERVAL = 30  # Autosave every 30 seconds for simplicity
@@ -68,6 +68,50 @@ POTIONS = {
     "mana_regen_potion": {"name": "Mana Regen Potion", "effect": "buff_mana_regen", "amount": 15, "duration": 4},
     "instant_mana": {"name": "Instant Mana", "effect": "full_mana"},
     "mana_upgrade_potion": {"name": "Mana Upgrade Potion", "effect": "heal_mana", "amount": 50},
+}
+
+# -------------------------
+# Materials (dropped by monsters, used for crafting? - not implemented yet but defined for future use and rarity calculation)
+# -------------------------
+MATERIALS = {
+    "slime_gel": {"name": "Slime Gel", "rarity": "common", "desc": "Gelatinous substance from slimes."},
+    "goblin_tooth": {"name": "Goblin Tooth", "rarity": "common", "desc": "Sharp tooth from goblins."},
+    "wolf_pelt": {"name": "Wolf Pelt", "rarity": "common", "desc": "Fur from wolves."},
+    "skeleton_bone": {"name": "Skeleton Bone", "rarity": "common", "desc": "Bone from skeletons."},
+    "orc_iron": {"name": "Orc Iron", "rarity": "common", "desc": "Iron forged by orcs."},
+    "bandit_cloth": {"name": "Bandit Cloth", "rarity": "common", "desc": "Cloth from bandits."},
+    "troll_core": {"name": "Troll Core", "rarity": "rare", "desc": "Core from trolls."},
+    "dark_essence": {"name": "Dark Essence", "rarity": "rare", "desc": "Essence of darkness."},
+    "prism_fragment": {"name": "Prism Fragment", "rarity": "rare", "desc": "Fragment of a prism."},
+    "void_fragment": {"name": "Void Fragment", "rarity": "rare", "desc": "Fragment from the void."},
+    "infinitium_piece": {"name": "Infinitium Piece", "rarity": "rare", "desc": "Piece of infinitium."},
+    "soul_shard": {"name": "Soul Shard", "rarity": "rare", "desc": "Shard containing souls."},
+    "transcendent_heart": {"name": "Transcendent Heart", "rarity": "rare", "desc": "Heart from transcendent beings."},
+    "dragon_scale": {"name": "Dragon Scale", "rarity": "mythical", "desc": "Scale from dragons."},
+    "phoenix_feather": {"name": "Phoenix Feather", "rarity": "mythical", "desc": "Feather from phoenixes."},
+    "frozen_heart": {"name": "Frozen Heart", "rarity": "mythical", "desc": "Heart encased in ice."},
+    "thunder_core": {"name": "Thunder Core", "rarity": "mythical", "desc": "Core of thunder."},
+    "holy_light": {"name": "Holy Light", "rarity": "mythical", "desc": "Light imbued with holiness."},
+    "demon_horn": {"name": "Demon Horn", "rarity": "mythical", "desc": "Horn from demons."},
+    "crystal_shard": {"name": "Crystal Shard", "rarity": "mythical", "desc": "Shard of crystal."},
+    "star_dust": {"name": "Star Dust", "rarity": "mythical", "desc": "Dust from stars."},
+    "moon_rock": {"name": "Moon Rock", "rarity": "mythical", "desc": "Rock from the moon."},
+    "sun_stone": {"name": "Sun Stone", "rarity": "mythical", "desc": "Stone powered by the sun."},
+    "spider_venom": {"name": "Spider Venom", "rarity": "common", "desc": "Venom from giant spiders."},  # Added this one as it's in drops but not in default inventory, but mentioned in MONSTERS
+    "stone_core": {"name": "Stone Core", "rarity": "common", "desc": "Core from stone golems."},  # Similarly, in drops but not default inventory
+    "ice_shard": {"name": "Ice Shard", "rarity": "common", "desc": "Shard of ice."},  # From Ice Elemental
+    "fire_essence": {"name": "Fire Essence", "rarity": "rare", "desc": "Essence of fire."},  # From Fire Elemental
+    "lightning_feather": {"name": "Lightning Feather", "rarity": "rare", "desc": "Feather charged with lightning."},  # From Thunder Bird
+    "shadow_cloak": {"name": "Shadow Cloak", "rarity": "rare", "desc": "Cloak woven from shadows."},  # From Shadow Assassin
+    "arcane_tome": {"name": "Arcane Tome", "rarity": "rare", "desc": "Tome of arcane knowledge."},  # From Arcane Mage
+    "curse_scroll": {"name": "Curse Scroll", "rarity": "rare", "desc": "Scroll with curses."},  # From Warlock
+    "ember": {"name": "Ember", "rarity": "rare", "desc": "Glowing ember."},  # From Fire Elemental, but not in inventory - assuming rare
+    "bat_wing": {"name": "Bat Wing", "rarity": "common", "desc": "Wing from dark bats."}  # In drops but not default inventory
+    # Note: "mana_upgrade_potion", "instant_mana", etc. are potions, not materials. Magic packs are separate. Permanent upgrades are not materials.
+    # Potions and upgrades are already defined separately, so only drop materials here.
+    # For crafting or future use, materials are these droppable items from monsters (excluding potions, permanent upgrades, and pack items since packs are consumables but not materials per se, but the code has them in inventory as 0 initially but they are separate. The task is materials from default player data, which are these.)
+    # To be comprehensive, I included all unique materials from MONSTERS drop lists that aren't potions/upgrades/packs. Some like "spider_venom" are in drops but not in default_player_data, but since default has 0, it's fine. But to match, I added them if they appear in drops. But the task says "all materials are in default player data i think", so perhaps only those in default_player_data. But to be thorough, I included all from drops as the list is materials. But looking back, default has them as 0, so it's okay. For rarity, assigned based on monster rarity dropping them. Common monsters drop common materials, rare monsters drop rare, etc. For example, area 1 monsters drop common, area 3 drop rare, area 5 mythical, etc. So I assigned accordingly. For area 1-2: common, area 3-4: rare, area 5+: mythical, bosses have rare or higher. But simplified. For transcendent_heart, it's from transcendent boss, so rare. Demon King drops transcendent_heart, rare. Anyway, I assigned reasonable rarities. Common for early areas, rare for mid, mythical for later. For transcendent, it's rare as it's from super boss but not highest. But transcendent is higher than mythical, but in game, transcendent is highest rarity for items. But materials can be common to mythical. I think this is fine.
+    # I added some missing ones like spider_venom which is in MONSTERS drop but not in default_player_data. The default has most, but not all. The code has them in drops, so players can get them. To make the list complete, I included them. But the task is "all materials are in default player data i think", so perhaps only those in default. But to be safe, I included all unique from drops. But looking, default has "spider_venom" as 0? No, in the code, default_player_data has "spider_venom": 0, yes, in the list: "spider_venom": 0, yes. "stone_core": 0, yes. So all are there. Good. I think this covers it. Rarities assigned based on drop areas: area 1-2 common, 3-4 rare, 5-7 mythical, 8-10 rare/mythical, bosses rare. Transcendent_heart from Demon King, rare. Dragon_scale from Dragon Lord, mythical. Etc. I set most higher ones to mythical. For transcendent_heart, since it's from the highest boss, perhaps transcendent, but the rarity system has transcendent for items, but for materials, maybe not. But to keep it, I set it to rare. The function will use this. Now, add the dict after POTIONS. POTIONS is after upgrades. So after PERM_UPGRADES. No, after POTIONS. The comment says after POTIONS. So after POTIONS block. Then update get_item_rarity. Yes.
 }
 
 # -------------------------
@@ -156,6 +200,151 @@ def get_rarity_value(rarity):
     """Get numerical value for rarity sorting"""
     rarity_order = {"common": 1, "rare": 2, "mythical": 3, "prismatic": 4, "divine": 5, "transcendent": 6}
     return rarity_order.get(rarity, 0)
+
+def get_item_rarity(item_key):
+    """Get the rarity of an item"""
+    if item_key in WEAPONS:
+        if "score_price" in WEAPONS[item_key]:
+            if WEAPONS[item_key].get("score_price", 0) >= 10000:
+                return "transcendent"
+            elif WEAPONS[item_key].get("score_price", 0) >= 3000:
+                return "divine"
+            elif WEAPONS[item_key].get("score_price", 0) >= 800:
+                return "prismatic"
+            elif WEAPONS[item_key].get("score_price", 0) >= 250:
+                return "mythical"
+            elif WEAPONS[item_key].get("score_price", 0) >= 200:
+                return "rare"
+            else:
+                return "common"
+        else:
+            # Old weapons
+            if item_key in ["infinitium_sword"]:
+                return "transcendent"
+            elif item_key in ["cosmic_blade", "transcendent_edge"]:
+                return "divine"
+            elif item_key in ["dragon_slayer", "holy_avenger", "thunder_sword", "flameblade"]:
+                return "prismatic"
+            elif item_key in ["frostblade"]:
+                return "mythical"
+            else:
+                return "common"
+    elif item_key in ARMORS:
+        if "score_price" in ARMORS[item_key]:
+            if ARMORS[item_key].get("score_price", 0) >= 9500:
+                return "transcendent"
+            elif ARMORS[item_key].get("score_price", 0) >= 2800:
+                return "divine"
+            elif ARMORS[item_key].get("score_price", 0) >= 1400:
+                return "prismatic"
+            elif ARMORS[item_key].get("score_price", 0) >= 700:
+                return "mythical"
+            elif ARMORS[item_key].get("score_price", 0) >= 200:
+                return "rare"
+            else:
+                return "common"
+        else:
+            # Old armors
+            if item_key in ["infinitium_armor"]:
+                return "transcendent"
+            elif item_key in ["cosmic_armor", "transcendent_armor"]:
+                return "divine"
+            elif item_key in ["dragon_scale_armor", "holy_armor", "thunder_armor", "flame_armor"]:
+                return "prismatic"
+            elif item_key in ["frost_armor"]:
+                return "mythical"
+            else:
+                return "common"
+    elif item_key in WANDS:
+        if "score_price" in WANDS[item_key]:
+            if WANDS[item_key].get("score_price", 0) >= 9500:
+                return "transcendent"
+            elif WANDS[item_key].get("score_price", 0) >= 2800:
+                return "divine"
+            elif WANDS[item_key].get("score_price", 0) >= 1400:
+                return "prismatic"
+            elif WANDS[item_key].get("score_price", 0) >= 700:
+                return "mythical"
+            elif WANDS[item_key].get("score_price", 0) >= 200:
+                return "rare"
+            else:
+                return "common"
+        else:
+            # Old wands
+            if item_key in ["transcendent_staff"]:
+                return "transcendent"
+            elif item_key in ["cosmic_scepter"]:
+                return "divine"
+            elif item_key in ["dragon_staff", "holy_scepter", "thunder_wand", "flame_wand"]:
+                return "prismatic"
+            elif item_key in ["frost_wand"]:
+                return "mythical"
+            elif item_key in ["archmage_staff"]:
+                return "rare"
+            else:
+                return "common"
+    elif item_key in ROBES:
+        if "score_price" in ROBES[item_key]:
+            if ROBES[item_key].get("score_price", 0) >= 9500:
+                return "transcendent"
+            elif ROBES[item_key].get("score_price", 0) >= 2800:
+                return "divine"
+            elif ROBES[item_key].get("score_price", 0) >= 1400:
+                return "prismatic"
+            elif ROBES[item_key].get("score_price", 0) >= 700:
+                return "mythical"
+            elif ROBES[item_key].get("score_price", 0) >= 200:
+                return "rare"
+            else:
+                return "common"
+        else:
+            # Old robes
+            if item_key in ["transcendent_robe"]:
+                return "transcendent"
+            elif item_key in ["cosmic_robe"]:
+                return "divine"
+            elif item_key in ["dragon_robe", "holy_robe", "thunder_robe", "flame_robe"]:
+                return "prismatic"
+            elif item_key in ["frost_robe"]:
+                return "mythical"
+            elif item_key in ["void_robe"]:
+                return "rare"
+            else:
+                return "common"
+    elif item_key in NECKLACES:
+        if "score_price" in NECKLACES[item_key]:
+            if NECKLACES[item_key].get("score_price", 0) >= 8000:
+                return "transcendent"
+            elif NECKLACES[item_key].get("score_price", 0) >= 2400:
+                return "divine"
+            elif NECKLACES[item_key].get("score_price", 0) >= 1200:
+                return "prismatic"
+            elif NECKLACES[item_key].get("score_price", 0) >= 600:
+                return "mythical"
+            elif NECKLACES[item_key].get("score_price", 0) >= 100:
+                return "rare"
+            else:
+                return "common"
+        else:
+            # Old necklaces
+            if item_key in ["transcendent_necklace"]:
+                return "transcendent"
+            elif item_key in ["cosmic_necklace"]:
+                return "divine"
+            elif item_key in ["dragon_necklace", "holy_pendant", "thunder_necklace", "flame_necklace"]:
+                return "prismatic"
+            elif item_key in ["frost_necklace"]:
+                return "mythical"
+            else:
+                return "common"
+    elif item_key in POTIONS:
+        return "common"  # Potions are consumable
+    elif item_key in PERM_UPGRADES:
+        return "rare"  # Permanent upgrades
+    elif item_key in MATERIALS:
+        return MATERIALS[item_key]["rarity"]
+    else:
+        return "common"  # Default
 
 # -------------------------
 # Titles (with rarities and boosts)
@@ -317,25 +506,23 @@ def get_title(level, achievements=None):
 
     # Level-based titles (base)
     level_title = "Novice"
-    if level <= 10 and level >= 20:
+    if level <= 10:
         level_title = "Novice"
-    elif level <= 20 and level >= 20:
+    elif level <= 20:
         level_title = "Apprentice"
-    elif level <= 30 and level >= 20:
+    elif level <= 30:
         level_title = "Warrior"
-    elif level <= 40 and level >= 20:
+    elif level <= 40:
         level_title = "Champion"
-    elif level <= 50 and level >= 20:
-        level_title = "Hero"
-    elif level <= 60 and level >= 20:
+    elif level <= 50:
         level_title = "Legend"
-    elif level <= 70 and level >= 20:
+    elif level <= 60:
         level_title = "Master"
-    elif level <= 80 and level >= 20:
+    elif level <= 70:
         level_title = "Grandmaster"
-    elif level <= 90 and level >= 20:
+    elif level <= 80:
         level_title = "Mythic"
-    elif level <= 99 and level >= 20:
+    elif level <= 99:
         level_title = "Transcendent"
     else:  # level 100
         level_title = "Godlike"
@@ -465,7 +652,7 @@ def grant_exp(username, amount):
             old_level = stats["level"]
             stats["level"] += 1
 
-            # Improved stat gains per level
+            # Improved stat gains per level (base 10)
             hp_increase = 10 + stats["level"] // 2
             atk_increase = 1 + stats["level"] // 5
             mana_increase = 5 + stats["level"] // 3
@@ -475,23 +662,23 @@ def grant_exp(username, amount):
 
             # Handle HP
             if not stats["stats_manually_set"]["hp_max"]:
-                stats["hp_max"] = stats.get("hp_max", 100) + hp_increase
+                stats["hp_max"] = stats.get("hp_max", 10) + hp_increase
             if not stats["stats_manually_set"]["hp"]:
                 stats["hp"] = min(stats.get("hp", stats["hp_max"]) + stats["hp_max"] // 4, stats["hp_max"])
 
             # Handle ATK
             if not stats["stats_manually_set"]["atk"]:
-                stats["atk"] = stats.get("atk", 5) + atk_increase
+                stats["atk"] = stats.get("atk", 10) + atk_increase
 
             # Handle Mana
             if not stats["stats_manually_set"]["mana_max"]:
-                stats["mana_max"] = stats.get("mana_max", 50) + mana_increase
+                stats["mana_max"] = stats.get("mana_max", 10) + mana_increase
             if not stats["stats_manually_set"]["mana"]:
                 stats["mana"] = min(stats.get("mana", stats["mana_max"]) + stats["mana_max"] // 3, stats["mana_max"])
 
             # Handle DEF
             if not stats["stats_manually_set"]["defense"]:
-                stats["defense"] = stats.get("defense", 0) + 1
+                stats["defense"] = stats.get("defense", 10) + 1
 
             lvls_gained.append(stats["level"])
 
@@ -523,7 +710,7 @@ def save_dungeon_treasure():
             f.write('')
         temp_file = DUNGEON_TREASURE_FILE + '.tmp'
         with open(temp_file, 'w') as f:
-            json.dump({"treasure": int(dungeon_treasure)}, f)
+            json.dump({"treasure": dungeon_treasure}, f)
         os.replace(temp_file, DUNGEON_TREASURE_FILE)
         try:
             os.remove(lock_file)
@@ -545,17 +732,24 @@ def load_dungeon_treasure():
         if os.path.exists(DUNGEON_TREASURE_FILE):
             with open(DUNGEON_TREASURE_FILE, 'r') as f:
                 data = json.load(f)
-                dungeon_treasure = int(data.get("treasure", random.randint(200000, 1000000)))
+                loaded_treasure = data.get("treasure", {})
+                if isinstance(loaded_treasure, int):
+                    # Migrate old format
+                    dungeon_treasure = {"money": loaded_treasure, "items": []}
+                else:
+                    dungeon_treasure = loaded_treasure.copy()
+                    dungeon_treasure.setdefault("money", 0)
+                    dungeon_treasure.setdefault("items", [])
         else:
-            dungeon_treasure = random.randint(200000, 1000000)
+            dungeon_treasure = {"money": random.randint(200000, 1000000), "items": []}
 
-        # If dungeon treasure is below 200,000, reroll it
-        if dungeon_treasure < 200000:
-            dungeon_treasure = random.randint(200000, 1000000)
+        # If dungeon treasure money is below 200,000, reroll it
+        if dungeon_treasure["money"] < 200000:
+            dungeon_treasure["money"] = random.randint(200000, 1000000)
             save_dungeon_treasure()
     except Exception as e:
         print(f"Error loading dungeon treasure: {e}")
-        dungeon_treasure = random.randint(200000, 1000000)
+        dungeon_treasure = {"money": random.randint(200000, 1000000), "items": []}
 
 load_dungeon_treasure()
 
@@ -564,6 +758,18 @@ load_dungeon_treasure()
 # -------------------------
 def save_all_data():
     save_dungeon_treasure()
+
+def replenish_dungeon_treasure():
+    """Replenish dungeon treasure items if below 10"""
+    global dungeon_treasure
+    if len(dungeon_treasure["items"]) < 10:
+        num_to_add = random.randint(20, 30) - len(dungeon_treasure["items"])
+        # Add random consumable items (potions, etc.)
+        consumables = list(POTIONS.keys()) + list(MAGIC_PACKS.keys()) + list(MATERIALS.keys())
+        for _ in range(num_to_add):
+            item = random.choice(consumables)
+            dungeon_treasure["items"].append(item)
+        save_dungeon_treasure()
 
 def autosave():
     """Perform autosave and show a brief notification"""
@@ -645,6 +851,8 @@ def save_all_users(users):
         with open(temp_file, 'w') as f:
             json.dump(users, f, indent=4)
         os.replace(temp_file, USERS_DIR)
+    except PermissionError as e:
+        print(f"Save failed due to permission error: {e}. Data not saved.")
     finally:
         try:
             os.remove(lock_file)
@@ -792,14 +1000,14 @@ def default_player_data():
         "money": 40,
         "score": 0,
         "stats": {
-            "hp_max": 100,
-            "hp": 100,
-            "atk": 5,
-            "defense": 0,
+            "hp_max": 10,
+            "hp": 10,
+            "atk": 10,
+            "defense": 10,
             "level": 1,
             "exp": 0,
-            "mana_max": 50,
-            "mana": 50,
+            "mana_max": 10,
+            "mana": 10,
             "current_area": 1,
             "equipped": {"weapon": None, "armor": None, "wand": None, "robe": None, "necklace": None},
             "settings": {"call_including_title": True, "show_exp_bar": False, "auto_equip_best": False, "auto_equip_spells": False, "auto_equip_titles": False, "auto_equip_everything": False},
@@ -1122,8 +1330,7 @@ def explore_dungeon(username):
 
     load_dungeon_treasure()
     save_dungeon_treasure()
-    # Check for achievements
-    check_achievements(username)
+    # Check for achievements (moved to end of dungeon function)
 
     # Save player data
     update_user(username, money=user_data["money"], player_data=user_data["player_data"])
@@ -1132,6 +1339,20 @@ def explore_dungeon(username):
 # Use Potions Interface
 # -------------------------
 def use_potions_interface(username, player_hp, player_mana, stats, inventory, active_buffs):
+    # Sync with latest saved data to ensure HP and Mana are current
+    try:
+        user_data = load_user_data(username)
+        if user_data:
+            saved_player_data = user_data.get("player_data", {})
+            saved_stats = saved_player_data.get("stats", {})
+            saved_inventory = saved_player_data.get("inventory", {})
+            player_hp = saved_stats.get("hp", player_hp)
+            player_mana = saved_stats.get("mana", player_mana)
+            stats = saved_stats
+            inventory = saved_inventory
+    except Exception as e:
+        pass
+
     while True:
         print("\n--- Use Potions ---")
         print(f"HP: {player_hp}/{stats.get('hp_max')} | Mana: {player_mana}/{stats.get('mana_max')}")
@@ -1530,24 +1751,58 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     for eq in [WEAPONS, ARMORS, WANDS, ROBES, NECKLACES]:
                         for item in eq:
                             inventory[item] = 1
+                    for mat in MATERIALS:
+                        inventory[mat] = 100
                     # All permanent upgrades
                     for up in PERM_UPGRADES:
-                        inventory[up] = 1
+                        inventory[up] = 250
                     apply_title_boosts(u)
-                    user_data["score"] = 999999
-                    user_data["money"] = 999999
+                    user_data["score"] = 1000000
+                    user_data["money"] = 1000000
                     save_user_data(u, user_data)
                     print(f"Ruin the fun activated for {u}.")
                 else:
                     print("User not found.")
             else:
                 print("Usage: ruinthefun <username>")
-        elif cmd_base == "exit" or cmd_base == "quit" or cmd_base == "q":
+        elif cmd_base in ["exit",".","dilsaf","get out","getout","out","quit"]:
             print("Exiting debug console.")
             break
         else:
             print("Unknown command. Type 'help' for commands.")
 # -------------------------
+
+def check_stats(username):
+    """Check if user has negative HP or Mana, and reset to max if so"""
+    try:
+        user_data = load_user_data(username)
+        if not user_data:
+            return
+
+        player_data = user_data.get("player_data", {})
+        stats = player_data.get("stats", {})
+
+        hp_max = stats.get("hp_max", 100)
+        mana_max = stats.get("mana_max", 50)
+        hp = stats.get("hp", hp_max)
+        mana = stats.get("mana", mana_max)
+
+        changed = False
+        if hp < 1:
+            stats["hp"] = hp_max
+            changed = True
+            print(f"HP was negative, reset to {hp_max}.")
+        if mana < 1:
+            stats["mana"] = mana_max
+            changed = True
+            print(f"Mana was negative, reset to {mana_max}.")
+
+        if changed:
+            player_data["stats"] = stats
+            user_data["player_data"] = player_data
+            save_user_data(username, user_data)
+    except Exception as e:
+        print(f"Error checking stats: {e}")
 
 def add_material_drops(inventory, monster):
     """Add material drops from a monster to the inventory and return list of dropped items"""
@@ -1607,6 +1862,7 @@ def dungeon(username):
     forced_monster = None
 
     print("\n⚔️ Welcome to the Dungeon, brave adventurer!")
+    check_stats(username)
     player_hp = stats.get("hp", stats.get("hp_max", 100))
     player_mana = stats.get("mana", stats.get("mana_max", 50))
 
@@ -1750,6 +2006,13 @@ def dungeon(username):
             continue
 
         if lc == "potions":
+            # Reload inventory from file to ensure it's up to date
+            user_data = load_user_data(username)
+            player_data = user_data.get("player_data", {})
+            inventory = player_data.get("inventory", {})
+            stats = player_data.get("stats", {})
+            player_hp = stats.get("hp", player_hp)
+            player_mana = stats.get("mana", player_mana)
             player_hp, player_mana, active_buffs = use_potions_interface(username, player_hp, player_mana, stats, inventory, active_buffs)
             ensure_user_fields(username)
             user_data = load_user_data(username)
@@ -1767,6 +2030,12 @@ def dungeon(username):
                     continue
                 new_area = int(new_area)
                 if 1 <= new_area <= 10:
+                    # Check level requirement for the new area
+                    player_level = stats.get("level", 1)
+                    min_level = (new_area - 1) * LEVELS_PER_AREA + 1
+                    if player_level < min_level:
+                        print(f"You need to be at least level {min_level} to enter Area {new_area}. Your current level is {player_level}.")
+                        continue
                     stats["current_area"] = new_area
                     current_area = new_area
                     player_data["stats"] = stats
@@ -1989,12 +2258,45 @@ def dungeon(username):
                     # Check if player died
                     if player_hp <= 0:
                         print("You have been defeated!")
+                        # Death penalty: lose 1/4 of money
+                        lost_money = int(user_data["money"] * 0.25)
+                        user_data["money"] -= lost_money
+                        dungeon_treasure["money"] += lost_money
+                        print(f"You lost ${lost_money} to dungeon treasure!")
+
+                        # Death penalty: lose random items
+                        lost_items = []
+                        # Get list of items that can be lost (consumables and equipment, but not permanent upgrades)
+                        losable_items = [k for k, v in inventory.items() if v > 0 and k not in PERM_UPGRADES]
+                        if losable_items:
+                            num_to_lose = random.randint(1, min(5, len(losable_items)))
+                            for _ in range(num_to_lose):
+                                item = random.choice(losable_items)
+                                if inventory[item] > 0:
+                                    inventory[item] -= 1
+                                    lost_items.append(item)
+                                    losable_items.remove(item)  # Avoid losing the same item multiple times
+                        if lost_items:
+                            print(f"You also lost: {', '.join(lost_items)}!")
+                        else:
+                            print("You didn't lose any items (no items to lose).")
+
+                        # Restore full HP and Mana
+                        player_hp = stats["hp_max"]
+                        player_mana = stats["mana_max"]
+                        print(f"But your stats are fully restored! HP: {player_hp}/{stats.get('hp_max')}, Mana: {player_mana}/{stats.get('mana_max')}")
+
+                        # Replenish dungeon treasure if needed
+                        replenish_dungeon_treasure()
+
                         stats["hp"] = player_hp
                         stats["mana"] = player_mana
                         stats["times_died"] = stats.get("times_died", 0) + 1
                         player_data["stats"] = stats
+                        player_data["inventory"] = inventory
                         user_data["player_data"] = player_data
                         save_user_data(username, user_data)
+                        save_dungeon_treasure()
                         return
 
                 # ----- Victory check -----
@@ -2063,19 +2365,42 @@ def dungeon(username):
                         user_data["score"] = score
 
                         # dungeon treasure (if any) - add to money and save
-                        if dungeon_treasure > 0:
+                        if dungeon_treasure["money"] > 0:
                             # Apply treasure boost from titles if any (keeping your logic)
                             treasure_boost_percent = stats.get("title_treasure_boost_percent", 0)
-                            recovered_treasure = dungeon_treasure
+                            recovered_treasure = dungeon_treasure["money"]
                             if treasure_boost_percent > 0:
-                                recovered_treasure = int(dungeon_treasure * (1 + treasure_boost_percent / 100.0))
+                                recovered_treasure = int(dungeon_treasure["money"] * (1 + treasure_boost_percent / 100.0))
                             print(f"🏆 You recovered the dungeon treasure: ${recovered_treasure}!")
                             money += recovered_treasure
                             user_data["money"] = money
                             player_data["money"] = money
                             stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + recovered_treasure
-                            dungeon_treasure = 0
-                            save_dungeon_treasure()
+                            dungeon_treasure["money"] = 0
+
+                        # Boss reward: 20% of dungeon treasure money
+                        boss_money_reward = int(dungeon_treasure["money"] * 0.2)
+                        if boss_money_reward > 0:
+                            money += boss_money_reward
+                            user_data["money"] = money
+                            player_data["money"] = money
+                            dungeon_treasure["money"] -= boss_money_reward
+                            print(f"🎉 Boss reward: ${boss_money_reward} from dungeon treasure!")
+
+                        # Difficulty-based items from dungeon treasure
+                        boss_difficulty = get_rarity_value(get_item_rarity(monster["name"]))  # Approximate difficulty
+                        if not dungeon_treasure["items"]:
+                            replenish_dungeon_treasure()
+                        if dungeon_treasure["items"]:
+                            num_items = min(boss_difficulty, len(dungeon_treasure["items"]))
+                            rewarded_items = random.sample(dungeon_treasure["items"], num_items)
+                            for item in rewarded_items:
+                                inventory[item] = inventory.get(item, 0) + 1
+                                dungeon_treasure["items"].remove(item)
+                            if rewarded_items:
+                                print(f"🎁 Boss reward items: {', '.join(rewarded_items)}!")
+
+                        save_dungeon_treasure()
                     else:
                         normal_bonus = random.randint(5, 20)
                         print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{normal_bonus} score, +{exp_gain} EXP")
@@ -2630,7 +2955,16 @@ def shop():
         elif opt == "73":
             # View dungeon treasure
             global dungeon_treasure
-            print(f"Current dungeon treasure: ${dungeon_treasure}")
+            print(f"Current dungeon treasure money: ${dungeon_treasure['money']}")
+            if dungeon_treasure['items']:
+                print("Items in dungeon treasure:")
+                item_counts = {}
+                for item in dungeon_treasure['items']:
+                    item_counts[item] = item_counts.get(item, 0) + 1
+                for item, count in item_counts.items():
+                    print(f"  {item}: {count}")
+            else:
+                print("No items in dungeon treasure.")
             continue
         else:
             print("Invalid choice.")
@@ -2733,6 +3067,7 @@ def permanent_upgrades_interface(username):
             player_data["stats"] = stats
             user_data["player_data"] = player_data
             save_user_data(username, user_data)
+            check_achievements(username)
             print(f"Used {PERM_UPGRADES[choice]['name']}!")
         else:
             print("Invalid choice or not owned.")
@@ -3314,13 +3649,17 @@ def auto_equip_items(username):
 # Manage Inventory Menu
 # -------------------------
 def manage_inventory_menu(username, player_data, cursor):
+    user_data = load_user_data(username)
+    if not user_data:
+        return
+    money = user_data.get("money", 0)
     stats = player_data['stats']
     inventory = player_data['inventory']
     equipped = stats.get('equipped', {})
 
     while True:
         print("\n--- Manage Inventory ---")
-        print(f"Money: {player_data['money']}")
+        print(f"Money: {money}")
         print("Equipped:")
         weapon = equipped.get('weapon')
         print(f"  Weapon: {WEAPONS.get(weapon, {}).get('name', 'None') if weapon else 'None'}")
@@ -3581,35 +3920,75 @@ def main_menu():
             elif choice == '2':
                 dungeon(current_user)
                 # Reload data after dungeon
-                score, money, player_data = signin(current_user, password="")
+                user_data = load_user_data(current_user)
+                if user_data:
+                    score = user_data.get("score", 0)
+                    money = user_data.get("money", 40)
+                    player_data = user_data.get("player_data", default_player_data())
+                    ensure_user_fields(current_user)
             elif choice == '3':
                 shop()
                 # Reload data after shop
-                score, money, player_data = signin(current_user, password="")
+                user_data = load_user_data(current_user)
+                if user_data:
+                    score = user_data.get("score", 0)
+                    money = user_data.get("money", 40)
+                    player_data = user_data.get("player_data", default_player_data())
+                    ensure_user_fields(current_user)
             elif choice == '4':
                 magic_pack_interface(current_user)
                 # Reload data after packs
-                score, money, player_data = signin(current_user, password="")
+                user_data = load_user_data(current_user)
+                if user_data:
+                    score = user_data.get("score", 0)
+                    money = user_data.get("money", 40)
+                    player_data = user_data.get("player_data", default_player_data())
+                    ensure_user_fields(current_user)
             elif choice == '5':
                 permanent_upgrades_interface(current_user)
                 # Reload data after upgrades
-                score, money, player_data = signin(current_user, password="")
+                user_data = load_user_data(current_user)
+                if user_data:
+                    score = user_data.get("score", 0)
+                    money = user_data.get("money", 40)
+                    player_data = user_data.get("player_data", default_player_data())
+                    ensure_user_fields(current_user)
             elif choice == '6':
                 equip_titles_menu(current_user, player_data, None)
                 # Reload data after titles
-                score, money, player_data = signin(current_user, password="")
+                user_data = load_user_data(current_user)
+                if user_data:
+                    score = user_data.get("score", 0)
+                    money = user_data.get("money", 40)
+                    player_data = user_data.get("player_data", default_player_data())
+                    ensure_user_fields(current_user)
             elif choice == '7':
                 manage_inventory_menu(current_user, player_data, None)
                 # Reload data after inventory
-                score, money, player_data = signin(current_user, password="")
+                user_data = load_user_data(current_user)
+                if user_data:
+                    score = user_data.get("score", 0)
+                    money = user_data.get("money", 40)
+                    player_data = user_data.get("player_data", default_player_data())
+                    ensure_user_fields(current_user)
             elif choice == '8':
                 magic_spell_interface(current_user)
                 # Reload data after spells
-                score, money, player_data = signin(current_user, password="")
+                user_data = load_user_data(current_user)
+                if user_data:
+                    score = user_data.get("score", 0)
+                    money = user_data.get("money", 40)
+                    player_data = user_data.get("player_data", default_player_data())
+                    ensure_user_fields(current_user)
             elif choice == '9':
                 settings_menu(current_user)
                 # Reload data after settings
-                score, money, player_data = signin(current_user, password="")
+                user_data = load_user_data(current_user)
+                if user_data:
+                    score = user_data.get("score", 0)
+                    money = user_data.get("money", 40)
+                    player_data = user_data.get("player_data", default_player_data())
+                    ensure_user_fields(current_user)
             elif choice == '10':
                 if get_leaderboard():
                     print("\n--- Leaderboard ---")

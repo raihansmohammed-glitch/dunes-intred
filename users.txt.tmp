@@ -7,7 +7,7 @@
         "player_data": {
             "stats": {
                 "hp_max": 111,
-                "hp": 69,
+                "hp": 60,
                 "atk": 6,
                 "defense": 1,
                 "level": 2,
