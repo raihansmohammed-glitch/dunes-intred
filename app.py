@@ -122,16 +122,16 @@ WEAPONS = {
     "iron_sword": {"name": "Iron Sword", "atk": 5, "price": 150, "score_price": 0},
     "steel_sword": {"name": "Steel Sword", "atk": 8, "price": 300, "score_price": 0},
     "diamond_sword": {"name": "Diamond Sword", "atk": 50, "price": 2000, "score_price": 0},
-    "void_sword": {"name": "Void Sword", "atk": 200, "price": 8000, "score_price": 0},
-    "infinitium_sword": {"name": "Infinitium Sword", "atk": 2000, "price": 800000, "score_price": 25000},
+    "void_sword": {"name": "Void Sword", "atk": 200, "price": 80000, "score_price": 0},
+    "infinitium_sword": {"name": "Infinitium Sword", "atk": 2000, "price": 8000000, "score_price": 25000},
     # New weapons
-    "frostblade": {"name": "Frostblade", "atk": 120, "price": 5000, "score_price": 200},
-    "flameblade": {"name": "Flameblade", "atk": 130, "price": 5500, "score_price": 250},
-    "thunder_sword": {"name": "Thunder Sword", "atk": 150, "price": 7000, "score_price": 400},
-    "holy_avenger": {"name": "Holy Avenger", "atk": 180, "price": 7500, "score_price": 800},
-    "dragon_slayer": {"name": "Dragon Slayer", "atk": 250, "price": 15000, "score_price": 1500},
-    "cosmic_blade": {"name": "Cosmic Blade", "atk": 500, "price": 30000, "score_price": 3000},
-    "transcendent_edge": {"name": "Transcendent Edge", "atk": 1500, "price": 500000, "score_price": 10000},
+    "frostblade": {"name": "Frostblade", "atk": 120, "price": 50000, "score_price": 200},
+    "flameblade": {"name": "Flameblade", "atk": 130, "price": 55000, "score_price": 250},
+    "thunder_sword": {"name": "Thunder Sword", "atk": 150, "price": 70000, "score_price": 400},
+    "holy_avenger": {"name": "Holy Avenger", "atk": 180, "price": 75000, "score_price": 800},
+    "dragon_slayer": {"name": "Dragon Slayer", "atk": 250, "price": 150000, "score_price": 1500},
+    "cosmic_blade": {"name": "Cosmic Blade", "atk": 500, "price": 300000, "score_price": 3000},
+    "transcendent_edge": {"name": "Transcendent Edge", "atk": 1500, "price": 5000000, "score_price": 10000},
 }
 
 ARMORS = {
@@ -139,44 +139,44 @@ ARMORS = {
     "chainmail": {"name": "Chainmail", "def": 3, "price": 150},
     "plate_armor": {"name": "Plate Armor", "def": 6, "price": 300},
     "diamond_armor": {"name": "Diamond Armor", "def": 25, "price": 2000},
-    "void_armor": {"name": "Void Armor", "def": 75, "price": 8000},
-    "infinitium_armor": {"name": "Infinitium Armor", "def": 300, "price": 800000, "score_price": 2500},
+    "void_armor": {"name": "Void Armor", "def": 75, "price": 80000},
+    "infinitium_armor": {"name": "Infinitium Armor", "def": 400, "price": 6000000, "score_price": 2500},
     # New armors
     "frost_armor": {"name": "Frost Armor", "def": 40, "price": 4000, "score_price": 150},
     "flame_armor": {"name": "Flame Armor", "def": 45, "price": 4500, "score_price": 200},
-    "thunder_armor": {"name": "Thunder Armor", "def": 55, "price": 6000, "score_price": 350},
-    "holy_armor": {"name": "Holy Armor", "def": 70, "price": 9000, "score_price": 700},
-    "dragon_scale_armor": {"name": "Dragon Scale Armor", "def": 100, "price": 14000, "score_price": 1400},
-    "cosmic_armor": {"name": "Cosmic Armor", "def": 200, "price": 280000, "score_price": 2800},
-    "transcendent_armor": {"name": "Transcendent Armor", "def": 500, "price": 950000, "score_price": 9500},
+    "thunder_armor": {"name": "Thunder Armor", "def": 55, "price": 60000, "score_price": 350},
+    "holy_armor": {"name": "Holy Armor", "def": 70, "price": 750000, "score_price": 700},
+    "dragon_scale_armor": {"name": "Dragon Scale Armor", "def": 100, "price": 1400000, "score_price": 1400},
+    "cosmic_armor": {"name": "Cosmic Armor", "def": 200, "price": 2800000, "score_price": 2800},
+    "transcendent_armor": {"name": "Transcendent Armor", "def": 500, "price": 9500000, "score_price": 9500},
 }
 
 WANDS = {
     "apprentice_wand": {"name": "Apprentice Wand", "magic_atk": 5, "price": 120},
     "mage_wand": {"name": "Mage Wand", "magic_atk": 20, "price": 800},
-    "archmage_staff": {"name": "Archmage Staff", "magic_atk": 120, "price": 12000, "score_price": 200},
+    "archmage_staff": {"name": "Archmage Staff", "magic_atk": 120, "price": 120000, "score_price": 200},
     # New wands
-    "frost_wand": {"name": "Frost Wand", "magic_atk": 60, "price": 4000, "score_price": 150},
-    "flame_wand": {"name": "Flame Wand", "magic_atk": 65, "price": 4500, "score_price": 200},
-    "thunder_wand": {"name": "Thunder Wand", "magic_atk": 75, "price": 6000, "score_price": 350},
-    "holy_scepter": {"name": "Holy Scepter", "magic_atk": 90, "price": 9000, "score_price": 700},
-    "dragon_staff": {"name": "Dragon Staff", "magic_atk": 125, "price": 14000, "score_price": 1400},
-    "cosmic_scepter": {"name": "Cosmic Scepter", "magic_atk": 250, "price": 28000, "score_price": 2800},
-    "transcendent_staff": {"name": "Transcendent Staff", "magic_atk": 750, "price": 95000, "score_price": 9500},
+    "frost_wand": {"name": "Frost Wand", "magic_atk": 60, "price": 40000, "score_price": 150},
+    "flame_wand": {"name": "Flame Wand", "magic_atk": 65, "price": 45000, "score_price": 200},
+    "thunder_wand": {"name": "Thunder Wand", "magic_atk": 75, "price": 60000, "score_price": 350},
+    "holy_scepter": {"name": "Holy Scepter", "magic_atk": 90, "price": 90000, "score_price": 700},
+    "dragon_staff": {"name": "Dragon Staff", "magic_atk": 125, "price": 1400000, "score_price": 1400},
+    "cosmic_scepter": {"name": "Cosmic Scepter", "magic_atk": 250, "price": 2800000, "score_price": 2800},
+    "transcendent_staff": {"name": "Transcendent Staff", "magic_atk": 750, "price": 9500000, "score_price": 9500},
 }
 
 ROBES = {
     "cloth_robe": {"name": "Cloth Robe", "magic_def": 2, "price": 100},
     "silk_robe": {"name": "Silk Robe", "magic_def": 10, "price": 900},
-    "void_robe": {"name": "Void Robe", "magic_def": 80, "price": 20000, "score_price": 500},
+    "void_robe": {"name": "Void Robe", "magic_def": 80, "price": 100000, "score_price": 500},
     # New robes
-    "frost_robe": {"name": "Frost Robe", "magic_def": 30, "price": 4000, "score_price": 150},
-    "flame_robe": {"name": "Flame Robe", "magic_def": 35, "price": 4500, "score_price": 200},
-    "thunder_robe": {"name": "Thunder Robe", "magic_def": 45, "price": 6000, "score_price": 350},
-    "holy_robe": {"name": "Holy Robe", "magic_def": 60, "price": 9000, "score_price": 700},
-    "dragon_robe": {"name": "Dragon Robe", "magic_def": 90, "price": 14000, "score_price": 1400},
-    "cosmic_robe": {"name": "Cosmic Robe", "magic_def": 180, "price": 28000, "score_price": 2800},
-    "transcendent_robe": {"name": "Transcendent Robe", "magic_def": 450, "price": 95000, "score_price": 9500},
+    "frost_robe": {"name": "Frost Robe", "magic_def": 30, "price": 40000, "score_price": 150},
+    "flame_robe": {"name": "Flame Robe", "magic_def": 35, "price": 45000, "score_price": 200},
+    "thunder_robe": {"name": "Thunder Robe", "magic_def": 45, "price": 60000, "score_price": 350},
+    "holy_robe": {"name": "Holy Robe", "magic_def": 60, "price": 90000, "score_price": 700},
+    "dragon_robe": {"name": "Dragon Robe", "magic_def": 90, "price": 140000, "score_price": 1400},
+    "cosmic_robe": {"name": "Cosmic Robe", "magic_def": 180, "price": 280000, "score_price": 2800},
+    "transcendent_robe": {"name": "Transcendent Robe", "magic_def": 450, "price": 9500000, "score_price": 9500},
 }
 
 # New necklaces
@@ -187,13 +187,13 @@ NECKLACES = {
     "defense_amulet": {"name": "Defense Amulet", "def_bonus": 3, "price": 650},
     "crit_amulet": {"name": "Critical Amulet", "crit_bonus": 10, "price": 800},
     "lifesteal_amulet": {"name": "Lifesteal Amulet", "lifesteal_bonus": 5, "price": 900},
-    "frost_necklace": {"name": "Frost Necklace", "magic_def_bonus": 15, "hp_bonus": 30, "price": 3000, "score_price": 100},
-    "flame_necklace": {"name": "Flame Necklace", "magic_atk_bonus": 10, "atk_bonus": 8, "price": 3500, "score_price": 150},
-    "thunder_necklace": {"name": "Thunder Necklace", "crit_bonus": 15, "atk_bonus": 10, "price": 5000, "score_price": 300},
-    "holy_pendant": {"name": "Holy Pendant", "hp_bonus": 50, "mana_bonus": 30, "def_bonus": 5, "price": 8000, "score_price": 600},
-    "dragon_necklace": {"name": "Dragon Necklace", "atk_bonus": 20, "def_bonus": 15, "hp_bonus": 70, "price": 12000, "score_price": 1200},
-    "cosmic_necklace": {"name": "Cosmic Necklace", "magic_atk_bonus": 30, "magic_def_bonus": 25, "mana_bonus": 50, "price": 24000, "score_price": 2400},
-    "transcendent_necklace": {"name": "Transcendent Necklace", "atk_bonus": 50, "def_bonus": 40, "hp_bonus": 150, "mana_bonus": 100, "crit_bonus": 20, "lifesteal_bonus": 10, "price": 800000, "score_price": 8000},
+    "frost_necklace": {"name": "Frost Necklace", "magic_def_bonus": 15, "hp_bonus": 30, "price": 30000, "score_price": 100},
+    "flame_necklace": {"name": "Flame Necklace", "magic_atk_bonus": 10, "atk_bonus": 8, "price": 35000, "score_price": 150},
+    "thunder_necklace": {"name": "Thunder Necklace", "crit_bonus": 15, "atk_bonus": 10, "price": 50000, "score_price": 300},
+    "holy_pendant": {"name": "Holy Pendant", "hp_bonus": 50, "mana_bonus": 30, "def_bonus": 5, "price": 80000, "score_price": 600},
+    "dragon_necklace": {"name": "Dragon Necklace", "atk_bonus": 20, "def_bonus": 15, "hp_bonus": 70, "price": 120000, "score_price": 1200},
+    "cosmic_necklace": {"name": "Cosmic Necklace", "magic_atk_bonus": 30, "magic_def_bonus": 25, "mana_bonus": 50, "price": 240000, "score_price": 2400},
+    "transcendent_necklace": {"name": "Transcendent Necklace", "atk_bonus": 50, "def_bonus": 40, "hp_bonus": 150, "mana_bonus": 100, "crit_bonus": 20, "lifesteal_bonus": 10, "price": 8000000, "score_price": 8000},
 }
 
 def get_rarity_value(rarity):
@@ -657,6 +657,9 @@ def grant_exp(username, amount):
             atk_increase = 1 + stats["level"] // 5
             mana_increase = 10
 
+            # Increase max dodge on level up
+            stats["max_dodge"] = min(10, stats.get("max_dodge", 3) + 1)
+
             # Check if stats were manually set below default
             default_stats = default_player_data()["stats"]
 
@@ -681,6 +684,8 @@ def grant_exp(username, amount):
                 stats["defense"] = stats.get("defense", 10) + 1
 
             lvls_gained.append(stats["level"])
+
+            print(f"You leveled up to level {stats['level']}!")
 
         player_data["stats"] = stats
         user_data["player_data"] = player_data
@@ -1042,6 +1047,8 @@ def default_player_data():
                 "mana": False,
                 "mana_max": False,
             },
+            "dodge_points": 3,
+            "max_dodge": 3,
             # Magic and Title systems
             "learned_spells": [],
             "equipped_spells": [None, None, None, None],
@@ -1191,14 +1198,14 @@ MONSTERS = [
 # Area 3 Monsters (Level 11-15) - 10% chance for all permanent upgrades
 {"name": "Bandit", "hp": 40, "atk_min": 7, "atk_max": 12, "money_min": 35, "money_max": 60, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "crit_boost": 0.04, "common_magic_pack": 0.15, "bandit_cloth": 0.3, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 10, "area": 3},
 {"name": "Orc Warrior", "hp": 55, "atk_min": 8, "atk_max": 13, "money_min": 40, "money_max": 70, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "orc_iron": 0.4, "strength_boost": 0.1, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 8, "area": 3},
-{"name": "Dark Mage", "hp": 45, "magic_atk_min": 10, "magic_atk_max": 15, "money_min": 50, "money_max": 80, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.25, "strength_boost": 0.06, "common_magic_pack": 0.25, "rare_magic_pack": 0.1, "dark_essence": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 7, "area": 3},
-{"name": "Stone Golem", "hp": 70, "atk_min": 6, "atk_max": 10, "money_min": 45, "money_max": 75, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "defense_boost": 0.1, "stone_core": 0.3, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 6, "area": 3},
+{"name": "Dark Mage", "hp": 45, "magic_atk_min": 10, "magic_atk_max": 15, "money_min": 50, "money_max": 80, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.25, "strength_boost": 0.06, "common_magic_pack": 0.25, "rare_magic_pack": 0.1, "dark_essence": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 7, "area": 3, "element": "dark"},
+{"name": "Stone Golem", "hp": 70, "atk_min": 6, "atk_max": 10, "money_min": 45, "money_max": 75, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "defense_boost": 0.1, "stone_core": 0.3, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 6, "area": 3, "element": "earth"},
 
 # Area 4 Monsters (Level 16-20) - 10% chance for all permanent upgrades
 {"name": "Troll", "hp": 90, "atk_min": 12, "atk_max": 18, "money_min": 80, "money_max": 120, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "regen_potion": 0.05, "common_magic_pack": 0.1, "rare_magic_pack": 0.05, "troll_core": 0.3, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 6, "area": 4},
-{"name": "Ice Elemental", "hp": 75, "magic_atk_min": 15, "magic_atk_max": 20, "money_min": 90, "money_max": 130, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "frozen_heart": 0.3, "ice_shard": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 5, "area": 4},
-{"name": "Fire Elemental", "hp": 70, "magic_atk_min": 16, "magic_atk_max": 22, "money_min": 85, "money_max": 125, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "fire_essence": 0.3, "ember": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 5, "area": 4},
-{"name": "Thunder Bird", "hp": 65, "magic_atk_min": 14, "magic_atk_max": 21, "money_min": 95, "money_max": 140, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "thunder_core": 0.3, "lightning_feather": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 5, "area": 4},
+{"name": "Ice Elemental", "hp": 75, "magic_atk_min": 15, "magic_atk_max": 20, "money_min": 90, "money_max": 130, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "frozen_heart": 0.3, "ice_shard": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 5, "area": 4, "element": "ice"},
+{"name": "Fire Elemental", "hp": 70, "magic_atk_min": 16, "magic_atk_max": 22, "money_min": 85, "money_max": 125, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "fire_essence": 0.3, "ember": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 5, "area": 4, "element": "fire"},
+{"name": "Thunder Bird", "hp": 65, "magic_atk_min": 14, "magic_atk_max": 21, "money_min": 95, "money_max": 140, "class": "C(Rare)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "thunder_core": 0.3, "lightning_feather": 0.2, "perm_exp_upgrade": 0.1, "perm_strength_upgrade": 0.1, "perm_defense_upgrade": 0.1, "perm_health_upgrade": 0.1, "perm_mana_upgrade": 0.1, "perm_crit_chance_upgrade": 0.1, "perm_mana_regen_upgrade": 0.1, "perm_lifesteal_upgrade": 0.1, "perm_lifesteal_chance_upgrade": 0.1}, "weight": 5, "area": 4, "element": "lightning"},
 
 # Area 5 Monsters (Level 21-25) - 12% chance for all permanent upgrades
 {"name": "Dark Knight", "hp": 120, "atk_min": 18, "atk_max": 25, "money_min": 120, "money_max": 180, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "defense_boost": 0.1, "rare_magic_pack": 0.2, "dark_essence": 0.3, "perm_exp_upgrade": 0.12, "perm_strength_upgrade": 0.12, "perm_defense_upgrade": 0.12, "perm_health_upgrade": 0.12, "perm_mana_upgrade": 0.12, "perm_crit_chance_upgrade": 0.12, "perm_mana_regen_upgrade": 0.12, "perm_lifesteal_upgrade": 0.12, "perm_lifesteal_chance_upgrade": 0.12}, "weight": 4, "area": 5},
@@ -1207,34 +1214,34 @@ MONSTERS = [
 {"name": "Warlock", "hp": 105, "atk_min": 21, "atk_max": 29, "money_min": 135, "money_max": 195, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "curse_scroll": 0.2, "rare_magic_pack": 0.2, "mythical_magic_pack": 0.1, "demon_horn": 0.2, "perm_exp_upgrade": 0.12, "perm_strength_upgrade": 0.12, "perm_defense_upgrade": 0.12, "perm_health_upgrade": 0.12, "perm_mana_upgrade": 0.12, "perm_crit_chance_upgrade": 0.12, "perm_mana_regen_upgrade": 0.12, "perm_lifesteal_upgrade": 0.12, "perm_lifesteal_chance_upgrade": 0.12}, "weight": 3, "area": 5},
 
 # Area 6 Monsters (Level 26-30) - 14% chance for all permanent upgrades
-{"name": "Ice Giant", "hp": 150, "atk_min": 25, "atk_max": 35, "money_min": 180, "money_max": 250, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "frozen_heart": 0.4, "mythical_magic_pack": 0.2, "ice_shard": 0.3, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 3, "area": 6},
-{"name": "Phoenix", "hp": 130, "atk_min": 28, "atk_max": 38, "money_min": 200, "money_max": 280, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "phoenix_feather": 0.3, "mythical_magic_pack": 0.25, "fire_essence": 0.3, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 2, "area": 6},
-{"name": "Crystal Golem", "hp": 160, "atk_min": 24, "atk_max": 34, "money_min": 190, "money_max": 260, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "crystal_shard": 0.4, "mythical_magic_pack": 0.2, "stone_core": 0.3, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 2, "area": 6},
-{"name": "Storm Dragon", "hp": 140, "atk_min": 27, "atk_max": 37, "money_min": 210, "money_max": 290, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "thunder_core": 0.4, "mythical_magic_pack": 0.25, "dragon_scale": 0.2, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 2, "area": 6},
+{"name": "Ice Giant", "hp": 150, "atk_min": 25, "atk_max": 35, "money_min": 180, "money_max": 250, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "frozen_heart": 0.4, "mythical_magic_pack": 0.2, "ice_shard": 0.3, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 3, "area": 6, "element": "ice"},
+{"name": "Phoenix", "hp": 130, "atk_min": 28, "atk_max": 38, "money_min": 200, "money_max": 280, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "phoenix_feather": 0.3, "mythical_magic_pack": 0.25, "fire_essence": 0.3, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 2, "area": 6, "element": "fire"},
+{"name": "Crystal Golem", "hp": 160, "atk_min": 24, "atk_max": 34, "money_min": 190, "money_max": 260, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "crystal_shard": 0.4, "mythical_magic_pack": 0.2, "stone_core": 0.3, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 2, "area": 6, "element": "earth"},
+{"name": "Storm Dragon", "hp": 140, "atk_min": 27, "atk_max": 37, "money_min": 210, "money_max": 290, "class": "B(Mythical)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "thunder_core": 0.4, "mythical_magic_pack": 0.25, "dragon_scale": 0.2, "perm_exp_upgrade": 0.14, "perm_strength_upgrade": 0.14, "perm_defense_upgrade": 0.14, "perm_health_upgrade": 0.14, "perm_mana_upgrade": 0.14, "perm_crit_chance_upgrade": 0.14, "perm_mana_regen_upgrade": 0.14, "perm_lifesteal_upgrade": 0.14, "perm_lifesteal_chance_upgrade": 0.14}, "weight": 2, "area": 6, "element": "lightning"},
 
 # Area 7 Monsters (Level 31-35) - 16% chance for all permanent upgrades
-{"name": "Void Walker", "hp": 180, "magic_atk_min": 32, "magic_atk_max": 42, "money_min": 250, "money_max": 350, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "void_fragment": 0.3, "mythical_magic_pack": 0.2, "prismatic_magic_pack": 0.1, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7},
-{"name": "Celestial Guardian", "hp": 200, "atk_min": 30, "atk_max": 40, "money_min": 280, "money_max": 380, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "holy_light": 0.3, "mythical_magic_pack": 0.25, "prismatic_magic_pack": 0.15, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7},
-{"name": "Star Weaver", "hp": 170, "atk_min": 33, "atk_max": 43, "money_min": 260, "money_max": 360, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.4, "mythical_magic_pack": 0.2, "prismatic_magic_pack": 0.1, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7},
-{"name": "Moon Sentinel", "hp": 190, "atk_min": 31, "atk_max": 41, "money_min": 270, "money_max": 370, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "moon_rock": 0.3, "mythical_magic_pack": 0.2, "prismatic_magic_pack": 0.15, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7},
+{"name": "Void Walker", "hp": 180, "magic_atk_min": 32, "magic_atk_max": 42, "money_min": 250, "money_max": 350, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "void_fragment": 0.3, "mythical_magic_pack": 0.2, "prismatic_magic_pack": 0.1, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7, "element": "void"},
+{"name": "Celestial Guardian", "hp": 200, "atk_min": 30, "atk_max": 40, "money_min": 280, "money_max": 380, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "holy_light": 0.3, "mythical_magic_pack": 0.25, "prismatic_magic_pack": 0.15, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7, "element": "holy"},
+{"name": "Star Weaver", "hp": 170, "atk_min": 33, "atk_max": 43, "money_min": 260, "money_max": 360, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.4, "mythical_magic_pack": 0.2, "prismatic_magic_pack": 0.1, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7, "element": "cosmic"},
+{"name": "Moon Sentinel", "hp": 190, "atk_min": 31, "atk_max": 41, "money_min": 270, "money_max": 370, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "moon_rock": 0.3, "mythical_magic_pack": 0.2, "prismatic_magic_pack": 0.15, "perm_exp_upgrade": 0.16, "perm_strength_upgrade": 0.16, "perm_defense_upgrade": 0.16, "perm_health_upgrade": 0.16, "perm_mana_upgrade": 0.16, "perm_crit_chance_upgrade": 0.16, "perm_mana_regen_upgrade": 0.16, "perm_lifesteal_upgrade": 0.16, "perm_lifesteal_chance_upgrade": 0.16}, "weight": 2, "area": 7, "element": "cosmic"},
 
 # Area 8 Monsters (Level 36-40) - 18% chance for all permanent upgrades
-{"name": "Sun Champion", "hp": 220, "atk_min": 36, "atk_max": 46, "money_min": 320, "money_max": 420, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "sun_stone": 0.3, "prismatic_magic_pack": 0.25, "divine_magic_pack": 0.1, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8},
-{"name": "Void Lord", "hp": 240, "magic_atk_min": 38, "magic_atk_max": 48, "money_min": 350, "money_max": 450, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "void_fragment": 0.4, "prismatic_magic_pack": 0.25, "divine_magic_pack": 0.15, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8},
-{"name": "Divine Paladin", "hp": 210, "atk_min": 37, "atk_max": 47, "money_min": 330, "money_max": 430, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "holy_light": 0.4, "prismatic_magic_pack": 0.3, "divine_magic_pack": 0.15, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8},
-{"name": "Cosmic Mage", "hp": 230, "magic_atk_min": 35, "magic_atk_max": 45, "money_min": 340, "money_max": 440, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.3, "prismatic_magic_pack": 0.25, "divine_magic_pack": 0.2, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8},
+{"name": "Sun Champion", "hp": 220, "atk_min": 36, "atk_max": 46, "money_min": 320, "money_max": 420, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "sun_stone": 0.3, "prismatic_magic_pack": 0.25, "divine_magic_pack": 0.1, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8, "element": "fire"},
+{"name": "Void Lord", "hp": 240, "magic_atk_min": 38, "magic_atk_max": 48, "money_min": 350, "money_max": 450, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "void_fragment": 0.4, "prismatic_magic_pack": 0.25, "divine_magic_pack": 0.15, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8, "element": "void"},
+{"name": "Divine Paladin", "hp": 210, "atk_min": 37, "atk_max": 47, "money_min": 330, "money_max": 430, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "holy_light": 0.4, "prismatic_magic_pack": 0.3, "divine_magic_pack": 0.15, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8, "element": "holy"},
+{"name": "Cosmic Mage", "hp": 230, "magic_atk_min": 35, "magic_atk_max": 45, "money_min": 340, "money_max": 440, "class": "A(Prismatic)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.3, "prismatic_magic_pack": 0.25, "divine_magic_pack": 0.2, "perm_exp_upgrade": 0.18, "perm_strength_upgrade": 0.18, "perm_defense_upgrade": 0.18, "perm_health_upgrade": 0.18, "perm_mana_upgrade": 0.18, "perm_crit_chance_upgrade": 0.18, "perm_mana_regen_upgrade": 0.18, "perm_lifesteal_upgrade": 0.18, "perm_lifesteal_chance_upgrade": 0.18}, "weight": 1, "area": 8, "element": "cosmic"},
 
 # Area 9 Monsters (Level 41-45) - 20% chance for all permanent upgrades
-{"name": "Eternal Dragon", "hp": 300, "atk_min": 42, "atk_max": 54, "money_min": 450, "money_max": 600, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "dragon_scale": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.1, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9},
-{"name": "Void Reaper", "hp": 280, "magic_atk_min": 45, "magic_atk_max": 57, "money_min": 480, "money_max": 630, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "void_fragment": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.15, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9},
-{"name": "Celestial Phoenix", "hp": 290, "atk_min": 43, "atk_max": 55, "money_min": 470, "money_max": 620, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "phoenix_feather": 0.4, "divine_magic_pack": 0.35, "transcendent_magic_pack": 0.15, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9},
-{"name": "Cosmic Entity", "hp": 310, "magic_atk_min": 41, "magic_atk_max": 53, "money_min": 460, "money_max": 610, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.2, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9},
+{"name": "Eternal Dragon", "hp": 300, "atk_min": 42, "atk_max": 54, "money_min": 450, "money_max": 600, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.15, "dragon_scale": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.1, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9, "element": "dragon"},
+{"name": "Void Reaper", "hp": 280, "magic_atk_min": 45, "magic_atk_max": 57, "money_min": 480, "money_max": 630, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "void_fragment": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.15, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9, "element": "void"},
+{"name": "Celestial Phoenix", "hp": 290, "atk_min": 43, "atk_max": 55, "money_min": 470, "money_max": 620, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "phoenix_feather": 0.4, "divine_magic_pack": 0.35, "transcendent_magic_pack": 0.15, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9, "element": "fire"},
+{"name": "Cosmic Entity", "hp": 310, "magic_atk_min": 41, "magic_atk_max": 53, "money_min": 460, "money_max": 610, "class": "S(Divine)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.2, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 9, "element": "cosmic"},
 
 # Area 10 Monsters (Level 46-50) - 20% chance for all permanent upgrades
-{"name": "Transcendent Being", "hp": 400, "atk_min": 50, "atk_max": 65, "money_min": 600, "money_max": 800, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "transcendent_heart": 0.2, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.3, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10},
-{"name": "Void Emperor", "hp": 420, "magic_atk_min": 52, "magic_atk_max": 67, "money_min": 650, "money_max": 850, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "void_fragment": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.35, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10},
-{"name": "Divine Avatar", "hp": 410, "atk_min": 51, "atk_max": 66, "money_min": 630, "money_max": 830, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "holy_light": 0.4, "divine_magic_pack": 0.35, "transcendent_magic_pack": 0.3, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10},
-{"name": "Cosmic Overlord", "hp": 430, "atk_min": 53, "atk_max": 68, "money_min": 670, "money_max": 870, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.4, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10},
+{"name": "Transcendent Being", "hp": 400, "atk_min": 50, "atk_max": 65, "money_min": 600, "money_max": 800, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "transcendent_heart": 0.2, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.3, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10, "element": "transcendent"},
+{"name": "Void Emperor", "hp": 420, "magic_atk_min": 52, "magic_atk_max": 67, "money_min": 650, "money_max": 850, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "void_fragment": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.35, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10, "element": "void"},
+{"name": "Divine Avatar", "hp": 410, "atk_min": 51, "atk_max": 66, "money_min": 630, "money_max": 830, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "holy_light": 0.4, "divine_magic_pack": 0.35, "transcendent_magic_pack": 0.3, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10, "element": "holy"},
+{"name": "Cosmic Overlord", "hp": 430, "atk_min": 53, "atk_max": 68, "money_min": 670, "money_max": 870, "class": "SS(Transcendent)", "is_boss": False, "is_super_boss": False, "drop": {"potion": 0.2, "star_dust": 0.4, "divine_magic_pack": 0.3, "transcendent_magic_pack": 0.4, "perm_exp_upgrade": 0.2, "perm_strength_upgrade": 0.2, "perm_defense_upgrade": 0.2, "perm_health_upgrade": 0.2, "perm_mana_upgrade": 0.2, "perm_crit_chance_upgrade": 0.2, "perm_mana_regen_upgrade": 0.2, "perm_lifesteal_upgrade": 0.2, "perm_lifesteal_chance_upgrade": 0.2}, "weight": 1, "area": 10, "element": "cosmic"},
 
 # Bosses - 100% chance for all permanent upgrades
 {"name": "Goblin King", "hp": 200, "atk_min": 50, "atk_max": 100, "money_min": 200, "money_max": 400, "class": "D(Common)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.5, "defense_boost": 0.3, "goblin_tooth": 1.0, "common_magic_pack": 0.5, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 1},
@@ -1244,8 +1251,8 @@ MONSTERS = [
 {"name": "Ice Queen", "hp": 1500, "magic_atk_min": 150, "magic_atk_max": 75, "money_min": 3500, "money_max": 6000, "class": "B(Mythical)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "defense_boost": 0.8, "regen_potion": 0.7, "mythical_magic_pack": 0.7, "prismatic_magic_pack": 0.5, "frozen_heart": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 5},
 {"name": "Phoenix Lord", "hp": 1800, "atk_min": 100, "atk_max": 150, "money_min": 4500, "money_max": 7500, "class": "A(Prismatic)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.8, "mana_upgrade_potion": 0.6, "mythical_magic_pack": 0.8, "prismatic_magic_pack": 0.6, "phoenix_feather": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 6},
 {"name": "Void Master", "hp": 2200, "atk_min": 190, "atk_max": 240, "money_min": 6000, "money_max": 10000, "class": "A(Prismatic)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.9, "defense_boost": 0.8, "crit_boost": 0.7, "prismatic_magic_pack": 0.8, "divine_magic_pack": 0.4, "void_fragment": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 7},
-{"name": "Celestial Emperor", "hp": 2800, "atk_min": 250, "atk_max": 350, "money_min": 8000, "money_max": 13000, "class": "S(Divine)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.9, "defense_boost": 0.9, "mana_upgrade_potion": 0.7, "prismatic_magic_pack": 0.8, "divine_magic_pack": 0.6, "holy_light": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 8},
-{"name": "Dragon Lord", "hp": 3500, "atk_min": 250, "atk_max": 350, "money_min": 10000, "money_max": 16000, "class": "S(Divine)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 1.0, "defense_boost": 0.9, "crit_boost": 0.8, "divine_magic_pack": 0.8, "transcendent_magic_pack": 0.4, "dragon_scale": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 9},
+{"name": "Celestial Emperor", "hp": 2800, "atk_min": 250, "atk_max": 350, "money_min": 8000, "money_max": 13000, "class": "S(Divine)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 0.9, "defense_boost": 0.9, "mana_upgrade_potion": 0.7, "prismatic_magic_pack": 0.8, "divine_magic_pack": 0.6, "holy_light": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 8, "element": "holy"},
+{"name": "Dragon Lord", "hp": 3500, "atk_min": 250, "atk_max": 350, "money_min": 10000, "money_max": 16000, "class": "S(Divine)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 1.0, "defense_boost": 0.9, "crit_boost": 0.8, "divine_magic_pack": 0.8, "transcendent_magic_pack": 0.4, "dragon_scale": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 9, "element": "dragon"},
 {"name": "Grim Reaper", "hp": 4000, "magic_atk_min": 300, "magic_atk_max": 500, "money_min": 12000, "money_max": 20000, "class": "S(Divine)", "is_boss": True, "is_super_boss": False, "drop": {"potion": 1.0, "strength_boost": 1.0, "defense_boost": 1.0, "crit_boost": 1.0, "prismatic_magic_pack": 0.8, "divine_magic_pack": 0.8, "soul_shard": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 1, "area": 10},
 {"name": "Demon King Muzan", "hp": 12000, "atk_min": 400, "atk_max": 550, "money_min": 100000, "money_max": 500000, "class": "SS(Transcendent)", "is_boss": True, "is_super_boss": True, "drop": {"potion": 1.0, "strength_boost": 1, "defense_boost": 1, "crit_boost": 1, "transcendent_heart": 0.5, "divine_magic_pack": 0.8, "transcendent_magic_pack": 0.4, "demon_horn": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 0.01, "area": 10},
 ]
@@ -1540,6 +1547,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
             print(" (upgrades: perm_strength_upgrade, perm_defense_upgrade, etc.)")
             print(" (aliases: str, def, hp, mana, crit, etc.)")
             print("ruinthefun <u> - grant all achievements, items (500x usable), max stats")
+            print("setdodge <u> <n> - set a user's dodge points to n")
             print("exit - close debug console")
             print("-----------------------\n")
         elif cmd_base == "users" or cmd_base == "usrs" or cmd_base == "u":
@@ -1801,6 +1809,27 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     print("Usage: give <username> <item> [qty]")
             else:
                 print("Usage: give <username> <item> [qty]")
+        elif cmd_base == "setdodge":
+            if args:
+                parts = args.split(" ", 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data["player_data"]["stats"]["dodge_points"] = n
+                            user_data["player_data"]["stats"]["max_dodge"] = n
+                            save_user_data(u, user_data)
+                            print(f"Dodge points for {u} set to {n}.")
+                        else:
+                            print("User not found.")
+                    except ValueError:
+                        print("Invalid number.")
+                else:
+                    print("Usage: setdodge <username> <n>")
+            else:
+                print("Usage: setdodge <username> <n>")
         elif cmd_base == "ruinthefun":
             if args:
                 u = args.strip()
@@ -2196,6 +2225,7 @@ def dungeon(username):
 
             # fight loop
             fight_happened = False
+            monster_stunned = False
             while monster.get("hp", 0) > 0 and player_hp > 0:
                 fight_happened = True
 
@@ -2210,11 +2240,11 @@ def dungeon(username):
                 total_crit_chance = calculate_total_crit_chance(stats, active_buffs)
 
                 while True:
-                    action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un? ").lower().strip()
-                    if action in ["a", "m", "p", "u", "r"]:
+                    action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, (d)odge, or (r)un? ").lower().strip()
+                    if action in ["a", "m", "p", "u", "d", "r"]:
                         break
                     else:
-                        print("Invalid action. Please choose (a)ttack, (m)agic, (p)otion, (u)se buff, or (r)un.")
+                        print("Invalid action. Please choose (a)ttack, (m)agic, (p)otion, (u)se buff, (d)odge, or (r)un.")
 
                 # ---------- PLAYER PHYSICAL ATTACK ----------
                 if action == "a":
@@ -2222,11 +2252,11 @@ def dungeon(username):
                     weapon_bonus = bonuses.get("weapon_atk", 0) + bonuses.get("neck_atk", 0)
                     total_base_atk = bonuses.get("total_base_atk", effective_atk)
                     base_roll = random.randint(max(1, total_base_atk - 2), total_base_atk + 3)
-                    dmg = 5 + base_roll + weapon_bonus
+                    dmg = base_roll + weapon_bonus
 
                     # physical attacks are weak vs magic-type monsters
                     if "magic_atk_min" in monster or "magic_atk_max" in monster:
-                        dmg = max(1, dmg // 4)
+                        dmg = max(total_base_atk, dmg // 2)
 
                     # crit check
                     if random.random() <= total_crit_chance:
@@ -2239,6 +2269,11 @@ def dungeon(username):
                     damage_after = apply_damage_with_defense(dmg, monster_def)
                     monster["hp"] = monster.get("hp", 0) - damage_after
                     print(f"You hit the {monster['name']} for {damage_after} damage! (Monster HP: {max(0, monster['hp'])})")
+
+                    # Stun check for normal attacks (5% chance)
+                    if random.random() < 0.05:
+                        monster_stunned = True
+                        print(f"🎯 STUN! The {monster['name']} is stunned!")
 
                     # lifesteal (from actual damage dealt)
                     lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
@@ -2306,6 +2341,28 @@ def dungeon(username):
                     monster["hp"] = monster.get("hp", 0) - damage_after
                     print(f"You cast {s['name']} dealing {damage_after} magic damage! (Monster HP: {max(0, monster['hp'])})")
 
+                    # Stun check for lightning spells (75% chance against non-lightning, 20% against lightning)
+                    if s.get("type") == "lightning":
+                        monster_element = monster.get("element")
+                        if monster_element == "lightning":
+                            stun_chance = 0.20
+                        else:
+                            stun_chance = 0.95
+                        if random.random() < stun_chance:
+                            monster_stunned = True
+                            print(f"⚡ STUN! The {monster['name']} is stunned!")
+
+                    # Stun check for ice spells (95% chance against non-ice, 20% against ice)
+                    if s.get("type") == "ice":
+                        monster_element = monster.get("element")
+                        if monster_element == "ice":
+                            stun_chance = 0.20
+                        else:
+                            stun_chance = 0.95
+                        if random.random() < stun_chance:
+                            monster_stunned = True
+                            print(f"🧊 STUN! The {monster['name']} is stunned!")
+
                     # lifesteal (from actual damage dealt)
                     lifesteal_chance = stats.get("perm_lifesteal_chance", 0) / 100.0
                     lifesteal_percent = stats.get("perm_lifesteal", 0) / 100.0
@@ -2341,6 +2398,15 @@ def dungeon(username):
                     stats = player_data.get("stats", {})
                     inventory = player_data.get("inventory", {})
 
+                elif action == "d":
+                    if stats.get("dodge_points", 3) > 0:
+                        stats["dodge_points"] -= 1
+                        print(f"You dodge the attack! Dodges remaining: {stats['dodge_points']}")
+                        # Dodging skips monster turn
+                        continue
+                    else:
+                        print("No dodges remaining!")
+
                 elif action == "r":
                     if random.random() < 0.5:
                         print("You ran away successfully!")
@@ -2350,18 +2416,32 @@ def dungeon(username):
 
                 # Monster attacks if still alive
                 if monster.get("hp", 0) > 0:
-                    # Monster attack
-                    monster_dmg = random.randint(monster.get("atk_min", 1), monster.get("atk_max", monster.get("atk_min", 1)))
-                    player_def = get_equip_and_perm_bonuses(stats)["total_base_def"]
-                    damage_to_player = apply_damage_with_defense(monster_dmg, player_def)
-                    player_hp -= damage_to_player
-                    print(f"The {monster['name']} attacks! You take {damage_to_player} damage! (Your HP: {max(0, player_hp)}/{stats.get('hp_max')})")
+                    # Check if monster is stunned
+                    if monster_stunned:
+                        print(f"The {monster['name']} is stunned and cannot attack!")
+                        monster_stunned = False
+                    else:
+                        # Check 5% chance monster doesn't attack
+                        if random.random() < 0.05:
+                            print(f"The {monster['name']} hesitates and does not attack!")
+                        else:
+                            # Monster attack
+                            monster_dmg = random.randint(monster.get("atk_min", 1), monster.get("atk_max", monster.get("atk_min", 1)))
+                            player_def = get_equip_and_perm_bonuses(stats)["total_base_def"]
+                            damage_to_player = apply_damage_with_defense(monster_dmg, player_def)
+                            player_hp -= damage_to_player
+                            print(f"The {monster['name']} attacks! You take {damage_to_player} damage! (Your HP: {max(0, player_hp)}/{stats.get('hp_max')})")
 
                     # Persist minimal state
                     stats["hp"] = player_hp
                     player_data["stats"] = stats
                     user_data["player_data"] = player_data
                     save_user_data(username, user_data)
+
+                # Regain dodge at end of turn if not dodged
+                if action != "d" and stats.get("dodge_points", 0) < stats.get("max_dodge", 3):
+                    stats["dodge_points"] = min(stats["max_dodge"], stats["dodge_points"] + 1)
+                    print(f"Dodge regenerated! Dodges: {stats['dodge_points']}/{stats['max_dodge']}")
 
                     # Check if player died
                     if player_hp <= 0:
@@ -2453,9 +2533,9 @@ def dungeon(username):
                     stats["total_money_earned"] = stats.get("total_money_earned", 0) + money_reward
 
                     # Experience
-                    exp_gain = max(1, (monster.get("hp", 0) * 2) + random.randint(5, 30))
+                    exp_gain = max(1, (monster.get("money_max") * 2) + random.randint(5, 30))
                     if monster.get("is_boss"):
-                        exp_gain *= 2
+                        exp_gain *= 20
                     grant_exp(username, exp_gain)
 
                     # Reload data after grant_exp in case of level up changes
@@ -3329,41 +3409,41 @@ MAGIC_PACKS = {
 }
 
 SPELLS_BY_KEY = {
-    "spark": {"name": "Spark", "school": "D(Common)", "mana": 4, "power": 8, "lvl": 1, "desc": "Small electric spark."},
-    "ember": {"name": "Ember", "school": "D(Common)", "mana": 4, "power": 9, "lvl": 1, "desc": "Tiny firebolt."},
-    "aqua_jet": {"name": "Aqua Jet", "school": "D(Common)", "mana": 5, "power": 10, "lvl": 2, "desc": "Jet of water."},
-    "gust": {"name": "Gust", "school": "D(Common)", "mana": 4, "power": 7, "lvl": 1, "desc": "Blows at enemy."},
-    "stone_toss": {"name": "Stone Toss", "school": "D(Common)", "mana": 6, "power": 12, "lvl": 2, "desc": "Small rock hurled."},
-    "mana_bolt": {"name": "Mana Bolt", "school": "D(Common)", "mana": 6, "power": 14, "lvl": 3, "desc": "Basic mana projectile."},
-    "spark_chain": {"name": "Spark Chain", "school": "C(Rare)", "mana": 22, "power": 80, "lvl": 15, "desc": "Chaining sparks."},
-    "fireball": {"name": "Fireball", "school": "C(Rare)", "mana": 15, "power": 40, "lvl": 10, "desc": "Explosive orb."},
-    "ice_spike": {"name": "Ice Spike", "school": "C(Rare)", "mana": 14, "power": 36, "lvl": 9, "desc": "Sharp ice."},
-    "shadow_shot": {"name": "Shadow Shot", "school": "C(Rare)", "mana": 16, "power": 45, "lvl": 11, "desc": "Dark bolt."},
-    "thunder_strike": {"name": "Thunder Strike", "school": "C(Rare)", "mana": 18, "power": 50, "lvl": 12, "desc": "Powerful lightning."},
-    "poison_mist": {"name": "Poison Mist", "school": "C(Rare)", "mana": 12, "power": 30, "lvl": 10, "desc": "Toxic cloud."},
-    "meteor": {"name": "Meteor", "school": "B(Mythical)", "mana": 55, "power": 220, "lvl": 30, "desc": "Crushing meteor."},
-    "frost_nova": {"name": "Frost Nova", "school": "B(Mythical)", "mana": 45, "power": 160, "lvl": 28, "desc": "Freezes area."},
-    "void_bolt": {"name": "Void Bolt", "school": "B(Mythical)", "mana": 60, "power": 250, "lvl": 32, "desc": "Nullifying energy."},
-    "life_drain": {"name": "Life Drain", "school": "B(Mythical)", "mana": 50, "power": 150, "lvl": 30, "desc": "Steal HP."},
-    "earth_quake": {"name": "Earth Quake", "school": "B(Mythical)", "mana": 48, "power": 180, "lvl": 31, "desc": "Shake the ground."},
-    "glacial_prison": {"name": "Glacial Prison", "school": "B(Mythical)", "mana": 70, "power": 300, "lvl": 35, "desc": "Encase the enemy."},
-    "prism_beam": {"name": "Prism Beam", "school": "A(Prismatic)", "mana": 120, "power": 700, "lvl": 50, "desc": "Shredding beam."},
-    "lightning_storm": {"name": "Lightning Storm", "school": "A(Prismatic)", "mana": 110, "power": 650, "lvl": 48, "desc": "Storm of lightning."},
-    "aether_blast": {"name": "Aether Blast", "school": "A(Prismatic)", "mana": 100, "power": 600, "lvl": 46, "desc": "Pure aether."},
-    "mirror_shield": {"name": "Mirror Shield", "school": "A(Prismatic)", "mana": 40, "power": 0, "lvl": 45, "desc": "Reflect attacks."},
-    "prismatic_orb": {"name": "Prismatic Orb", "school": "A(Prismatic)", "mana": 90, "power": 520, "lvl": 47, "desc": "Orb of prismatic energy."},
-    "prismatic_shard": {"name": "Prismatic Shard", "school": "A(Prismatic)", "mana": 95, "power": 560, "lvl": 52, "desc": "Shards of light."},
-    "divine_wrath": {"name": "Divine Wrath", "school": "S(Divine)", "mana": 300, "power": 2000, "lvl": 75, "desc": "Wrath of the gods."},
-    "holy_barrier": {"name": "Holy Barrier", "school": "S(Divine)", "mana": 120, "power": 0, "lvl": 70, "desc": "Major protection."},
-    "celestial_fall": {"name": "Celestial Fall", "school": "S(Divine)", "mana": 250, "power": 1500, "lvl": 72, "desc": "Celestial impact."},
-    "purge": {"name": "Purge", "school": "S(Divine)", "mana": 100, "power": 480, "lvl": 68, "desc": "Remove curses."},
-    "resurgence": {"name": "Resurgence", "school": "S(Divine)", "mana": 200, "power": 0, "lvl": 74, "desc": "Large heal."},
-    "spectral_bind": {"name": "Spectral Bind", "school": "S(Divine)", "mana": 180, "power": 820, "lvl": 66, "desc": "Bind spirit."},
-    "transcendence": {"name": "Transcendence", "school": "SS(Transcendent)", "mana": 900, "power": 8000, "lvl": 95, "desc": "Transcend reality."},
-    "unmaking": {"name": "Unmaking", "school": "SS(Transcendent)", "mana": 800, "power": 7000, "lvl": 90, "desc": "Unmake existence."},
-    "voidstorm": {"name": "Voidstorm", "school": "SS(Transcendent)", "mana": 850, "power": 7500, "lvl": 92, "desc": "Storm of void."},
-    "eternal_echo": {"name": "Eternal Echo", "school": "SS(Transcendent)", "mana": 950, "power": 8500, "lvl": 96, "desc": "Echo through eternity."},
-    "reality_rend": {"name": "Reality Rend", "school": "SS(Transcendent)", "mana": 1000, "power": 9000, "lvl": 98, "desc": "Tear reality apart."}
+    "spark": {"name": "Spark", "class": "D(Common)", "type": "lightning", "mana": 4, "power": 8, "lvl": 1, "desc": "Small electric spark."},
+    "ember": {"name": "Ember", "class": "D(Common)", "type": "fire", "mana": 4, "power": 9, "lvl": 1, "desc": "Tiny firebolt."},
+    "aqua_jet": {"name": "Aqua Jet", "class": "D(Common)", "type": "ice", "mana": 5, "power": 10, "lvl": 2, "desc": "Jet of melted ice."},
+    "gust": {"name": "Gust", "class": "D(Common)", "type": "wind", "mana": 4, "power": 7, "lvl": 1, "desc": "Blows at enemy."},
+    "stone_toss": {"name": "Stone Toss", "class": "D(Common)", "type": "nature", "mana": 6, "power": 12, "lvl": 2, "desc": "Small rock hurled."},
+    "mana_bolt": {"name": "Mana Bolt", "class": "D(Common)", "type": "mana", "mana": 6, "power": 14, "lvl": 3, "desc": "Basic mana projectile."},
+    "spark_chain": {"name": "Spark Chain", "class": "C(Rare)", "type": "lightning", "mana": 22, "power": 80, "lvl": 15, "desc": "Chaining sparks."},
+    "fireball": {"name": "Fireball", "class": "C(Rare)", "type": "fire", "mana": 15, "power": 40, "lvl": 10, "desc": "Explosive orb."},
+    "ice_spike": {"name": "Ice Spike", "class": "C(Rare)", "type": "ice", "mana": 14, "power": 36, "lvl": 9, "desc": "Sharp ice."},
+    "shadow_shot": {"name": "Shadow Shot", "class": "C(Rare)", "type": "mana", "mana": 16, "power": 45, "lvl": 11, "desc": "Dark bolt."},
+    "thunder_strike": {"name": "Thunder Strike", "class": "C(Rare)", "type": "lightning", "mana": 18, "power": 50, "lvl": 12, "desc": "Powerful lightning."},
+    "poison_mist": {"name": "Poison Mist", "class": "C(Rare)", "type": "wind", "mana": 12, "power": 30, "lvl": 10, "desc": "Toxic cloud."},
+    "meteor": {"name": "Meteor", "class": "B(Mythical)", "type": "nature", "mana": 55, "power": 220, "lvl": 30, "desc": "Crushing meteor."},
+    "frost_nova": {"name": "Frost Nova", "class": "B(Mythical)", "type": "ice", "mana": 45, "power": 160, "lvl": 28, "desc": "Freezes area."},
+    "void_bolt": {"name": "Void Bolt", "class": "B(Mythical)", "type": "mana", "mana": 60, "power": 250, "lvl": 32, "desc": "Nullifying energy."},
+    "life_drain": {"name": "Life Drain", "class": "B(Mythical)", "type": "mana", "mana": 50, "power": 150, "lvl": 30, "desc": "Steal HP."},
+    "earth_quake": {"name": "nature Quake", "class": "B(Mythical)", "type": "nature", "mana": 48, "power": 180, "lvl": 31, "desc": "Shake the ground."},
+    "glacial_prison": {"name": "Glacial Prison", "class": "B(Mythical)", "type": "ice", "mana": 70, "power": 300, "lvl": 35, "desc": "Encase the enemy."},
+    "prism_beam": {"name": "Prism Beam", "class": "A(Prismatic)", "type": "mana", "mana": 120, "power": 700, "lvl": 50, "desc": "Shredding beam."},
+    "lightning_storm": {"name": "Lightning Storm", "class": "A(Prismatic)", "type": "lightning", "mana": 110, "power": 650, "lvl": 48, "desc": "Storm of lightning."},
+    "aether_blast": {"name": "Aether Blast", "class": "A(Prismatic)", "type": "mana", "mana": 100, "power": 600, "lvl": 46, "desc": "Pure aether."},
+    "mirror_shield": {"name": "Mirror Shield", "class": "A(Prismatic)", "type": "mana", "mana": 40, "power": 0, "lvl": 45, "desc": "Reflect attacks."},
+    "prismatic_orb": {"name": "Prismatic Orb", "class": "A(Prismatic)", "type": "mana", "mana": 90, "power": 520, "lvl": 47, "desc": "Orb of prismatic energy."},
+    "prismatic_shard": {"name": "Prismatic Shard", "class": "A(Prismatic)", "type": "mana", "mana": 95, "power": 560, "lvl": 52, "desc": "Shards of light."},
+    "divine_wrath": {"name": "Divine Wrath", "class": "S(Divine)", "type": "mana", "mana": 300, "power": 2000, "lvl": 75, "desc": "Wrath of the gods."},
+    "holy_barrier": {"name": "Holy Barrier", "class": "S(Divine)", "type": "heal", "mana": 120, "power": 0, "lvl": 70, "desc": "Major protection."},
+    "celestial_fall": {"name": "Celestial Fall", "class": "S(Divine)", "type": "nature", "mana": 250, "power": 1500, "lvl": 72, "desc": "Celestial impact."},
+    "purge": {"name": "Purge", "class": "S(Divine)", "type": "", "mana": 100, "power": 480, "lvl": 68, "desc": "Remove curses."},
+    "resurgence": {"name": "Resurgence", "class": "S(Divine)", "type": "heal", "mana": 200, "power": 0, "lvl": 74, "desc": "Large heal."},
+    "spectral_bind": {"name": "Spectral Bind", "class": "S(Divine)", "type": "mana", "mana": 180, "power": 820, "lvl": 66, "desc": "Bind spirit."},
+    "transcendence": {"name": "Transcendence", "class": "SS(Transcendent)", "type": "mana", "mana": 900, "power": 8000, "lvl": 95, "desc": "Transcend reality."},
+    "unmaking": {"name": "Unmaking", "class": "SS(Transcendent)", "type": "mana", "mana": 800, "power": 7000, "lvl": 90, "desc": "Unmake existence."},
+    "voidstorm": {"name": "Voidstorm", "class": "SS(Transcendent)", "type": "mana", "mana": 850, "power": 7500, "lvl": 92, "desc": "Storm of void."},
+    "eternal_echo": {"name": "Eternal Echo", "class": "SS(Transcendent)", "type": "mana", "mana": 950, "power": 8500, "lvl": 96, "desc": "Echo through eternity."},
+    "reality_rend": {"name": "Reality Rend", "class": "SS(Transcendent)", "type": "mana", "mana": 1000, "power": 9000, "lvl": 98, "desc": "Tear reality apart."}
 }
 
 MAGIC_PACK_ALIASES = {

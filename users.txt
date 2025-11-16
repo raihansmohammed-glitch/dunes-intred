@@ -2,20 +2,18 @@
     "tester01": {
         "username": "tester01",
         "password": "e=mc2",
-        "score": 274,
-        "money": 153929,
+        "score": 513,
+        "money": 322265,
         "player_data": {
-            "money": 153929,
-            "score": 0,
             "stats": {
-                "hp_max": 110,
-                "hp": 67,
-                "atk": 6,
-                "defense": 1,
-                "level": 2,
-                "exp": 67,
-                "mana_max": 110,
-                "mana": 110,
+                "hp_max": 120,
+                "hp": 87,
+                "atk": 7,
+                "defense": 2,
+                "level": 3,
+                "exp": 23,
+                "mana_max": 120,
+                "mana": 120,
                 "current_area": 1,
                 "equipped": {
                     "weapon": null,
@@ -50,7 +48,7 @@
                 "items_crafted": 0,
                 "materials_collected": 0,
                 "times_died": 0,
-                "dungeon_treasure_collected": 152789,
+                "dungeon_treasure_collected": 320669,
                 "critical_hits": 0,
                 "stats_manually_set": {
                     "hp": false,
@@ -81,10 +79,12 @@
                 "title_def_boost": 0,
                 "title_hp_boost": 0,
                 "title_mana_boost": 0,
-                "title_exp_boost": 0
+                "title_exp_boost": 0,
+                "dodge_points": 3,
+                "max_dodge": 4
             },
             "inventory": {
-                "potion": 1,
+                "potion": 0,
                 "strong_potion": 0,
                 "ultra_potion": 0,
                 "strength_boost": 0,
@@ -97,7 +97,7 @@
                 "mana_regen_potion": 0,
                 "instant_mana": 0,
                 "slime_gel": 0,
-                "goblin_tooth": 1,
+                "goblin_tooth": 2,
                 "wolf_pelt": 0,
                 "skeleton_bone": 0,
                 "orc_iron": 0,
@@ -105,9 +105,9 @@
                 "troll_core": 0,
                 "dark_essence": 0,
                 "prism_fragment": 0,
-                "void_fragment": 1,
-                "infinitium_piece": 0,
-                "soul_shard": 1,
+                "void_fragment": 2,
+                "infinitium_piece": 1,
+                "soul_shard": 2,
                 "transcendent_heart": 0,
                 "dragon_scale": 0,
                 "phoenix_feather": 0,
@@ -123,7 +123,7 @@
                 "rare_magic_pack": 0,
                 "mythical_magic_pack": 0,
                 "prismatic_magic_pack": 0,
-                "divine_magic_pack": 0,
+                "divine_magic_pack": 1,
                 "transcendent_magic_pack": 0,
                 "perm_strength_upgrade": 0,
                 "perm_defense_upgrade": 0,
@@ -136,8 +136,10 @@
                 "perm_magic_def_upgrade": 0,
                 "perm_exp_upgrade": 0,
                 "perm_str": 50,
-                "shadow_cloak": 1
-            }
+                "shadow_cloak": 1,
+                "curse_scroll": 1
+            },
+            "money": 322240
         },
         "machine_homes": [
             "master_Windows_AMD64"
