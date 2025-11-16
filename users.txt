@@ -2,22 +2,22 @@
     "tester01": {
         "username": "tester01",
         "password": "e=mc2",
-        "score": 646,
-        "money": 322365,
+        "score": 682,
+        "money": 322402,
         "player_data": {
             "stats": {
                 "hp_max": 120,
-                "hp": 78,
+                "hp": 75,
                 "atk": 7,
                 "defense": 2,
                 "level": 3,
-                "exp": 185,
+                "exp": 218,
                 "mana_max": 120,
                 "mana": 120,
                 "current_area": 1,
                 "equipped": {
-                    "weapon": null,
-                    "armor": null,
+                    "weapon": "wooden_sword",
+                    "armor": "leather_armor",
                     "wand": null,
                     "robe": null,
                     "necklace": null
@@ -86,10 +86,10 @@
                     "purge"
                 ],
                 "equipped_spells": [
-                    null,
-                    null,
-                    null,
-                    null
+                    "reality_rend",
+                    "eternal_echo",
+                    "transcendence",
+                    "resurgence"
                 ],
                 "available_titles": [
                     "novice"

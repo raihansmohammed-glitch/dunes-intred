@@ -555,12 +555,13 @@ def check_achievements(username):
         unlocked = stats.get("achievements", [])
         new_achievements = []
 
-        for ach_key, achievement in ACHIEVEMENTS.items():
+        for ach_key in ACHIEVEMENTS:
+            achievement = ACHIEVEMENTS[ach_key]
             if ach_key not in unlocked and achievement["condition"](stats):
-                unlocked.append(ach_key)
-                new_achievements.append(ach_key)
-                print(f"🏆 Achievement Unlocked: {achievement['name']} - '{achievement['title']}'!")
-                print(f" {achievement['desc']}")
+            unlocked.append(ach_key)
+            new_achievements.append(ach_key)
+            print(f"🏆 Achievement Unlocked: {achievement['name']} - '{achievement['title']}'!")
+            print(f" {achievement['desc']}")
 
         if new_achievements:
             stats["achievements"] = unlocked
