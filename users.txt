@@ -2,16 +2,16 @@
     "tester01": {
         "username": "tester01",
         "password": "e=mc2",
-        "score": 682,
-        "money": 322402,
+        "score": 959,
+        "money": 566222,
         "player_data": {
             "stats": {
                 "hp_max": 120,
-                "hp": 75,
+                "hp": 10,
                 "atk": 7,
                 "defense": 2,
                 "level": 3,
-                "exp": 218,
+                "exp": 599,
                 "mana_max": 120,
                 "mana": 120,
                 "current_area": 1,
@@ -48,7 +48,7 @@
                 "items_crafted": 0,
                 "materials_collected": 0,
                 "times_died": 0,
-                "dungeon_treasure_collected": 320669,
+                "dungeon_treasure_collected": 562416,
                 "critical_hits": 0,
                 "stats_manually_set": {
                     "hp": false,
@@ -122,12 +122,12 @@
                 "mana_upgrade_potion": 0,
                 "mana_regen_potion": 0,
                 "instant_mana": 0,
-                "slime_gel": 0,
+                "slime_gel": 1,
                 "goblin_tooth": 2,
                 "wolf_pelt": 0,
                 "skeleton_bone": 0,
                 "orc_iron": 0,
-                "bandit_cloth": 0,
+                "bandit_cloth": 1,
                 "troll_core": 0,
                 "dark_essence": 0,
                 "prism_fragment": 0,
@@ -139,13 +139,13 @@
                 "phoenix_feather": 0,
                 "frozen_heart": 0,
                 "thunder_core": 0,
-                "holy_light": 1,
+                "holy_light": 2,
                 "demon_horn": 0,
                 "crystal_shard": 0,
                 "star_dust": 0,
                 "moon_rock": 0,
-                "sun_stone": 0,
-                "common_magic_pack": 0,
+                "sun_stone": 1,
+                "common_magic_pack": 1,
                 "rare_magic_pack": 0,
                 "mythical_magic_pack": 0,
                 "prismatic_magic_pack": 0,
@@ -163,9 +163,11 @@
                 "perm_exp_upgrade": 0,
                 "perm_str": 50,
                 "shadow_cloak": 1,
-                "curse_scroll": 1
+                "curse_scroll": 2,
+                "stone_core": 1,
+                "lightning_feather": 1
             },
-            "money": 322240
+            "money": 566222
         },
         "machine_homes": [
             "master_Windows_AMD64"

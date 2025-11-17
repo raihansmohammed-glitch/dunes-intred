@@ -557,11 +557,12 @@ def check_achievements(username):
 
         for ach_key in ACHIEVEMENTS:
             achievement = ACHIEVEMENTS[ach_key]
-            if ach_key not in unlocked and achievement["condition"](stats):
-            unlocked.append(ach_key)
-            new_achievements.append(ach_key)
-            print(f"🏆 Achievement Unlocked: {achievement['name']} - '{achievement['title']}'!")
-            print(f" {achievement['desc']}")
+            
+        if ach_key not in unlocked and achievement["condition"](stats):
+                unlocked.append(ach_key)
+                new_achievements.append(ach_key)
+                print(f"🏆 Achievement Unlocked: {achievement['name']} - '{achievement['title']}'!")
+                print(f" {achievement['desc']}")
 
         if new_achievements:
             stats["achievements"] = unlocked
@@ -628,13 +629,14 @@ def grant_exp(username, amount):
     try:
         user_data = load_user_data(username)
         if not user_data:
-            return []
+            return 0
 
         player_data = user_data.get("player_data", {})
         stats = player_data["stats"]
         lvls_gained = []
+        granted = amount
         if stats.get("level", 1) >= MAX_LEVEL:
-            return lvls_gained
+            return granted
 
         # Apply experience boost if available
         exp_boost = stats.get("perm_exp_boost", 0)
@@ -643,9 +645,9 @@ def grant_exp(username, amount):
         if total_exp_boost > 0:
             boosted_amount = amount * (total_exp_boost / 100.0)
             print(f"Experience boost applied! +{boosted_amount:.1f} bonus EXP")
-            amount += boosted_amount
+            granted += boosted_amount
 
-        stats["exp"] = stats.get("exp", 0) + amount
+        stats["exp"] = stats.get("exp", 0) + granted
         old_title = stats.get("title")
         while stats["level"] < MAX_LEVEL and stats["exp"] >= exp_to_next(stats["level"]):
             req = exp_to_next(stats["level"])
@@ -693,7 +695,9 @@ def grant_exp(username, amount):
         save_user_data(username, user_data)
     except Exception as e:
         print(f"Error granting experience: {e}")
-        return []
+        return 0
+
+    return granted
 
     # Apply permanent upgrades after level up
     apply_permanent_upgrades(username)
@@ -860,8 +864,13 @@ def save_all_users(users):
         with open(temp_file, 'w') as f:
             json.dump(users, f, indent=4)
         os.replace(temp_file, USERS_DIR)
+        return True
     except PermissionError as e:
         print(f"Save failed due to permission error: {e}. Data not saved.")
+        return False
+    except Exception as e:
+        print(f"Save failed: {e}. Data not saved.")
+        return False
     finally:
         try:
             os.remove(lock_file)
@@ -877,7 +886,10 @@ def save_user_data(username, user_data):
     """Save user data by updating the users dict and saving to file atomically"""
     users = load_all_users()
     users[username] = user_data
-    save_all_users(users)
+    success = save_all_users(users)
+    if not success:
+        print(f"Warning: Failed to save data for {username}. Inventory changes may not persist.")
+    return success
 
 def signup(username, password):
     users = load_all_users()
@@ -1261,6 +1273,66 @@ MONSTERS = [
 {"name": "Demon King Muzan", "hp": 12000, "atk_min": 400, "atk_max": 550, "money_min": 100000, "money_max": 500000, "class": "SS(Transcendent)", "is_boss": True, "is_super_boss": True, "drop": {"potion": 1.0, "strength_boost": 1, "defense_boost": 1, "crit_boost": 1, "transcendent_heart": 0.5, "divine_magic_pack": 0.8, "transcendent_magic_pack": 0.4, "demon_horn": 1.0, "perm_exp_upgrade": 1.0, "perm_strength_upgrade": 1.0, "perm_defense_upgrade": 1.0, "perm_health_upgrade": 1.0, "perm_mana_upgrade": 1.0, "perm_crit_chance_upgrade": 1.0, "perm_mana_regen_upgrade": 1.0, "perm_lifesteal_upgrade": 1.0, "perm_lifesteal_chance_upgrade": 1.0}, "weight": 0.01, "area": 10},
 ]
 
+# Monster aliases for forced spawn
+MONSTER_ALIASES = {
+    "boss": {
+        "gk": "Goblin King",
+        "sk": "Skeleton King",
+        "tc": "Troll Chieftain",
+        "dl": "Dark Lord",
+        "iq": "Ice Queen",
+        "pl": "Phoenix Lord",
+        "vm": "Void Master",
+        "ce": "Celestial Emperor",
+        "drl": "Dragon Lord",
+        "gr": "Grim Reaper",
+        "dk": "Demon King Muzan"
+    },
+    "normal": {
+        "sl": "Slime",
+        "g": "Goblin",
+        "w": "Wolf",
+        "gs": "Goblin Shaman",
+        "sf": "Forest Sprite",
+        "skel": "Skeleton",
+        "o": "Orc",
+        "sp": "Giant Spider",
+        "bt": "Dark Bat",
+        "b": "Bandit",
+        "ow": "Orc Warrior",
+        "dm": "Dark Mage",
+        "sg": "Stone Golem",
+        "t": "Troll",
+        "ie": "Ice Elemental",
+        "fe": "Fire Elemental",
+        "tb": "Thunder Bird",
+        "dk": "Dark Knight",
+        "sa": "Shadow Assassin",
+        "am": "Arcane Mage",
+        "wl": "Warlock",
+        "ig": "Ice Giant",
+        "p": "Phoenix",
+        "cg": "Crystal Golem",
+        "sd": "Storm Dragon",
+        "vw": "Void Walker",
+        "cg2": "Celestial Guardian",
+        "sw": "Star Weaver",
+        "ms": "Moon Sentinel",
+        "sc": "Sun Champion",
+        "vl": "Void Lord",
+        "dp": "Divine Paladin",
+        "cm": "Cosmic Mage",
+        "ed": "Eternal Dragon",
+        "vr": "Void Reaper",
+        "cp": "Celestial Phoenix",
+        "ce2": "Cosmic Entity",
+        "tb2": "Transcendent Being",
+        "ve": "Void Emperor",
+        "da": "Divine Avatar",
+        "co": "Cosmic Overlord"
+    }
+}
+
 def get_leaderboard():
     """Get leaderboard from users.txt"""
     users_data = []
@@ -1350,7 +1422,7 @@ def explore_dungeon(username):
 # Use Potions Interface
 # -------------------------
 def use_potions_interface(username, player_hp, player_mana, stats, inventory, active_buffs):
-    # Sync with latest saved data to ensure HP and Mana are current
+    # Sync with latest saved data to ensure HP, Mana, and inventory are current
     try:
         user_data = load_user_data(username)
         if user_data:
@@ -1939,10 +2011,10 @@ def add_material_drops(inventory, monster):
             if random.random() < chance:
                 inventory[item] = inventory.get(item, 0) + 1
                 dropped.append(item)
-                print(f"Found {item}!")
     return dropped
 
 def dungeon(username):
+    global exp_gain
     """
     Dungeon combat loop that uses:
       - apply_permanent_upgrades(username)
@@ -2138,29 +2210,10 @@ def dungeon(username):
 
         if lc == "upgrades":
             permanent_upgrades_interface(username)
-            ensure_user_fields(username)
-            user_data = load_user_data(username)
-            player_data = user_data.get("player_data", {})
-            stats = player_data.get("stats", {})
-            inventory = player_data.get("inventory", {})
-            player_mana = stats.get("mana", stats.get("mana_max", 50))
-            player_hp = stats.get("hp", stats.get("hp_max", 100))
             continue
 
         if lc == "potions":
-            # Reload inventory from file to ensure it's up to date
-            user_data = load_user_data(username)
-            player_data = user_data.get("player_data", {})
-            inventory = player_data.get("inventory", {})
-            stats = player_data.get("stats", {})
-            player_hp = stats.get("hp", player_hp)
-            player_mana = stats.get("mana", player_mana)
             player_hp, player_mana, active_buffs = use_potions_interface(username, player_hp, player_mana, stats, inventory, active_buffs)
-            ensure_user_fields(username)
-            user_data = load_user_data(username)
-            player_data = user_data.get("player_data", {})
-            stats = player_data.get("stats", {})
-            inventory = player_data.get("inventory", {})
             continue
 
         if lc == "move":
@@ -2192,42 +2245,47 @@ def dungeon(username):
 
         if lc.startswith("explore"):
             parts = cmd.split()
-            # force spawn syntax support retained (same as your original)
             if len(parts) >= 4:
                 code = parts[1].strip()
-                is_boss_flag = parts[2].strip().lower()
-                monster_name = " ".join(parts[3:]).strip().lower()
                 if code == "10234":
-                    boss_flags = ("yes", "y", "true", "boss", "b")
-                    normal_flags = ("no", "n", "false", "normal", "monster", "m")
-                    if is_boss_flag in boss_flags:
-                        found = next((m for m in MONSTERS if m["name"].lower() == monster_name and m.get("is_boss")), None)
-                        if found:
-                            forced_monster = found.copy()
-                            print(f"Forced boss spawn: {forced_monster['name']}")
+                    flag = parts[2].strip().lower()
+                    alias = parts[3].strip().lower()
+                    if flag in ("y", "yes", "boss", "b"):
+                        aliases = MONSTER_ALIASES.get("boss", {})
+                        monster_name = aliases.get(alias)
+                        if monster_name:
+                            found = next((m for m in MONSTERS if m["name"].lower() == monster_name.lower()), None)
+                            if found:
+                                monster = found.copy()
+                                print(f"Forced boss spawn: {monster['name']} (HP {monster.get('hp')}, ATK {monster.get('atk_min','?')}–{monster.get('atk_max','?')})")
+                            else:
+                                print("Boss not found.")
+                                continue
                         else:
-                            print("Boss not found.")
-                        continue
-                    elif is_boss_flag in normal_flags:
-                        found = next((m for m in MONSTERS if m["name"].lower() == monster_name and not m.get("is_boss")), None)
-                        if found:
-                            forced_monster = found.copy()
-                            print(f"Forced monster spawn: {forced_monster['name']}")
+                            print("Invalid boss alias.")
+                            continue
+                    elif flag in ("n", "no", "normal", "monster", "m"):
+                        aliases = MONSTER_ALIASES.get("normal", {})
+                        monster_name = aliases.get(alias)
+                        if monster_name:
+                            found = next((m for m in MONSTERS if m["name"].lower() == monster_name.lower()), None)
+                            if found:
+                                monster = found.copy()
+                                print(f"Forced monster spawn: {monster['name']} (HP {monster.get('hp')}, ATK {monster.get('atk_min','?')}–{monster.get('atk_max','?')})")
+                            else:
+                                print("Monster not found.")
+                                continue
                         else:
-                            print("Monster not found.")
-                        continue
+                            print("Invalid monster alias.")
+                            continue
                     else:
                         print("Invalid flag.")
                         continue
                 else:
                     print("Invalid code.")
                     continue
-
-            # choose monster
-            if forced_monster is not None:
-                monster = forced_monster.copy()
-                forced_monster = None
             else:
+                # choose monster
                 roll = random.randint(1, 100)
                 if roll <= 5:
                     area = stats.get("current_area", 1)
@@ -2255,11 +2313,11 @@ def dungeon(username):
                 total_crit_chance = calculate_total_crit_chance(stats, active_buffs)
 
                 while True:
-                    action = input("Do you want to (a)ttack, (m)agic, (p)otion, (u)se buff, (d)odge, or (r)un? ").lower().strip()
-                    if action in ["a", "m", "p", "u", "d", "r"]:
+                    action = input("Do you want to (a)ttack, (m)agic, (d)odge, or (r)un? ").lower().strip()
+                    if action in ["a", "m", "d", "r"]:
                         break
                     else:
-                        print("Invalid action. Please choose (a)ttack, (m)agic, (p)otion, (u)se buff, (d)odge, or (r)un.")
+                        print("Invalid action. Please choose (a)ttack, (m)agic, (d)odge, or (r)un.")
 
                 # ---------- PLAYER PHYSICAL ATTACK ----------
                 if action == "a":
@@ -2419,7 +2477,6 @@ def dungeon(username):
                     user_data = load_user_data(username)
                     player_data = user_data.get("player_data", {})
                     stats = player_data.get("stats", {})
-                    inventory = player_data.get("inventory", {})
 
                 elif action == "u":
                     # Use buff interface
@@ -2428,7 +2485,6 @@ def dungeon(username):
                     user_data = load_user_data(username)
                     player_data = user_data.get("player_data", {})
                     stats = player_data.get("stats", {})
-                    inventory = player_data.get("inventory", {})
 
                 elif action == "d":
                     if stats.get("dodge_points", 3) > 0:
@@ -2567,9 +2623,8 @@ def dungeon(username):
                     # Experience
                     exp_gain = max(1, (monster.get("hp", 0) * 2) + random.randint(5, 30))
                     if monster.get("is_boss"):
-                        exp_gain *= 2
-                    grant_exp(username, exp_gain)
-
+                        exp_gain *= 20
+                    exp_gain = grant_exp(username, exp_gain)
                     # Reload data after grant_exp in case of level up changes
                     user_data = load_user_data(username)
                     player_data = user_data.get("player_data", {})
@@ -3224,14 +3279,22 @@ def parse_qty_from_choice(choice_str):
 # Permanent Upgrades Interface
 # -------------------------
 def permanent_upgrades_interface(username):
-    user_data = load_user_data(username)
-    if not user_data:
-        print("User data not found.")
-        return
+    # Sync with latest saved data to ensure inventory and stats are current
+    try:
+        user_data = load_user_data(username)
+        if user_data:
+            saved_player_data = user_data.get("player_data", {})
+            saved_inventory = saved_player_data.get("inventory", {})
+            saved_stats = saved_player_data.get("stats", {})
+            inventory = saved_inventory
+            stats = saved_stats
+        else:
+            print("User data not found.")
+            return
+    except Exception as e:
+        pass
 
-    player_data = user_data.get("player_data", {})
-    inventory = player_data.get("inventory", {})
-    stats = player_data.get("stats", {})
+    player_data = {"stats": stats, "inventory": inventory}
 
     # Define aliases for upgrades
     upgrade_aliases = {
