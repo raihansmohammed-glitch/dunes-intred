@@ -2257,12 +2257,10 @@ def dungeon(username):
                             found = next((m for m in MONSTERS if m["name"].lower() == monster_name.lower()), None)
                             if found:
                                 monster = found.copy()
-                                print(f"Forced boss spawn: {monster['name']} (HP {monster.get('hp')}, ATK {monster.get('atk_min','?')}–{monster.get('atk_max','?')})")
+                                print(f"\n🔥 BOSS APPEARS: {monster['name']}! (HP {monster.get('hp')}, ATK {monster.get('atk_min','?')}–{monster.get('atk_max','?')})")
                             else:
-                                print("Boss not found.")
                                 continue
                         else:
-                            print("Invalid boss alias.")
                             continue
                     elif flag in ("n", "no", "normal", "monster", "m"):
                         aliases = MONSTER_ALIASES.get("normal", {})
@@ -2271,18 +2269,14 @@ def dungeon(username):
                             found = next((m for m in MONSTERS if m["name"].lower() == monster_name.lower()), None)
                             if found:
                                 monster = found.copy()
-                                print(f"Forced monster spawn: {monster['name']} (HP {monster.get('hp')}, ATK {monster.get('atk_min','?')}–{monster.get('atk_max','?')})")
+                                print(f"\nA wild {monster['name']} appears! (HP {monster.get('hp')}, ATK {monster.get('atk_min','?')}–{monster.get('atk_max','?')})")
                             else:
-                                print("Monster not found.")
                                 continue
                         else:
-                            print("Invalid monster alias.")
                             continue
                     else:
-                        print("Invalid flag.")
                         continue
                 else:
-                    print("Invalid code.")
                     continue
             else:
                 # choose monster
@@ -2313,11 +2307,11 @@ def dungeon(username):
                 total_crit_chance = calculate_total_crit_chance(stats, active_buffs)
 
                 while True:
-                    action = input("Do you want to (a)ttack, (m)agic, (d)odge, or (r)un? ").lower().strip()
-                    if action in ["a", "m", "d", "r"]:
+                    action = input("Do you want to (a)ttack, (m)agic, (d)odge, (p)otion, (u)se buff, or (r)un? ").lower().strip()
+                    if action in ["a", "m", "d", "p", "u", "r"]:
                         break
                     else:
-                        print("Invalid action. Please choose (a)ttack, (m)agic, (d)odge, or (r)un.")
+                        print("Invalid action. Please choose (a)ttack, (m)agic, (d)odge, (p)otion, (u)se buff, or (r)un.")
 
                 # ---------- PLAYER PHYSICAL ATTACK ----------
                 if action == "a":
@@ -2655,18 +2649,24 @@ def dungeon(username):
                             stats["dungeon_treasure_collected"] = stats.get("dungeon_treasure_collected", 0) + recovered_treasure
                             dungeon_treasure["money"] -= int(dungeon_treasure["money"] * 0.2)
 
-                        # Boss reward items: 20% of dungeon treasure items
-                        if not dungeon_treasure["items"]:
-                            replenish_dungeon_treasure()
-                        if dungeon_treasure["items"]:
-                            num_items = int(len(dungeon_treasure["items"]) * 0.2)
-                            if num_items > 0:
-                                rewarded_items = random.sample(dungeon_treasure["items"], min(num_items, len(dungeon_treasure["items"])))
-                                for item in rewarded_items:
-                                    inventory[item] = inventory.get(item, 0) + 1
-                                    dungeon_treasure["items"].remove(item)
-                                if rewarded_items:
-                                    print(f"🎁 Boss reward items: {', '.join(rewarded_items)}!")
+                        # Boss guaranteed perm drops
+                        for perm_key in PERM_UPGRADES:
+                            inventory[perm_key] = inventory.get(perm_key, 0) + 1
+                            drops.append(f"{PERM_UPGRADES[perm_key]['name']} (Permanent Upgrade)")
+
+                        # Boss reward items: 2-7 random items from pool
+                        boss_drop_pool = (
+                            list(MATERIALS.keys()) +
+                            list(POTIONS.keys()) +
+                            list(MAGIC_PACKS.keys())
+                        )
+                        num_random_drops = random.randint(2, 7)
+                        boss_drops = random.sample(boss_drop_pool, min(num_random_drops, len(boss_drop_pool)))
+                        for item in boss_drops:
+                            inventory[item] = inventory.get(item, 0) + 1
+                            drops.append(item)
+                        if boss_drops:
+                            print(f"🎁 Boss reward items: {', '.join(boss_drops)}!")
 
                         save_dungeon_treasure()
                     else:

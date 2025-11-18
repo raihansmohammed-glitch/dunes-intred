@@ -2,18 +2,18 @@
     "tester01": {
         "username": "tester01",
         "password": "e=mc2",
-        "score": 959,
-        "money": 566222,
+        "score": 1056,
+        "money": 644534,
         "player_data": {
             "stats": {
-                "hp_max": 120,
-                "hp": 10,
-                "atk": 7,
-                "defense": 2,
-                "level": 3,
-                "exp": 599,
-                "mana_max": 120,
-                "mana": 120,
+                "hp_max": 130,
+                "hp": 130,
+                "atk": 8,
+                "defense": 3,
+                "level": 4,
+                "exp": 330,
+                "mana_max": 130,
+                "mana": 130,
                 "current_area": 1,
                 "equipped": {
                     "weapon": "wooden_sword",
@@ -48,7 +48,7 @@
                 "items_crafted": 0,
                 "materials_collected": 0,
                 "times_died": 0,
-                "dungeon_treasure_collected": 562416,
+                "dungeon_treasure_collected": 648371,
                 "critical_hits": 0,
                 "stats_manually_set": {
                     "hp": false,
@@ -107,11 +107,11 @@
                 "title_mana_boost": 0,
                 "title_exp_boost": 0,
                 "dodge_points": 4,
-                "max_dodge": 4
+                "max_dodge": 5
             },
             "inventory": {
                 "potion": 0,
-                "strong_potion": 0,
+                "strong_potion": 100,
                 "ultra_potion": 0,
                 "strength_boost": 0,
                 "defense_boost": 0,
@@ -138,7 +138,7 @@
                 "dragon_scale": 0,
                 "phoenix_feather": 0,
                 "frozen_heart": 0,
-                "thunder_core": 0,
+                "thunder_core": 1,
                 "holy_light": 2,
                 "demon_horn": 0,
                 "crystal_shard": 0,
@@ -149,7 +149,7 @@
                 "rare_magic_pack": 0,
                 "mythical_magic_pack": 0,
                 "prismatic_magic_pack": 0,
-                "divine_magic_pack": 0,
+                "divine_magic_pack": 1,
                 "transcendent_magic_pack": 0,
                 "perm_strength_upgrade": 0,
                 "perm_defense_upgrade": 0,
@@ -165,9 +165,9 @@
                 "shadow_cloak": 1,
                 "curse_scroll": 2,
                 "stone_core": 1,
-                "lightning_feather": 1
+                "lightning_feather": 2
             },
-            "money": 566222
+            "money": 644519
         },
         "machine_homes": [
             "master_Windows_AMD64"
