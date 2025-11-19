@@ -51,7 +51,7 @@ PERM_UPGRADES = {
     "perm_magic_def_upgrade": {"name": "Perm Magic Defense Upgrade", "magic_def_increase": 5},
     "perm_lifesteal_upgrade": {"name": "Perm Lifesteal Upgrade", "max_lifesteal_increase": 10},
     "perm_lifesteal_chance_upgrade": {"name": "Perm Lifesteal Chance Upgrade", "lifesteal_chance_increase": 5},
-    "perm_exp_upgrade": {"name": "Perm Exp Upgrade", "exp_increase": 5},
+    "perm_exp_upgrade": {"name": "Perm Exp Upgrade", "exp_increase": 10},
 }
 
 # -------------------------
@@ -643,8 +643,8 @@ def grant_exp(username, amount):
         title_exp_boost = stats.get("title_exp_boost", 0)
         total_exp_boost = exp_boost + title_exp_boost
         if total_exp_boost > 0:
-            boosted_amount = amount * (total_exp_boost / 100.0)
-            print(f"Experience boost applied! +{boosted_amount:.1f} bonus EXP")
+            boosted_amount = round(amount* (total_exp_boost))
+            print(f"Experience boost applied! +{boosted_amount} bonus EXP")
             granted += boosted_amount
 
         stats["exp"] = stats.get("exp", 0) + granted
@@ -2290,6 +2290,8 @@ def dungeon(username):
                     monster = choose_monster_for_area(area)
                     print(f"\nA wild {monster['name']} appears! (HP {monster.get('hp')}, ATK {monster.get('atk_min','?')}–{monster.get('atk_max','?')})")
 
+            monster_original_hp = monster['hp']  # Store original HP for score calculation
+
             # fight loop
             fight_happened = False
             monster_stunned = False
@@ -2613,11 +2615,17 @@ def dungeon(username):
                     if monster.get("is_boss"):
                         stats["bosses_defeated"] = stats.get("bosses_defeated", 0) + 1
                     stats["total_money_earned"] = stats.get("total_money_earned", 0) + money_reward
-
+                    stats["hp"] = player_hp
+                    stats["mana"] = player_mana
+                    player_data["stats"] = stats
+                    player_data["inventory"] = inventory
+                    # player_data["money"] already updated above
+                    user_data["player_data"] = player_data
+                    save_user_data(username, user_data)
                     # Experience
-                    exp_gain = max(1, (monster.get("hp", 0) * 2) + random.randint(5, 30))
+                    exp_gain = (random.randint(20, 50))+(random.randint(20, 50))
                     if monster.get("is_boss"):
-                        exp_gain *= 20
+                        exp_gain *= 50
                     exp_gain = grant_exp(username, exp_gain)
                     # Reload data after grant_exp in case of level up changes
                     user_data = load_user_data(username)
@@ -2630,7 +2638,7 @@ def dungeon(username):
 
                     # Score / boss handling (keep your existing logic)
                     if monster.get("is_boss"):
-                        boss_bonus = random.randint(50, 150)
+                        boss_bonus = monster_original_hp // 10 * random.randint(10, 50)
                         print(f"🎉 You defeated the BOSS {monster['name']}! +${money_reward} money, +{boss_bonus} score, +{exp_gain} EXP")
                         score += boss_bonus
                         user_data["score"] = score
@@ -2639,7 +2647,7 @@ def dungeon(username):
                         if dungeon_treasure["money"] > 0:
                             # Apply treasure boost from titles if any
                             treasure_boost_percent = stats.get("title_treasure_boost_percent", 0)
-                            recovered_treasure = int(dungeon_treasure["money"] * 0.2)
+                            recovered_treasure = int(dungeon_treasure["money"] * 0.1)
                             if treasure_boost_percent > 0:
                                 recovered_treasure = int(recovered_treasure * (1 + treasure_boost_percent / 100.0))
                             print(f"🏆 You recovered 20% of the dungeon treasure: ${recovered_treasure}!")
@@ -2670,7 +2678,7 @@ def dungeon(username):
 
                         save_dungeon_treasure()
                     else:
-                        normal_bonus = random.randint(5, 20)
+                        normal_bonus = monster_original_hp // 5 * random.randint(1, 10)
                         print(f"🎉 You defeated the {monster['name']}! +${money_reward} money, +{normal_bonus} score, +{exp_gain} EXP")
                         score += normal_bonus
                         user_data["score"] = score
@@ -3310,6 +3318,28 @@ def permanent_upgrades_interface(username):
         "perm_def": "perm_defense_upgrade"
     }
 
+    def apply_single_upgrade(stats, up_key):
+        if "atk_increase" in PERM_UPGRADES[up_key]:
+            stats["perm_atk"] = stats.get("perm_atk", 0) + PERM_UPGRADES[up_key]["atk_increase"]
+        elif "def_increase" in PERM_UPGRADES[up_key]:
+            stats["perm_def"] = stats.get("perm_def", 0) + PERM_UPGRADES[up_key]["def_increase"]
+        elif "hp_increase" in PERM_UPGRADES[up_key]:
+            stats["perm_hp_max"] = stats.get("perm_hp_max", 0) + PERM_UPGRADES[up_key]["hp_increase"]
+        elif "magic_increase" in PERM_UPGRADES[up_key]:
+            stats["perm_mana_max"] = stats.get("perm_mana_max", 0) + PERM_UPGRADES[up_key]["magic_increase"]
+        elif "crit_chance_increase" in PERM_UPGRADES[up_key]:
+            stats["perm_crit_chance"] = stats.get("perm_crit_chance", 0) + PERM_UPGRADES[up_key]["crit_chance_increase"]
+        elif "mana_regen_increase" in PERM_UPGRADES[up_key]:
+            stats["perm_mana_regen"] = stats.get("perm_mana_regen", 0) + PERM_UPGRADES[up_key]["mana_regen_increase"]
+        elif "max_lifesteal_increase" in PERM_UPGRADES[up_key]:
+            stats["perm_lifesteal"] = stats.get("perm_lifesteal", 0) + PERM_UPGRADES[up_key]["max_lifesteal_increase"]
+        elif "lifesteal_chance_increase" in PERM_UPGRADES[up_key]:
+            stats["perm_lifesteal_chance"] = stats.get("perm_lifesteal_chance", 0) + PERM_UPGRADES[up_key]["lifesteal_chance_increase"]
+        elif "exp_increase" in PERM_UPGRADES[up_key]:
+            old_boost = stats.get("perm_exp_boost", 0)
+            stats["perm_exp_boost"] = old_boost + PERM_UPGRADES[up_key]["exp_increase"]
+            print(f"Perm Exp Boost increased by {PERM_UPGRADES[up_key]['exp_increase']}%! Total: {stats['perm_exp_boost']}%")
+
     while True:
         print("\n--- Permanent Upgrades ---")
         print("Available upgrades (use permanent upgrade items from inventory):")
@@ -3335,28 +3365,28 @@ def permanent_upgrades_interface(username):
         if opt in upgrade_aliases:
             opt = upgrade_aliases[opt]
 
-        if opt in PERM_UPGRADES and inventory.get(opt, 0) >= qty:
+        if opt in ["all","full"]:
+            total_applied = 0
+            for up_key in PERM_UPGRADES:
+                qty_owned = inventory.get(up_key, 0)
+                if qty_owned > 0:
+                    inventory[up_key] -= qty_owned
+                    for _ in range(qty_owned):
+                        apply_single_upgrade(stats, up_key)
+                    total_applied += qty_owned
+            if total_applied > 0:
+                player_data["inventory"] = inventory
+                player_data["stats"] = stats
+                user_data["player_data"] = player_data
+                save_user_data(username, user_data)
+                check_achievements(username)
+                print(f"Used {total_applied} permanent upgrades!")
+            else:
+                print("No permanent upgrades to use.")
+        elif opt in PERM_UPGRADES and inventory.get(opt, 0) >= qty:
             inventory[opt] -= qty
             for _ in range(qty):
-                # Apply the upgrade directly to stats
-                if "atk_increase" in PERM_UPGRADES[opt]:
-                    stats["perm_atk"] = stats.get("perm_atk", 0) + PERM_UPGRADES[opt]["atk_increase"]
-                elif "def_increase" in PERM_UPGRADES[opt]:
-                    stats["perm_def"] = stats.get("perm_def", 0) + PERM_UPGRADES[opt]["def_increase"]
-                elif "hp_increase" in PERM_UPGRADES[opt]:
-                    stats["perm_hp_max"] = stats.get("perm_hp_max", 0) + PERM_UPGRADES[opt]["hp_increase"]
-                elif "magic_increase" in PERM_UPGRADES[opt]:
-                    stats["perm_mana_max"] = stats.get("perm_mana_max", 0) + PERM_UPGRADES[opt]["magic_increase"]
-                elif "crit_chance_increase" in PERM_UPGRADES[opt]:
-                    stats["perm_crit_chance"] = stats.get("perm_crit_chance", 0) + PERM_UPGRADES[opt]["crit_chance_increase"]
-                elif "mana_regen_increase" in PERM_UPGRADES[opt]:
-                    stats["perm_mana_regen"] = stats.get("perm_mana_regen", 0) + PERM_UPGRADES[opt]["mana_regen_increase"]
-                elif "max_lifesteal_increase" in PERM_UPGRADES[opt]:
-                    stats["perm_lifesteal"] = stats.get("perm_lifesteal", 0) + PERM_UPGRADES[opt]["max_lifesteal_increase"]
-                elif "lifesteal_chance_increase" in PERM_UPGRADES[opt]:
-                    stats["perm_lifesteal_chance"] = stats.get("perm_lifesteal_chance", 0) + PERM_UPGRADES[opt]["lifesteal_chance_increase"]
-                elif "exp_increase" in PERM_UPGRADES[opt]:
-                    stats["perm_exp_boost"] = stats.get("perm_exp_boost", 0) + PERM_UPGRADES[opt]["exp_increase"]
+                apply_single_upgrade(stats, opt)
 
             player_data["inventory"] = inventory
             player_data["stats"] = stats
