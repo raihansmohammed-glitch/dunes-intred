@@ -7,6 +7,189 @@ import atexit
 import threading
 import socket
 
+def show_memory_patch():
+    print("\n[SYS://VALUE_WRITE]")
+    print("Target parameter detected.")
+    print("> Initializing memory patch...")
+    print("> Allocating sector...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print("> Injecting payload...\n")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    current = 0
+    while current < 100:
+        increment = random.randint(5, 25)
+        current = min(current + increment, 100)
+        filled = current // 10
+        bar = '■' * filled + '□' * (10 - filled)
+        print(f"[{bar}] Writing {current}%")
+        time.sleep(round(random.uniform(0, 1.5), 2))
+    print("\n> Verifying integrity...")
+    print("> Syncing with core bus...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print("> Commit successful.")
+    print("[✓] MEMORY CELL UPDATED \n")
+
+def show_account_purge(username):
+    print("\n[SYS://ACCOUNT_PURGE]")
+    print("High-security operation requested.")
+    print("Action → delete.account")
+    print("> Initializing identity module...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print("> Verifying authorization token...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print("> Syncing with user registry...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print()
+    print("!! CRITICAL OPERATION WARNING !!")
+    print("Target account flagged for full removal.")
+    print()
+    print("> Executing purge protocol...")
+    print("> Revoking linked credentials...")
+    print("> Dropping session keys...")
+    print("> Anonymizing residual metadata...")
+    print()
+    print("[DELETE REPORT]")
+    print(f" • TARGET      : {username}")
+    print(" • MODE        : irreversible purge")
+    print(" • STATUS      : Complete")
+    print(" • TRACE       : all identifiers wiped")
+    print()
+    print("> Finalizing cleanup...")
+    print("   → Scrubbing data blocks.........OK")
+    print("   → Flushing cache entries........OK")
+    print("   → Seal-locking registry path....OK")
+    print()
+    print("[✓] ACCOUNT DELETED — NO RECOVERY")
+    print()
+
+def simulate_cmd_execution(command, success=True):
+    print("\n[SYS://CMD_EXECUTE]")
+    print("Operation request received.")
+    print(f"Command → {command}")
+
+    # Pool of possible initial steps
+    initial_step_pool = [
+        "Initializing execution layer...",
+        "Linking runtime channels...",
+        "Dispatching opcode...",
+        "Allocating resources...",
+        "Establishing secure connection...",
+        "Loading command modules...",
+        "Verifying command syntax...",
+        "Preparing execution environment...",
+        "Synchronizing subsystems...",
+        "Activating protocol handler...",
+    ]
+    # Choose 3 random steps for initial
+    steps = random.sample(initial_step_pool, 3)
+    for step in steps:
+        print(f"> {step}")
+        time.sleep(round(random.uniform(0, 0.5), 2))
+
+    if success:
+        # Success-specific steps: pool and choose random
+        success_pool = [
+            "Validating instruction set...",
+            "Performing integrity checks...",
+            "Scanning for anomalies...",
+            "Executing safety protocols...",
+            "Confirming resource availability...",
+        ]
+        success_steps = random.sample(success_pool, random.randint(2, 4))
+        for step in success_steps:
+            print(f"> {step}")
+            time.sleep(round(random.uniform(0, 0.5), 2))
+        print("> All checks passed.")
+        print("> No anomalies detected.")
+        print("> Executing protected routine...")
+        print()
+        print("[SUCCESS REPORT]")
+        code = f"0x{random.randint(0, 0xFF):02X}-OK"
+        module = f"/core/{command.replace('.', '/').replace(' ', '_')}.axl"
+        result_pool = ["Operation completed", "Task executed", "Command processed", "Routine finished", "Action successful"]
+        result = random.choice(result_pool)
+        status_pool = ["Stable", "Nominal", "Operational", "Secure", "Verified"]
+        status = random.choice(status_pool)
+        print(f" • CODE        : {code}")
+        print(f" • MODULE      : {module}")
+        print(f" • RESULT      : {result}")
+        print(f" • STATUS      : {status}")
+        print()
+        print("> Finalizing process...")
+        final_step_pool = [
+            "Committing changes",
+            "Syncing with core bus",
+            "Updating state registers",
+            "Saving configuration",
+            "Releasing resources",
+            "Logging execution",
+            "Clearing temporary data",
+        ]
+        final_steps = random.sample(final_step_pool, 3)
+        for step in final_steps:
+            print(f"   → {step}...........OK")
+            time.sleep(round(random.uniform(0, 0.5), 2))
+        print()
+        print("[✓] COMMAND EXECUTED SUCCESSFULLY")
+    else:
+        print()
+        print("!! ERROR DETECTED !!")
+        # Make reason command-specific
+        command_parts = command.split('.')
+        base_cmd = command_parts[0] if command_parts else command
+        error_base = [
+            f"Exec-channel integrity failure during {base_cmd}",
+            f"Opcode rejected by secure gate for {command}",
+            f"Memory allocation failure in {base_cmd} module",
+            f"Permission denied for {command} execution",
+            f"Invalid instruction sequence in {base_cmd}",
+            f"System overload detected by {command}",
+            f"Security breach attempt via {command}",
+            f"Resource conflict with {base_cmd} command",
+        ]
+        reason_desc = random.choice(error_base)
+        print(f"> {reason_desc}")
+        if random.random() < 0.5:
+            print("> Integrity check failed")
+        if random.random() < 0.3:
+            print("> System anomaly detected")
+        print()
+        print("[FAIL REPORT]")
+        code = f"0x{random.randint(0x4000,0xFFFF):04X}-CMDFAIL"
+        location = f"/core/{command.replace('.', '/').replace(' ', '_')}.axl"
+        reason_pool = [
+            f"Unsafe {command} sequence",
+            f"Access violation in {base_cmd}",
+            f"Resource exhaustion by {command}",
+            f"Invalid parameters for {command}",
+            f"Command {command} not recognized",
+            f"Dependency failure for {command}",
+        ]
+        reason = random.choice(reason_pool)
+        status_pool = ["Immediate abort", "Forced termination", "Error halt", "Critical failure", "System halt"]
+        status = random.choice(status_pool)
+        print(f" • CODE        : {code}")
+        print(f" • LOCATION    : {location}")
+        print(f" • REASON      : {reason}")
+        print(f" • STATUS      : {status}")
+        print()
+        print("> Initiating rollback...")
+        rollback_step_pool = [
+            "Flushing partial writes",
+            "Restoring snapshot",
+            "Stabilizing core bus",
+            "Reverting changes",
+            "Clearing error state",
+            "Logging failure",
+        ]
+        rollback_steps = random.sample(rollback_step_pool, 3)
+        for step in rollback_steps:
+            print(f"   → {step}...........OK")
+            time.sleep(round(random.uniform(0, 0.5), 2))
+        print()
+        print("[✖] COMMAND FAILED — SYSTEM SAFE")
+    print()
+
 # -------------------------
 # Files & persistence
 # -------------------------
@@ -643,7 +826,7 @@ def grant_exp(username, amount):
         title_exp_boost = stats.get("title_exp_boost", 0)
         total_exp_boost = exp_boost + title_exp_boost
         if total_exp_boost > 0:
-            boosted_amount = round(amount* (total_exp_boost))
+            boosted_amount = round(amount * (total_exp_boost / 100.0))
             print(f"Experience boost applied! +{boosted_amount} bonus EXP")
             granted += boosted_amount
 
@@ -1591,17 +1774,30 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
         else:
             print("Access Denied")
             debugconsoleaccess = "denied"
-    print("\nOpening DEBUG Console...\n...\n...")
+    if debugconsoleaccess != "denied":
+        print("[BOOTSEQ://DEBUG_CONSOLE]")
+        time.sleep(round(random.uniform(0, 1.5), 2))
+        print("→ Linking subsystems...")
+        time.sleep(round(random.uniform(0, 1.5), 2))
+        print("→ Bypassing safety locks...")
+        time.sleep(round(random.uniform(0, 1.5), 2))
+        print("→ Syncing I/O...")
+        time.sleep(round(random.uniform(0, 1.5), 2))
+        print(":: DEBUG MODE ENGAGED ::")
     while True:
         if debugconsoleaccess == "denied":
             break
         else:
             pass
-        cmd = input("Debug> ").strip().lower().split(" ", 1)
+        command_executed = False
+        success = False
+        cmd = input(">> ").strip().lower().split(" ", 1)
         cmd_base = cmd[0] if cmd else ""
         args = cmd[1] if len(cmd) > 1 else ""
 
         if cmd_base == "help" or cmd_base == "h" or cmd_base == "?":
+            command_executed = True
+            success = True
             print("\n--- Debug Commands ---")
             print("users - display all registered users (limited info)")
             print("current - display current user and score")
@@ -1622,11 +1818,15 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
             print(" (items: potion, strong_potion, ultra_potion, etc.)")
             print(" (upgrades: perm_strength_upgrade, perm_defense_upgrade, etc.)")
             print(" (aliases: str, def, hp, mana, crit, etc.)")
-            print("ruinthefun <u> - grant all achievements, items (500x usable), max stats")
+            print("ruinthefun(username) - grant all achievements, items (500x usable), max stats")
             print("setdodge <u> <n> - set a user's dodge points to n")
             print("exit - close debug console")
             print("-----------------------\n")
+            simulate_cmd_execution("help", success=True)
+            show_memory_patch()
         elif cmd_base == "users" or cmd_base == "usrs" or cmd_base == "u":
+            command_executed = True
+            success = True
             leaderboard = get_leaderboard()
             print("\n--- Top 10 Users ---")
             for uname, uscore in leaderboard:
@@ -1634,68 +1834,139 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 umoney = user_data.get("money", 0) if user_data else 0
                 print(f"{uname}: Score {uscore}, Money ${umoney}")
             print("---\n")
+            simulate_cmd_execution("users", success=True)
+            show_memory_patch()
         elif cmd_base == "current" or cmd_base == "curr" or cmd_base == "c":
+            command_executed = True
             if current_user:
+                success = True
                 print(f"Current user: {current_user}, Score: {score}, Money: ${money}")
             else:
+                success = False
                 print("No current user logged in.")
+            simulate_cmd_execution("current", success=success)
+            if success:
+                show_memory_patch()
         elif cmd_base == "numbers":
+            command_executed = True
+            success = True
             print("Random numbers generated this session: (not tracked)")
+            simulate_cmd_execution("numbers", success=True)
+            show_memory_patch()
         elif cmd_base == "adduser":
+            command_executed = True
             if args:
                 parts = args.split(" ", 1)
                 if len(parts) == 2:
                     u, p = parts
                     if signup(u, p):
+                        success = True
                         print(f"User {u} created.")
                     else:
+                        success = False
                         print("Failed to create user.")
                 else:
+                    success = False
                     print("Usage: adduser <username> <password>")
             else:
+                success = False
                 print("Usage: adduser <username> <password>")
+            simulate_cmd_execution("adduser", success=success)
         elif cmd_base == "deluser":
+            command_executed = True
             if args:
                 u = args.strip()
                 users = load_all_users()
                 if u in users:
                     del users[u]
                     save_all_users(users)
+                    success = True
                     print(f"User {u} deleted.")
                 else:
+                    success = False
                     print("User not found.")
             else:
+                success = False
                 print("Usage: deluser <username>")
+            simulate_cmd_execution("deluser", success=success)
+            if success:
+                show_memory_patch()
         elif cmd_base == "reset":
+            command_executed = True
+            success = True
             save_all_users({})
             print("All users reset.")
+            simulate_cmd_execution("reset", success=success)
         elif cmd_base == "resetplayer":
+            command_executed = True
             if args:
                 u = args.strip()
                 user_data = load_user_data(u)
                 if user_data:
+                    print("\n[SYS://ACCOUNT_PURGE]")
+                    print("High-security operation requested.")
+                    print("Action → delete.account")
+                    print("> Initializing identity module...")
+                    print("> Verifying authorization token...")
+                    print("> Syncing with user registry...")
+                    print()
+                    print("!! CRITICAL OPERATION WARNING !!")
+                    print("Target account flagged for full removal.")
+                    print()
+                    print("> Executing purge protocol...")
+                    print("> Revoking linked credentials...")
+                    print("> Dropping session keys...")
+                    print("> Anonymizing residual metadata...")
+                    print()
+                    print("[DELETE REPORT]")
+                    print(f" • TARGET      : {u}")
+                    print(" • MODE        : irreversible purge")
+                    print(" • STATUS      : Complete")
+                    print(" • TRACE       : all identifiers wiped")
+                    print()
+                    print("> Finalizing cleanup...")
+                    print("   → Scrubbing data blocks.........OK")
+                    print("   → Flushing cache entries........OK")
+                    print("   → Seal-locking registry path....OK")
+                    print()
+                    print("[✓] ACCOUNT DELETED — NO RECOVERY")
+                    print()
+                    show_memory_patch()
                     player_data = default_player_data()
                     user_data["score"] = 0
                     user_data["money"] = 40
                     user_data["player_data"] = player_data
                     save_user_data(u, user_data)
+                    success = True
                     print(f"Player {u} reset to defaults.")
                 else:
+                    success = False
                     print("User not found.")
             else:
+                success = False
                 print("Usage: resetplayer <username>")
+            simulate_cmd_execution("resetplayer", success=success)
+            if success:
+                show_memory_patch()
         elif cmd_base == "setdmoney":
+            command_executed = True
+            success = False
             if args:
                 try:
                     global dungeon_treasure
                     dungeon_treasure = int(args.strip())
                     save_dungeon_treasure()
                     print(f"Dungeon treasure set to ${dungeon_treasure}")
+                    success = True
                 except ValueError:
                     print("Invalid number.")
             else:
                 print("Usage: setdmoney <n>")
+            simulate_cmd_execution("setdmoney", success=success)
+            if success:
+                show_memory_patch()
         elif cmd_base == "setscore":
+            command_executed = True
             if args:
                 parts = args.split(" ", 1)
                 if len(parts) == 2:
@@ -1706,16 +1977,24 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                         if user_data:
                             user_data["score"] = n
                             save_user_data(u, user_data)
+                            success = True
                             print(f"Score for {u} set to {n}.")
                         else:
+                            success = False
                             print("User not found.")
                     except ValueError:
+                        success = False
                         print("Invalid score.")
                 else:
+                    success = False
                     print("Usage: setscore <username> <score>")
             else:
+                success = False
                 print("Usage: setscore <username> <score>")
+            simulate_cmd_execution("setscore", success=success)
         elif cmd_base == "setmoney":
+            command_executed = True
+            success = False
             if args:
                 parts = args.split(" ", 1)
                 if len(parts) == 2:
@@ -1727,6 +2006,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                             user_data["money"] = n
                             save_user_data(u, user_data)
                             print(f"Money for {u} set to ${n}.")
+                            success = True
                         else:
                             print("User not found.")
                     except ValueError:
@@ -1735,7 +2015,11 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     print("Usage: setmoney <username> <money>")
             else:
                 print("Usage: setmoney <username> <money>")
+            simulate_cmd_execution("setmoney", success=success)
+            if success:
+                show_memory_patch()
         elif cmd_base == "setexp":
+            command_executed = True
             if args:
                 parts = args.split(" ", 1)
                 if len(parts) == 2:
@@ -1746,16 +2030,23 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                         if user_data:
                             user_data["player_data"]["stats"]["exp"] = n
                             save_user_data(u, user_data)
+                            success = True
                             print(f"EXP for {u} set to {n}.")
                         else:
+                            success = False
                             print("User not found.")
                     except ValueError:
+                        success = False
                         print("Invalid EXP.")
                 else:
+                    success = False
                     print("Usage: setexp <username> <exp>")
             else:
+                success = False
                 print("Usage: setexp <username> <exp>")
+            simulate_cmd_execution("setexp", success=success)
         elif cmd_base == "setlvl":
+            command_executed = True
             if args:
                 parts = args.split(" ", 1)
                 if len(parts) == 2:
@@ -1766,15 +2057,23 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                         if user_data:
                             user_data["player_data"]["stats"]["level"] = n
                             save_user_data(u, user_data)
+                            success = True
                             print(f"Level for {u} set to {n}.")
                         else:
+                            success = False
                             print("User not found.")
                     except ValueError:
+                        success = False
                         print("Invalid level.")
                 else:
+                    success = False
                     print("Usage: setlvl <username> <level>")
             else:
+                success = False
                 print("Usage: setlvl <username> <level>")
+            simulate_cmd_execution("setlvl", success=success)
+            if success:
+                show_memory_patch()
         elif cmd_base == "setdefeated":
             if args:
                 parts = args.split(" ", 2)
@@ -1802,7 +2101,9 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     print("Usage: setdefeated <username> <type> <n>")
             else:
                 print("Usage: setdefeated <username> <type> <n>")
+            show_memory_patch()
         elif cmd_base == "set":
+            command_executed = True
             if args:
                 parts = args.split(" ", 2)
                 if len(parts) == 3:
@@ -1815,22 +2116,31 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                             if stat in stats:
                                 stats[stat] = n
                                 save_user_data(u, user_data)
+                                success = True
                                 print(f"{stat} for {u} set to {n}.")
                             else:
+                                success = False
                                 print(f"Invalid stat: {stat}")
                         else:
+                            success = False
                             print("User not found.")
                     except ValueError:
+                        success = False
                         print("Invalid number.")
                 else:
+                    success = False
                     print("Usage: set <username> <stat> <n>")
             else:
+                success = False
                 print("Usage: set <username> <stat> <n>")
+            simulate_cmd_execution("set", success=success)
         elif cmd_base == "showfull":
+            command_executed = True
             if args:
                 u = args.strip()
                 user_data = load_user_data(u)
                 if user_data:
+                    success = True
                     player_data = user_data.get("player_data", {})
                     print(f"\nFull data for {u}:")
                     for key, value in player_data.items():
@@ -1842,10 +2152,15 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                             print(f"{key}: {value}")
                     print("---")
                 else:
+                    success = False
                     print("User not found.")
             else:
+                success = False
                 print("Usage: showfull <username>")
+            simulate_cmd_execution("showfull", success=success)
         elif cmd_base == "give":
+            command_executed = True
+            success = False
             if args:
                 parts = args.split(" ", 2)
                 if len(parts) >= 2:
@@ -1865,7 +2180,24 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                             "lifesteal": "perm_lifesteal_upgrade",
                             "lifesteal_chance": "perm_lifesteal_chance_upgrade",
                             "exp": "perm_exp_upgrade",
-                            "perm_def": "perm_defense_upgrade"  # Add specific alias for the user's issue
+                            "perm_str": "perm_strength_upgrade",
+                            "perm_def": "perm_defense_upgrade",
+                            "perm_hp": "perm_health_upgrade",
+                            "perm_mana": "perm_mana_upgrade",
+                            "perm_crit": "perm_crit_chance_upgrade",
+                            "perm_magic_def": "perm_magic_def_upgrade",
+                            "perm_lifesteal": "perm_lifesteal_upgrade",
+                            "perm_lifesteal_chance": "perm_lifesteal_chance_upgrade",
+                            "perm_exp": "perm_exp_upgrade",
+                            "perm_strength_upgrade": "perm_strength_upgrade",
+                            "perm_defense_upgrade": "perm_defense_upgrade",
+                            "perm_health_upgrade": "perm_health_upgrade",
+                            "perm_mana_upgrade": "perm_mana_upgrade",
+                            "perm_crit_chance_upgrade": "perm_crit_chance_upgrade",
+                            "perm_magic_def_upgrade": "perm_magic_def_upgrade",
+                            "perm_lifesteal_upgrade": "perm_lifesteal_upgrade",
+                            "perm_lifesteal_chance_upgrade": "perm_lifesteal_chance_upgrade",
+                            "perm_exp_upgrade": "perm_exp_upgrade",
                         }
                         if item in upgrade_aliases:
                             item = upgrade_aliases[item]
@@ -1876,6 +2208,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                             inventory[item] = inventory.get(item, 0) + qty
                             user_data["player_data"]["inventory"] = inventory
                             save_user_data(u, user_data)
+                            success = True
                             print(f"Gave {qty}x {item} to {u}.")
                         else:
                             print("User not found.")
@@ -1885,7 +2218,12 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     print("Usage: give <username> <item> [qty]")
             else:
                 print("Usage: give <username> <item> [qty]")
+            simulate_cmd_execution("give", success=success)
+            if success:
+                show_memory_patch()
         elif cmd_base == "setdodge":
+            command_executed = True
+            success = False
             if args:
                 parts = args.split(" ", 1)
                 if len(parts) == 2:
@@ -1898,6 +2236,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                             user_data["player_data"]["stats"]["max_dodge"] = n
                             save_user_data(u, user_data)
                             print(f"Dodge points for {u} set to {n}.")
+                            success = True
                         else:
                             print("User not found.")
                     except ValueError:
@@ -1906,68 +2245,85 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     print("Usage: setdodge <username> <n>")
             else:
                 print("Usage: setdodge <username> <n>")
-        elif cmd_base == "ruinthefun":
-            if args:
+            simulate_cmd_execution("setdodge", success=success)
+        elif cmd_base == "ruinthefun" or (cmd_base.startswith("ruinthefun(") and cmd_base.endswith(")")):
+            command_executed = True
+            if cmd_base.startswith("ruinthefun(") and cmd_base.endswith(")"):
+                u = cmd_base[11:-1]  # Extract username from "ruinthefun(username)"
+            elif args:
                 u = args.strip()
-                user_data = load_user_data(u)
-                if user_data:
-                    player_data = user_data["player_data"]
-                    stats = player_data["stats"]
-                    inventory = player_data["inventory"]
-                    # Max stats
-                    stats["level"] = MAX_LEVEL
-                    stats["exp"] = exp_to_next(MAX_LEVEL) - 1
-                    stats["hp_max"] = 1000
-                    stats["mana_max"] = 500
-                    stats["atk"] = 100
-                    stats["defense"] = 50
-                    stats["perm_atk"] = 50
-                    stats["perm_def"] = 25
-                    stats["perm_hp_max"] = 500
-                    stats["perm_mana_max"] = 250
-                    stats["perm_crit_chance"] = 50
-                    stats["perm_mana_regen"] = 20
-                    stats["perm_lifesteal"] = 20
-                    stats["perm_lifesteal_chance"] = 20
-                    stats["perm_exp_boost"] = 50
-                    # All achievements
-                    stats["achievements"] = list(ACHIEVEMENTS.keys())
-                    stats["available_titles"] = list(TITLES.keys())
-                    # Equip all titles
-                    stats["equipped_titles"] = list(TITLES.keys())
-                    # 500x usable items
-                    inventory["potion"] = 500
-                    inventory["strong_potion"] = 500
-                    inventory["ultra_potion"] = 500
-                    inventory["mana_regen_potion"] = 500
-                    inventory["instant_mana"] = 500
-                    inventory["strength_boost"] = 500
-                    inventory["defense_boost"] = 500
-                    inventory["regen_potion"] = 500
-                    inventory["crit_boost"] = 500
-                    inventory["mana_upgrade_potion"] = 500
-                    # All equipment
-                    for eq in [WEAPONS, ARMORS, WANDS, ROBES, NECKLACES]:
-                        for item in eq:
-                            inventory[item] = 1
-                    for mat in MATERIALS:
-                        inventory[mat] = 100
-                    # All permanent upgrades
-                    for up in PERM_UPGRADES:
-                        inventory[up] = 250
-                    apply_title_boosts(u)
-                    user_data["score"] = 1000000
-                    user_data["money"] = 1000000
-                    save_user_data(u, user_data)
-                    print(f"Ruin the fun activated for {u}.")
-                else:
-                    print("User not found.")
             else:
-                print("Usage: ruinthefun <username>")
+                success = False
+                print("Usage: ruinthefun(username)")
+                simulate_cmd_execution("ruinthefun", success=False)
+                continue
+            user_data = load_user_data(u)
+            if user_data:
+                success = True
+                player_data = user_data["player_data"]
+                stats = player_data["stats"]
+                inventory = player_data["inventory"]
+                # Max stats
+                stats["level"] = MAX_LEVEL
+                stats["exp"] = exp_to_next(MAX_LEVEL) - 1
+                stats["hp_max"] = 1000
+                stats["mana_max"] = 500
+                stats["atk"] = 100
+                stats["defense"] = 50
+                stats["perm_atk"] = 50
+                stats["perm_def"] = 25
+                stats["perm_hp_max"] = 500
+                stats["perm_mana_max"] = 250
+                stats["perm_crit_chance"] = 50
+                stats["perm_mana_regen"] = 20
+                stats["perm_lifesteal"] = 20
+                stats["perm_lifesteal_chance"] = 20
+                stats["perm_exp_boost"] = 50
+                # All achievements
+                stats["achievements"] = list(ACHIEVEMENTS.keys())
+                stats["available_titles"] = list(TITLES.keys())
+                # Equip all titles
+                stats["equipped_titles"] = list(TITLES.keys())
+                # 500x usable items
+                inventory["potion"] = 500
+                inventory["strong_potion"] = 500
+                inventory["ultra_potion"] = 500
+                inventory["mana_regen_potion"] = 500
+                inventory["instant_mana"] = 500
+                inventory["strength_boost"] = 500
+                inventory["defense_boost"] = 500
+                inventory["regen_potion"] = 500
+                inventory["crit_boost"] = 500
+                inventory["mana_upgrade_potion"] = 500
+                # All equipment
+                for eq in [WEAPONS, ARMORS, WANDS, ROBES, NECKLACES]:
+                    for item in eq:
+                        inventory[item] = 1
+                for mat in MATERIALS:
+                    inventory[mat] = 500
+                # All permanent upgrades
+                for up in PERM_UPGRADES:
+                    inventory[up] = 250
+                for mp in MAGIC_PACKS:
+                    inventory[mp] = 500
+                apply_title_boosts(u)
+                user_data["score"] = 1000000
+                user_data["money"] = 1000000
+                save_user_data(u, user_data)
+                print(f"Ruin the fun activated for {u}.")
+            else:
+                success = False
+                print("User not found.")
+            simulate_cmd_execution("ruinthefun", success=success)
         elif cmd_base in ["exit",".","dilsaf","get out","getout","out","quit"]:
+            command_executed = True
+            success = True
             print("Exiting debug console.")
+            simulate_cmd_execution("exit", success=True)
             break
         else:
+            command_executed = True
+            success = False
             print("Unknown command. Type 'help' for commands.")
 # -------------------------
 
@@ -2178,6 +2534,7 @@ def dungeon(username):
                 name_display = f"{stats['title']} {username}"
             exp_display = create_exp_bar(stats.get('exp'), next_exp) if stats.get("settings", {}).get("show_exp_bar", False) else f"{stats.get('exp')}/{next_exp}"
             print(f"{name_display} - HP: {player_hp}/{stats.get('hp_max')}, MANA: {player_mana}/{stats.get('mana_max')}, ATK: {effective_atk}, DEF: {effective_def}, Money: ${money}, LVL: {stats.get('level')}, EXP: {exp_display}, AREA: {stats.get('current_area', 1)}")
+            print(f"Permanent Boosts: ATK +{stats.get('perm_atk', 0)}, DEF +{stats.get('perm_def', 0)}, HP +{stats.get('perm_hp_max', 0)}, Mana +{stats.get('perm_mana_max', 0)}, Crit +{stats.get('perm_crit_chance', 0)}%, Regen +{stats.get('perm_mana_regen', 0)}, Lifesteal +{stats.get('perm_lifesteal', 0)}%, Exp +{stats.get('perm_exp_boost', 0)}%")
             if active_buffs:
                 print("Active buffs:")
                 for b in active_buffs:
@@ -3338,7 +3695,6 @@ def permanent_upgrades_interface(username):
         elif "exp_increase" in PERM_UPGRADES[up_key]:
             old_boost = stats.get("perm_exp_boost", 0)
             stats["perm_exp_boost"] = old_boost + PERM_UPGRADES[up_key]["exp_increase"]
-            print(f"Perm Exp Boost increased by {PERM_UPGRADES[up_key]['exp_increase']}%! Total: {stats['perm_exp_boost']}%")
 
     while True:
         print("\n--- Permanent Upgrades ---")
@@ -3349,6 +3705,8 @@ def permanent_upgrades_interface(username):
                 print(f"{key}: {upgrade['name']} (x{count})")
             else:
                 print(f"{key}: {upgrade['name']} (not owned)")
+
+        print(f"Current Permanent Boosts: ATK +{stats.get('perm_atk', 0)}, DEF +{stats.get('perm_def', 0)}, HP +{stats.get('perm_hp_max', 0)}, Mana +{stats.get('perm_mana_max', 0)}, Crit +{stats.get('perm_crit_chance', 0)}%, Regen +{stats.get('perm_mana_regen', 0)}, Lifesteal +{stats.get('perm_lifesteal', 0)}%, Exp +{stats.get('perm_exp_boost', 0)}%")
 
         print("0. Back")
 
