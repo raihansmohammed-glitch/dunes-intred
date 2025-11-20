@@ -29,6 +29,59 @@ def show_memory_patch():
     print("> Commit successful.")
     print("[✓] MEMORY CELL UPDATED \n")
 
+def random_progress_bar():
+    bar_current = 0
+    while bar_current < 10:
+        increment = random.randint(1, 3)
+        bar_current = min(bar_current + increment, 10)
+        yield bar_current
+
+def show_game_reset():
+    print("\n[SYS://GAME_RESET]")
+    print("Critical system command received.")
+    print("Action → full.reset\n")
+    print("> Accessing core save-state...")
+    print("> Validating reset permissions...")
+    print("> Locking active runtime channels...\n")
+    print("!! WARNING !!")
+    print("This operation will erase ALL progress,")
+    print("saved data, configurations, and user states.\n")
+    print("> Initiating master-wipe protocol...\n")
+    print("[RESET SEQUENCE]")
+    current = 0
+    messages = [
+        "Purging player data...",
+        "Clearing inventory cache...",
+        "Resetting world matrices...",
+        "Annihilating progression logs...",
+        "Rebuilding base environment...",
+        "Restoring factory defaults..."
+    ]
+    msg_index = 0
+    bar_gen = random_progress_bar()
+    while current < 100:
+        increment = random.randint(5, 25)
+        current = min(current + increment, 100)
+        try:
+            filled = next(bar_gen)
+        except StopIteration:
+            filled = 10
+        bar = '▓' * filled + '□' * (10 - filled)
+        msg = messages[min(msg_index, len(messages)-1)] if current < 100 else messages[-1]
+        print(f"[{bar}] {current}%  → {msg}")
+        time.sleep(0.05)
+        if msg_index < len(messages) - 1 and random.random() < 0.3:  # Randomly advance messages
+            msg_index += 1
+    print("\n[RESET REPORT]")
+    print(" • SCOPE       : entire game environment")
+    print(" • EFFECT      : irreversible reset")
+    print(" • DATA LOSS   : 100%")
+    print(" • STATUS      : clean state restored\n")
+    print("> Executing finalization steps...")
+    print("   → Regenerating default config...OK")
+    print("   → Restarting core engine........OK\n")
+    print("[✓] FULL GAME RESET COMPLETE")
+
 def show_account_purge(username):
     print("\n[SYS://ACCOUNT_PURGE]")
     print("High-security operation requested.")
@@ -44,9 +97,13 @@ def show_account_purge(username):
     print("Target account flagged for full removal.")
     print()
     print("> Executing purge protocol...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
     print("> Revoking linked credentials...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
     print("> Dropping session keys...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
     print("> Anonymizing residual metadata...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
     print()
     print("[DELETE REPORT]")
     print(f" • TARGET      : {username}")
@@ -60,6 +117,41 @@ def show_account_purge(username):
     print("   → Seal-locking registry path....OK")
     print()
     print("[✓] ACCOUNT DELETED — NO RECOVERY")
+    print()
+
+def collect_user_database():
+    print("\n[SYS://USERDB_COLLECT]")
+    print("Operation request acknowledged.")
+    print("Action → collect.user_database")
+    print()
+    print("> Initializing data-scan module...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print("> Establishing secure link to registry...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print("> Parsing account index...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print()
+    print("> Harvesting identifiers...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print("> Extracting metadata clusters...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print("> Aggregating session records...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print("> Compiling unified dataset...")
+    time.sleep(round(random.uniform(0, 1.5), 2))
+    print()
+    print("[COLLECTION REPORT]")
+    print(" • SOURCE      : global user registry")
+    print(" • RECORDS     : synchronized")
+    print(" • STATUS      : compilation complete")
+    print(" • SECURITY    : all channels encrypted")
+    print()
+    print("> Finalizing dataset...")
+    print("   → Validating checksum............OK")
+    print("   → Encrypting storage block.......OK")
+    print("   → Sealing access path............OK")
+    print()
+    print("[✓] USER DATABASE SUCCESSFULLY COLLECTED")
     print()
 
 def simulate_cmd_execution(command, success=True):
@@ -1822,20 +1914,19 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
             print("setdodge <u> <n> - set a user's dodge points to n")
             print("exit - close debug console")
             print("-----------------------\n")
-            simulate_cmd_execution("help", success=True)
-            show_memory_patch()
         elif cmd_base == "users" or cmd_base == "usrs" or cmd_base == "u":
             command_executed = True
             success = True
             leaderboard = get_leaderboard()
+            simulate_cmd_execution("users", success=True)
+            time.sleep(round(random.uniform(2, 5), 2))  # Add some delay before collecting
+            collect_user_database()
             print("\n--- Top 10 Users ---")
             for uname, uscore in leaderboard:
                 user_data = load_user_data(uname)
                 umoney = user_data.get("money", 0) if user_data else 0
                 print(f"{uname}: Score {uscore}, Money ${umoney}")
             print("---\n")
-            simulate_cmd_execution("users", success=True)
-            show_memory_patch()
         elif cmd_base == "current" or cmd_base == "curr" or cmd_base == "c":
             command_executed = True
             if current_user:
@@ -1847,6 +1938,8 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
             simulate_cmd_execution("current", success=success)
             if success:
                 show_memory_patch()
+                time.sleep(round(random.uniform(2, 5), 2))  # Add some delay before collecting
+                collect_user_database()
         elif cmd_base == "numbers":
             command_executed = True
             success = True
@@ -1903,9 +1996,9 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 u = args.strip()
                 user_data = load_user_data(u)
                 if user_data:
-                    print("\n[SYS://ACCOUNT_PURGE]")
-                    print("High-security operation requested.")
-                    print("Action → delete.account")
+                    print("\n[SYS://ACCOUNT_RESET]")
+                    print("High-security operation detected.")
+                    print("Action → reset.account")
                     print("> Initializing identity module...")
                     print("> Verifying authorization token...")
                     print("> Syncing with user registry...")
@@ -2165,9 +2258,11 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 parts = args.split(" ", 2)
                 if len(parts) >= 2:
                     u, item = parts[0], parts[1]
-                    qty = int(parts[2]) if len(parts) > 2 else 1
+                    qty_str = parts[2] if len(parts) > 2 else "1"
                     try:
-                        qty = int(qty) if isinstance(qty, str) else qty
+                        qty = int(qty_str)
+                        if qty < 1:
+                            qty = 1
 
                         # Handle aliases for permanent upgrades
                         upgrade_aliases = {
@@ -2213,7 +2308,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                         else:
                             print("User not found.")
                     except ValueError:
-                        print("Invalid quantity.")
+                        print("Invalid quantity. Quantity must be a positive integer.")
                 else:
                     print("Usage: give <username> <item> [qty]")
             else:
