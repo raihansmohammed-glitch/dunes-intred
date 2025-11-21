@@ -119,6 +119,65 @@ def show_account_purge(username):
     print("[✓] ACCOUNT DELETED — NO RECOVERY")
     print()
 
+def show_deluser(username):
+    print("\n[SYS://DELUSER]")
+    print("High-risk command received.")
+    print("Action → delete.user")
+    print("> Accessing user registry...")
+    print("> Verifying authorization level...")
+    print("> Locking target user profile...")
+    print()
+    print("!! WARNING !!")
+    print("User deletion is irreversible.")
+    print("All personal data, stats, sessions,")
+    print("and identifiers will be permanently removed.")
+    print()
+    print("> Executing purge sequence...")
+    print("> Revoking credentials...")
+    print("> Erasing activity logs...")
+    print("> Scrubbing metadata clusters...")
+    print("> Removing account fingerprint...")
+    print()
+    print("[DELETE REPORT]")
+    print(f" • TARGET      : {username}")
+    print(" • STATUS      : purged")
+    print(" • TRACE       : identifiers destroyed")
+    print(" • EFFECT      : non-recoverable deletion")
+    print()
+    print("> Performing cleanup...")
+    print("   → Flushing registry cache.......OK")
+    print("   → Closing orphaned handles......OK")
+    print("   → Re-sealing registry path......OK")
+    print()
+    print("[✓] USER DELETED — NO POSSIBLE RECOVERY")
+    print()
+
+def show_adduser(username):
+    print("\n[SYS://ADDUSER]")
+    print("Operation request acknowledged.")
+    print("Action → create.user")
+    print("> Initializing identity module...")
+    print("> Verifying creation permissions...")
+    print("> Allocating registry slot...")
+    print("> Generating user credentials...")
+    print("> Assigning unique identifier...")
+    print("> Building default profile structure...")
+    print("> Registering access keys...")
+    print()
+    print("[CREATION REPORT]")
+    print(f" • TARGET      : {username}")
+    print(" • STATUS      : successfully created")
+    print(" • PROFILE     : baseline configuration applied")
+    print(" • SECURITY    : encrypted & verified")
+    print()
+    print("> Finalizing setup...")
+    print("   → Syncing with user registry......OK")
+    print("   → Sealing credential block........OK")
+    print("   → Activating account modules......OK")
+    print()
+    print("[✓] USER ADDED SUCCESSFULLY")
+    print()
+
 def collect_user_database():
     print("\n[SYS://USERDB_COLLECT]")
     print("Operation request acknowledged.")
@@ -1894,6 +1953,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
             print("users - display all registered users (limited info)")
             print("current - display current user and score")
             print("numbers - display generated random numbers (if any)")
+            print("play - play the number guessing game")
             print("adduser <u> <p> - create a new user account with password")
             print("deluser <u> - delete a user account")
             print("reset - reset all users and highscores")
@@ -1940,6 +2000,18 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 show_memory_patch()
                 time.sleep(round(random.uniform(2, 5), 2))  # Add some delay before collecting
                 collect_user_database()
+        elif cmd_base == "play":
+            command_executed = True
+            if current_user:
+                simulate_cmd_execution()
+                score = guessing_game(current_user, score)
+                success = True
+                print(f"Game over. Updated score: {score}")
+            else:
+                success = False
+                print("No current user logged in.")
+            if success:
+                show_memory_patch()
         elif cmd_base == "numbers":
             command_executed = True
             success = True
@@ -1954,7 +2026,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     u, p = parts
                     if signup(u, p):
                         success = True
-                        print(f"User {u} created.")
+                        show_adduser(u)
                     else:
                         success = False
                         print("Failed to create user.")
@@ -1974,7 +2046,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     del users[u]
                     save_all_users(users)
                     success = True
-                    print(f"User {u} deleted.")
+                    show_deluser(u)
                 else:
                     success = False
                     print("User not found.")
@@ -1982,8 +2054,6 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 success = False
                 print("Usage: deluser <username>")
             simulate_cmd_execution("deluser", success=success)
-            if success:
-                show_memory_patch()
         elif cmd_base == "reset":
             command_executed = True
             success = True
@@ -2168,6 +2238,8 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
             if success:
                 show_memory_patch()
         elif cmd_base == "setdefeated":
+            command_executed = True
+            success = False
             if args:
                 parts = args.split(" ", 2)
                 if len(parts) == 3:
@@ -2183,7 +2255,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                                 stats["bosses_defeated"] = n
                             else:
                                 print(f"Invalid type: {typ}")
-                                continue
+                            success = True
                             save_user_data(u, user_data)
                             print(f"{typ} defeated for {u} set to {n}.")
                         else:
@@ -2194,7 +2266,9 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     print("Usage: setdefeated <username> <type> <n>")
             else:
                 print("Usage: setdefeated <username> <type> <n>")
-            show_memory_patch()
+            simulate_cmd_execution("setdefeated", success=success)
+            if success:
+                show_memory_patch()
         elif cmd_base == "set":
             command_executed = True
             if args:
@@ -2227,13 +2301,17 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 success = False
                 print("Usage: set <username> <stat> <n>")
             simulate_cmd_execution("set", success=success)
+            if success == True:
+                show_memory_patch()
         elif cmd_base == "showfull":
             command_executed = True
+            collect_user_database()
             if args:
                 u = args.strip()
                 user_data = load_user_data(u)
                 if user_data:
                     success = True
+                    simulate_cmd_execution("showfull", success=success)
                     player_data = user_data.get("player_data", {})
                     print(f"\nFull data for {u}:")
                     for key, value in player_data.items():
@@ -2250,7 +2328,6 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
             else:
                 success = False
                 print("Usage: showfull <username>")
-            simulate_cmd_execution("showfull", success=success)
         elif cmd_base == "give":
             command_executed = True
             success = False
@@ -2410,6 +2487,8 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 success = False
                 print("User not found.")
             simulate_cmd_execution("ruinthefun", success=success)
+            if success == True:
+                show_memory_patch()
         elif cmd_base in ["exit",".","dilsaf","get out","getout","out","quit"]:
             command_executed = True
             success = True
@@ -4707,18 +4786,17 @@ def main_menu():
     while True:
         if current_user:
             print(f"\nLogged in as: {current_user}")
-            print("1. Play number guessing game")
-            print("2. Explore dungeons")
-            print("3. Shop")
-            print("4. Magic packs")
-            print("5. Permanent upgrades")
-            print("6. Equip titles")
-            print("7. Manage inventory")
-            print("8. Equip spells")
-            print("9. Settings")
-            print("10. Leaderboard")
-            print("11. Logout")
-            print("12. Exit")
+            print("1. Explore dungeons")
+            print("2. Shop")
+            print("3. Magic packs")
+            print("4. Permanent upgrades")
+            print("5. Equip titles")
+            print("6. Manage inventory")
+            print("7. Equip spells")
+            print("8. Settings")
+            print("9. Leaderboard")
+            print("10. Logout")
+            print("11. Exit")
         else:
             print("\nMain Menu")
             print("1. Login")
@@ -4730,9 +4808,6 @@ def main_menu():
 
         if current_user:
             if choice == '1':
-                score = guessing_game(current_user, score)
-                # Data is already saved via update_user in the functions
-            elif choice == '2':
                 dungeon(current_user)
                 # Reload data after dungeon
                 user_data = load_user_data(current_user)
@@ -4741,7 +4816,7 @@ def main_menu():
                     money = user_data.get("money", 40)
                     player_data = user_data.get("player_data", default_player_data())
                     ensure_user_fields(current_user)
-            elif choice == '3':
+            elif choice == '2':
                 shop()
                 # Reload data after shop
                 user_data = load_user_data(current_user)
@@ -4750,7 +4825,7 @@ def main_menu():
                     money = user_data.get("money", 40)
                     player_data = user_data.get("player_data", default_player_data())
                     ensure_user_fields(current_user)
-            elif choice == '4':
+            elif choice == '3':
                 magic_pack_interface(current_user)
                 # Reload data after packs
                 user_data = load_user_data(current_user)
@@ -4759,7 +4834,7 @@ def main_menu():
                     money = user_data.get("money", 40)
                     player_data = user_data.get("player_data", default_player_data())
                     ensure_user_fields(current_user)
-            elif choice == '5':
+            elif choice == '4':
                 permanent_upgrades_interface(current_user)
                 # Reload data after upgrades
                 user_data = load_user_data(current_user)
@@ -4768,7 +4843,7 @@ def main_menu():
                     money = user_data.get("money", 40)
                     player_data = user_data.get("player_data", default_player_data())
                     ensure_user_fields(current_user)
-            elif choice == '6':
+            elif choice == '5':
                 equip_titles_menu(current_user, player_data, None)
                 # Reload data after titles
                 user_data = load_user_data(current_user)
@@ -4777,7 +4852,7 @@ def main_menu():
                     money = user_data.get("money", 40)
                     player_data = user_data.get("player_data", default_player_data())
                     ensure_user_fields(current_user)
-            elif choice == '7':
+            elif choice == '6':
                 manage_inventory_menu(current_user, player_data, None)
                 # Reload data after inventory
                 user_data = load_user_data(current_user)
@@ -4786,7 +4861,7 @@ def main_menu():
                     money = user_data.get("money", 40)
                     player_data = user_data.get("player_data", default_player_data())
                     ensure_user_fields(current_user)
-            elif choice == '8':
+            elif choice == '7':
                 magic_spell_interface(current_user)
                 # Reload data after spells
                 user_data = load_user_data(current_user)
@@ -4795,7 +4870,7 @@ def main_menu():
                     money = user_data.get("money", 40)
                     player_data = user_data.get("player_data", default_player_data())
                     ensure_user_fields(current_user)
-            elif choice == '9':
+            elif choice == '8':
                 settings_menu(current_user)
                 # Reload data after settings
                 user_data = load_user_data(current_user)
@@ -4804,7 +4879,7 @@ def main_menu():
                     money = user_data.get("money", 40)
                     player_data = user_data.get("player_data", default_player_data())
                     ensure_user_fields(current_user)
-            elif choice == '10':
+            elif choice == '9':
                 if get_leaderboard():
                     print("\n--- Leaderboard ---")
                     leaderboard = get_leaderboard()
@@ -4812,14 +4887,14 @@ def main_menu():
                         print(f"{rank}. {uname} - {user_score}")
                 else:
                     print("No users yet!")
-            elif choice == '11':
+            elif choice == '10':
                 print("Logged out.")
                 stop_autosave()  # Stop autosave when logging out
                 current_user = None
                 score = 0
                 player_data = None
                 money = 40
-            elif choice == '12':
+            elif choice == '11':
                 print("Goodbye! Data saved automatically.")
                 save_all_data()
                 break
@@ -4923,7 +4998,7 @@ def main_menu():
                     else:
                         print("Login failed!")
             elif choice == '2':
-                username = input("\nUsername: ").strip()
+                username = input("\nUsername: ").strip().lower()
                 password = input("Password: ").strip()
                 if username in ["", " ", "  ", "   ","    "] or password in ["", " ", "  ", "   ","    "]:
                     print("Password or Username cannot be empty!")
