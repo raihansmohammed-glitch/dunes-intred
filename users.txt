@@ -2,7 +2,7 @@
     "tester01": {
         "username": "tester01",
         "password": "e=mc2",
-        "score": 3,
+        "score": 0,
         "money": 40,
         "player_data": {
             "money": 40,
@@ -136,7 +136,8 @@
                 "perm_lifesteal_upgrade": 0,
                 "perm_lifesteal_chance_upgrade": 0,
                 "perm_magic_def_upgrade": 0,
-                "perm_exp_upgrade": 0
+                "perm_exp_upgrade": 0,
+                "per_exp": 99000000
             }
         },
         "machine_homes": [
