@@ -6,7 +6,8 @@ import atexit
 import threading
 import socket
 
-from dungeon_functions import SCRIPT_DIR, USERS_DIR, DUNGEON_TREASURE_FILE
+import dungeon_functions
+import misc
 
 def check_file_existence():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -321,29 +322,29 @@ def permanent_upgrades_interface(username):
     upgrade_aliases = {'str': 'perm_strength_upgrade', 'def': 'perm_defense_upgrade', 'hp': 'perm_health_upgrade', 'mana': 'perm_mana_upgrade', 'crit': 'perm_crit_chance_upgrade', 'magic_def': 'perm_magic_def_upgrade', 'lifesteal': 'perm_lifesteal_upgrade', 'lifesteal_chance': 'perm_lifesteal_chance_upgrade', 'exp': 'perm_exp_upgrade', 'perm_def': 'perm_defense_upgrade'}
 
     def apply_single_upgrade(stats, up_key):
-        if 'atk_increase' in PERM_UPGRADES[up_key]:
-            stats['perm_atk'] = stats.get('perm_atk', 0) + PERM_UPGRADES[up_key]['atk_increase']
-        elif 'def_increase' in PERM_UPGRADES[up_key]:
-            stats['perm_def'] = stats.get('perm_def', 0) + PERM_UPGRADES[up_key]['def_increase']
-        elif 'hp_increase' in PERM_UPGRADES[up_key]:
-            stats['perm_hp_max'] = stats.get('perm_hp_max', 0) + PERM_UPGRADES[up_key]['hp_increase']
-        elif 'magic_increase' in PERM_UPGRADES[up_key]:
-            stats['perm_mana_max'] = stats.get('perm_mana_max', 0) + PERM_UPGRADES[up_key]['magic_increase']
-        elif 'crit_chance_increase' in PERM_UPGRADES[up_key]:
-            stats['perm_crit_chance'] = stats.get('perm_crit_chance', 0) + PERM_UPGRADES[up_key]['crit_chance_increase']
-        elif 'mana_regen_increase' in PERM_UPGRADES[up_key]:
-            stats['perm_mana_regen'] = stats.get('perm_mana_regen', 0) + PERM_UPGRADES[up_key]['mana_regen_increase']
-        elif 'max_lifesteal_increase' in PERM_UPGRADES[up_key]:
-            stats['perm_lifesteal'] = stats.get('perm_lifesteal', 0) + PERM_UPGRADES[up_key]['max_lifesteal_increase']
-        elif 'lifesteal_chance_increase' in PERM_UPGRADES[up_key]:
-            stats['perm_lifesteal_chance'] = stats.get('perm_lifesteal_chance', 0) + PERM_UPGRADES[up_key]['lifesteal_chance_increase']
-        elif 'exp_increase' in PERM_UPGRADES[up_key]:
+        if 'atk_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
+            stats['perm_atk'] = stats.get('perm_atk', 0) + dungeon_functions.PERM_UPGRADES[up_key]['atk_increase']
+        elif 'def_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
+            stats['perm_def'] = stats.get('perm_def', 0) + dungeon_functions.PERM_UPGRADES[up_key]['def_increase']
+        elif 'hp_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
+            stats['perm_hp_max'] = stats.get('perm_hp_max', 0) + dungeon_functions.PERM_UPGRADES[up_key]['hp_increase']
+        elif 'magic_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
+            stats['perm_mana_max'] = stats.get('perm_mana_max', 0) + dungeon_functions.PERM_UPGRADES[up_key]['magic_increase']
+        elif 'crit_chance_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
+            stats['perm_crit_chance'] = stats.get('perm_crit_chance', 0) + dungeon_functions.PERM_UPGRADES[up_key]['crit_chance_increase']
+        elif 'mana_regen_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
+            stats['perm_mana_regen'] = stats.get('perm_mana_regen', 0) + dungeon_functions.PERM_UPGRADES[up_key]['mana_regen_increase']
+        elif 'max_lifesteal_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
+            stats['perm_lifesteal'] = stats.get('perm_lifesteal', 0) + dungeon_functions.PERM_UPGRADES[up_key]['max_lifesteal_increase']
+        elif 'lifesteal_chance_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
+            stats['perm_lifesteal_chance'] = stats.get('perm_lifesteal_chance', 0) + dungeon_functions.PERM_UPGRADES[up_key]['lifesteal_chance_increase']
+        elif 'exp_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
             old_boost = stats.get('perm_exp_boost', 0)
-            stats['perm_exp_boost'] = old_boost + PERM_UPGRADES[up_key]['exp_increase']
+            stats['perm_exp_boost'] = old_boost + dungeon_functions.PERM_UPGRADES[up_key]['exp_increase']
     while True:
         print('\n--- Permanent Upgrades ---')
         print('Available upgrades (use permanent upgrade items from inventory):')
-        for key, upgrade in PERM_UPGRADES.items():
+        for key, upgrade in dungeon_functions.PERM_UPGRADES.items():
             count = inventory.get(key, 0)
             if count > 0:
                 print(f"{key}: {upgrade['name']} (x{count})")
@@ -363,7 +364,7 @@ def permanent_upgrades_interface(username):
             opt = upgrade_aliases[opt]
         if opt == 'all':
             total_applied = 0
-            for up_key in PERM_UPGRADES:
+            for up_key in dungeon_functions.PERM_UPGRADES:
                 qty_owned = inventory.get(up_key, 0)
                 if qty_owned > 0:
                     inventory[up_key] -= qty_owned
@@ -379,7 +380,7 @@ def permanent_upgrades_interface(username):
                 print(f'Used {total_applied} permanent upgrades!')
             else:
                 print('No permanent upgrades to use.')
-        elif opt in PERM_UPGRADES and inventory.get(opt, 0) >= qty:
+        elif opt in dungeon_functions.PERM_UPGRADES and inventory.get(opt, 0) >= qty:
             inventory[opt] -= qty
             for _ in range(qty):
                 apply_single_upgrade(stats, opt)
@@ -388,7 +389,7 @@ def permanent_upgrades_interface(username):
             user_data['player_data'] = player_data
             save_user_data(username, user_data)
             check_achievements(username)
-            print(f"Used {qty}x {PERM_UPGRADES[opt]['name']}!")
+            print(f"Used {qty}x {dungeon_functions.PERM_UPGRADES[opt]['name']}!")
         else:
             print('Invalid choice or not enough owned.')
 
@@ -402,7 +403,7 @@ def magic_pack_interface(username):
     while True:
         print('\n--- Magic Packs ---')
         print('Available packs:')
-        for pack_key, pack in MAGIC_PACKS.items():
+        for pack_key, pack in misc.MAGIC_PACKS.items():
             count = inventory.get(pack_key, 0)
             if count > 0:
                 print(f"{pack_key}: {pack['name']} (x{count}) - {pack['description']}")
@@ -416,7 +417,7 @@ def magic_pack_interface(username):
         pack_alias = parts[0]
         if len(parts) > 1:
             if parts[1] == 'all':
-                qty = inventory.get(pack_alias, 0) if pack_alias in MAGIC_PACKS else 0
+                qty = inventory.get(pack_alias, 0) if pack_alias in misc.MAGIC_PACKS else 0
             else:
                 try:
                     qty = int(parts[1])
@@ -428,11 +429,11 @@ def magic_pack_interface(username):
             qty = 1
         if pack_alias == '0':
             break
-        if pack_alias in MAGIC_PACK_ALIASES:
-            pack_alias = MAGIC_PACK_ALIASES[pack_alias]
+        if pack_alias in misc.MAGIC_PACK_ALIASES:
+            pack_alias = misc.MAGIC_PACK_ALIASES[pack_alias]
         if pack_alias == 'all':
             total_opened = 0
-            for p_key in MAGIC_PACKS:
+            for p_key in misc.MAGIC_PACKS:
                 if inventory.get(p_key, 0) > 0:
                     success, message = open_magic_pack(username, p_key, inventory[p_key])
                     if success:
@@ -449,7 +450,7 @@ def magic_pack_interface(username):
                 print(f"Opened {total_opened} packs in total!")
             else:
                 print('No packs to open.')
-        elif pack_alias in MAGIC_PACKS and inventory.get(pack_alias, 0) >= qty:
+        elif pack_alias in misc.MAGIC_PACKS and inventory.get(pack_alias, 0) >= qty:
             success, message = open_magic_pack(username, pack_alias, qty)
             if success:
                 print(message)
@@ -490,8 +491,8 @@ def crafting_interface(username):
             result_name = 'Unknown'
             if result_item in POTIONS:
                 result_name = POTIONS[result_item]['name']
-            elif result_item in PERM_UPGRADES:
-                result_name = PERM_UPGRADES[result_item]['name']
+            elif result_item in dungeon_functions.PERM_UPGRADES:
+                result_name = dungeon_functions.PERM_UPGRADES[result_item]['name']
             recipe_list.append((recipe_key, result_name, can_craft))
             materials_str = ', '.join([f"{mat} x{qty}" for mat, qty in materials_needed.items()])
             print(f"{len(recipe_list)}. {status} {result_name} - Requires: {materials_str}")
@@ -543,15 +544,15 @@ def open_magic_pack(username, pack_key, quantity=1):
     users = load_all_users()
     if username not in users:
         return (False, 'Invalid user.')
-    if pack_key not in MAGIC_PACKS:
+    if pack_key not in misc.MAGIC_PACKS:
         return (False, 'Unknown magic pack.')
     user_data = users[username]
     player_data = user_data.get('player_data', {})
     inventory = player_data.get('inventory', {})
     stats = player_data.get('stats', {})
     if inventory.get(pack_key, 0) < quantity:
-        return (False, f"You don't have enough {MAGIC_PACKS[pack_key]['name']}.")
-    pack = MAGIC_PACKS[pack_key]
+        return (False, f"You don't have enough {misc.MAGIC_PACKS[pack_key]['name']}.")
+    pack = misc.MAGIC_PACKS[pack_key]
     spells_pool = pack['spells']
     min_count, max_count = pack['drop_count']
     if 'learned_spells' not in stats:
@@ -1033,7 +1034,7 @@ def view_achievements_menu(username):
     stats = player_data.get('stats', {})
     unlocked = stats.get('achievements', [])
     print('\n--- Achievements ---')
-    for ach_key, achievement in ACHIEVEMENTS.items():
+    for ach_key, achievement in misc.ACHIEVEMENTS.items():
         status = '✓' if ach_key in unlocked else '✗'
         print(f"{status} {achievement['name']}: {achievement['desc']}")
 
