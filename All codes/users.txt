@@ -2,19 +2,19 @@
     "tester01": {
         "username": "tester01",
         "password": "e=mc2",
-        "score": 1000068,
-        "money": 1000038,
+        "score": 1002113,
+        "money": 1001092,
         "player_data": {
             "stats": {
                 "hp_max": 1000,
                 "hp": 1000,
-                "atk": 100,
+                "atk": 10000,
                 "defense": 50,
-                "level": 1500,
-                "exp": Infinity,
-                "mana_max": 500,
-                "mana": 400,
-                "current_area": 1,
+                "level": 765487654456776544,
+                "exp": 100000002411,
+                "mana_max": 1000000000000000,
+                "mana": 10000000000000,
+                "current_area": 14,
                 "equipped": {
                     "weapon": null,
                     "armor": null,
@@ -58,14 +58,14 @@
                     "treasure_hunter",
                     "lucky"
                 ],
-                "monsters_defeated": 6,
+                "monsters_defeated": 9,
                 "bosses_defeated": 0,
-                "total_money_earned": 40,
+                "total_money_earned": 1094,
                 "items_crafted": 0,
                 "materials_collected": 0,
                 "times_died": 0,
                 "dungeon_treasure_collected": 0,
-                "critical_hits": 5,
+                "critical_hits": 8,
                 "stats_manually_set": {
                     "hp": false,
                     "hp_max": false,
@@ -180,11 +180,11 @@
                 "title_exp_boost": 0
             },
             "inventory": {
-                "potion": 502,
+                "potion": 504,
                 "strong_potion": 500,
                 "ultra_potion": 500,
-                "strength_boost": 500,
-                "defense_boost": 500,
+                "strength_boost": 502,
+                "defense_boost": 501,
                 "regen_potion": 500,
                 "crit_boost": 500,
                 "wooden_sword": 1,
@@ -222,15 +222,15 @@
                 "divine_magic_pack": 0,
                 "transcendent_magic_pack": 0,
                 "perm_strength_upgrade": 0,
-                "perm_defense_upgrade": 0,
+                "perm_defense_upgrade": 2,
                 "perm_health_upgrade": 0,
-                "perm_mana_upgrade": 0,
-                "perm_crit_chance_upgrade": 0,
+                "perm_mana_upgrade": 1,
+                "perm_crit_chance_upgrade": 1,
                 "perm_mana_regen_upgrade": 0,
-                "perm_lifesteal_upgrade": 0,
+                "perm_lifesteal_upgrade": 3,
                 "perm_lifesteal_chance_upgrade": 0,
                 "perm_magic_def_upgrade": 0,
-                "perm_exp_upgrade": 0,
+                "perm_exp_upgrade": 1,
                 "iron_sword": 1,
                 "steel_sword": 1,
                 "diamond_sword": 1,
@@ -299,7 +299,7 @@
                 "ember": 500,
                 "bat_wing": 500
             },
-            "money": 1000038
+            "money": 1001092
         },
         "machine_homes": [
             "master_Windows_AMD64"
