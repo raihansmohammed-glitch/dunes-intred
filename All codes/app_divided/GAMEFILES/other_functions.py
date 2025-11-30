@@ -527,7 +527,7 @@ def check_achievements(username):
     except Exception as e:
         print(f'Error checking achievements: {e}')
         return []
-MAX_LEVEL = 1500
+MAX_LEVEL = 7500
 AREAS_COUNT = 100
 LEVELS_PER_AREA = MAX_LEVEL // AREAS_COUNT
 
