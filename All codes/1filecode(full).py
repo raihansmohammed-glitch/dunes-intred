@@ -34,6 +34,7 @@ def show_memory_patch():
     print('\n[SYS://VALUE_WRITE]')
     print('Target parameter detected.')
     print('> Initializing memory patch...')
+    time.sleep(round(random.uniform(0, 1.5), 2))
     print('> Allocating sector...')
     time.sleep(round(random.uniform(0, 1.5), 2))
     print('> Injecting payload...\n')
@@ -1660,8 +1661,6 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
             simulate_cmd_execution('current', success=success)
             if success:
                 show_memory_patch()
-                time.sleep(round(random.uniform(2, 5), 2))
-                collect_user_database()
         elif cmd_base == 'play':
             command_executed = True
             if current_user:
@@ -1730,18 +1729,26 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 if user_data:
                     print('\n[SYS://ACCOUNT_RESET]')
                     print('High-security operation detected.')
+                    time.sleep()
                     print('Action → reset.account')
                     print('> Initializing identity module...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
                     print('> Verifying authorization token...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
                     print('> Syncing with user registry...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
                     print()
                     print('!! CRITICAL OPERATION WARNING !!')
                     print('Target account flagged for full removal.')
                     print()
                     print('> Executing purge protocol...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
                     print('> Revoking linked credentials...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
                     print('> Dropping session keys...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
                     print('> Anonymizing residual metadata...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
                     print()
                     print('[DELETE REPORT]')
                     print(f' • TARGET      : {u}')
@@ -1752,6 +1759,7 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                     print('> Finalizing cleanup...')
                     print('   → Scrubbing data blocks.........OK')
                     print('   → Flushing cache entries........OK')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
                     print('   → Seal-locking registry path....OK')
                     print()
                     print('[✓] ACCOUNT DELETED — NO RECOVERY')
@@ -1817,6 +1825,8 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 success = False
                 print('Usage: setscore <username> <score>')
             simulate_cmd_execution('setscore', success=success)
+            if success == True:
+                show_memory_patch()
         elif cmd_base == 'setmoney':
             command_executed = True
             success = False
@@ -1870,6 +1880,8 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 success = False
                 print('Usage: setexp <username> <exp>')
             simulate_cmd_execution('setexp', success=success)
+            if success == True:
+                show_memory_patch()
         elif cmd_base == 'setlvl':
             command_executed = True
             if args:
@@ -2013,6 +2025,8 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                             save_user_data(u, user_data)
                             success = True
                             simulate_cmd_execution('give', success=success)
+                            if success == True:
+                                show_memory_patch()
                             print(f'Gave {qty}x {item} to {u}.')
                         else:
                             print('User not found.')
@@ -2049,6 +2063,8 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
             else:
                 print('Usage: setdodge <username> <n>')
             simulate_cmd_execution('setdodge', success=success)
+            if success == True:
+                show_memory_patch
         elif cmd_base == 'ruinthefun' or (cmd_base.startswith('ruinthefun(') and cmd_base.endswith(')')):
             command_executed = True
             if cmd_base.startswith('ruinthefun(') and cmd_base.endswith(')'):

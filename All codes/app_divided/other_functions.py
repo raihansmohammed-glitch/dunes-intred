@@ -1,13 +1,14 @@
 import json
 import random
 import os
+import math
 import time
 import atexit
 import threading
 import socket
-
-import dungeon_functions
 import misc
+import other_functions
+import dungeon_functions
 
 def check_file_existence():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +37,7 @@ def show_memory_patch():
     print('\n[SYS://VALUE_WRITE]')
     print('Target parameter detected.')
     print('> Initializing memory patch...')
+    time.sleep(round(random.uniform(0, 1.5), 2))
     print('> Allocating sector...')
     time.sleep(round(random.uniform(0, 1.5), 2))
     print('> Injecting payload...\n')
@@ -304,6 +306,547 @@ def simulate_cmd_execution(command, success=True):
         print()
         print('[✖] COMMAND FAILED — SYSTEM SAFE')
     print()
+
+def get_machine_id():
+    """Get a unique identifier for this machine"""
+    try:
+        hostname = socket.gethostname()
+        import platform
+        system = platform.system()
+        machine = platform.machine()
+        return f'{hostname}_{system}_{machine}'
+    except:
+        return 'unknown_machine'
+
+def get_rarity_value(rarity):
+    """Get numerical value for rarity sorting"""
+    rarity_order = {'common': 1, 'rare': 2, 'mythical': 3, 'prismatic': 4, 'divine': 5, 'transcendent': 6}
+    return rarity_order.get(rarity, 0)
+
+def get_item_rarity(item_key):
+    """Get the rarity of an item"""
+    if item_key in misc.WEAPONS:
+        if 'score_price' in misc.WEAPONS[item_key]:
+            if misc.WEAPONS[item_key].get('score_price', 0) >= 10000:
+                return 'transcendent'
+            elif misc.WEAPONS[item_key].get('score_price', 0) >= 3000:
+                return 'divine'
+            elif misc.WEAPONS[item_key].get('score_price', 0) >= 800:
+                return 'prismatic'
+            elif misc.WEAPONS[item_key].get('score_price', 0) >= 250:
+                return 'mythical'
+            elif misc.WEAPONS[item_key].get('score_price', 0) >= 200:
+                return 'rare'
+            else:
+                return 'common'
+        elif item_key in ['infinitium_sword']:
+            return 'transcendent'
+        elif item_key in ['cosmic_blade', 'transcendent_edge']:
+            return 'divine'
+        elif item_key in ['dragon_slayer', 'holy_avenger', 'thunder_sword', 'flameblade']:
+            return 'prismatic'
+        elif item_key in ['frostblade']:
+            return 'mythical'
+        else:
+            return 'common'
+    elif item_key in misc.ARMORS:
+        if 'score_price' in misc.ARMORS[item_key]:
+            if misc.ARMORS[item_key].get('score_price', 0) >= 9500:
+                return 'transcendent'
+            elif misc.ARMORS[item_key].get('score_price', 0) >= 2800:
+                return 'divine'
+            elif misc.ARMORS[item_key].get('score_price', 0) >= 1400:
+                return 'prismatic'
+            elif misc.ARMORS[item_key].get('score_price', 0) >= 700:
+                return 'mythical'
+            elif misc.ARMORS[item_key].get('score_price', 0) >= 200:
+                return 'rare'
+            else:
+                return 'common'
+        elif item_key in ['infinitium_armor']:
+            return 'transcendent'
+        elif item_key in ['cosmic_armor', 'transcendent_armor']:
+            return 'divine'
+        elif item_key in ['dragon_scale_armor', 'holy_armor', 'thunder_armor', 'flame_armor']:
+            return 'prismatic'
+        elif item_key in ['frost_armor']:
+            return 'mythical'
+        else:
+            return 'common'
+    elif item_key in misc.WANDS:
+        if 'score_price' in misc.WANDS[item_key]:
+            if misc.WANDS[item_key].get('score_price', 0) >= 9500:
+                return 'transcendent'
+            elif misc.WANDS[item_key].get('score_price', 0) >= 2800:
+                return 'divine'
+            elif misc.WANDS[item_key].get('score_price', 0) >= 1400:
+                return 'prismatic'
+            elif misc.WANDS[item_key].get('score_price', 0) >= 700:
+                return 'mythical'
+            elif misc.WANDS[item_key].get('score_price', 0) >= 200:
+                return 'rare'
+            else:
+                return 'common'
+        elif item_key in ['transcendent_staff']:
+            return 'transcendent'
+        elif item_key in ['cosmic_scepter']:
+            return 'divine'
+        elif item_key in ['dragon_staff', 'holy_scepter', 'thunder_wand', 'flame_wand']:
+            return 'prismatic'
+        elif item_key in ['frost_wand']:
+            return 'mythical'
+        elif item_key in ['archmage_staff']:
+            return 'rare'
+        else:
+            return 'common'
+    elif item_key in misc.ROBES:
+        if 'score_price' in misc.ROBES[item_key]:
+            if misc.ROBES[item_key].get('score_price', 0) >= 9500:
+                return 'transcendent'
+            elif misc.ROBES[item_key].get('score_price', 0) >= 2800:
+                return 'divine'
+            elif misc.ROBES[item_key].get('score_price', 0) >= 1400:
+                return 'prismatic'
+            elif misc.ROBES[item_key].get('score_price', 0) >= 700:
+                return 'mythical'
+            elif misc.ROBES[item_key].get('score_price', 0) >= 200:
+                return 'rare'
+            else:
+                return 'common'
+        elif item_key in ['transcendent_robe']:
+            return 'transcendent'
+        elif item_key in ['cosmic_robe']:
+            return 'divine'
+        elif item_key in ['dragon_robe', 'holy_robe', 'thunder_robe', 'flame_robe']:
+            return 'prismatic'
+        elif item_key in ['frost_robe']:
+            return 'mythical'
+        elif item_key in ['void_robe']:
+            return 'rare'
+        else:
+            return 'common'
+    elif item_key in misc.NECKLACES:
+        if 'score_price' in misc.NECKLACES[item_key]:
+            if misc.NECKLACES[item_key].get('score_price', 0) >= 8000:
+                return 'transcendent'
+            elif misc.NECKLACES[item_key].get('score_price', 0) >= 2400:
+                return 'divine'
+            elif misc.NECKLACES[item_key].get('score_price', 0) >= 1200:
+                return 'prismatic'
+            elif misc.NECKLACES[item_key].get('score_price', 0) >= 600:
+                return 'mythical'
+            elif misc.NECKLACES[item_key].get('score_price', 0) >= 100:
+                return 'rare'
+            else:
+                return 'common'
+        elif item_key in ['transcendent_necklace']:
+            return 'transcendent'
+        elif item_key in ['cosmic_necklace']:
+            return 'divine'
+        elif item_key in ['dragon_necklace', 'holy_pendant', 'thunder_necklace', 'flame_necklace']:
+            return 'prismatic'
+        elif item_key in ['frost_necklace']:
+            return 'mythical'
+        else:
+            return 'common'
+    elif item_key in misc.POTIONS:
+        return 'common'
+    elif item_key in misc.PERM_UPGRADES:
+        return 'rare'
+    elif item_key in misc.MATERIALS:
+        return misc.MATERIALS[item_key]['rarity']
+    else:
+        return 'common'
+def get_title(level, achievements=None):
+    if achievements is None:
+        achievements = []
+    level_title = 'Novice'
+    if level <= 10:
+        level_title = 'Novice'
+    elif level <= 20:
+        level_title = 'Apprentice'
+    elif level <= 30:
+        level_title = 'Warrior'
+    elif level <= 40:
+        level_title = 'Champion'
+    elif level <= 50:
+        level_title = 'Legend'
+    elif level <= 60:
+        level_title = 'Master'
+    elif level <= 70:
+        level_title = 'Grandmaster'
+    elif level <= 80:
+        level_title = 'Mythic'
+    elif level <= 99:
+        level_title = 'Transcendent'
+    else:
+        level_title = 'Godlike'
+    best_achievement_title = None
+    for ach_key in achievements:
+        if ach_key in misc.ACHIEVEMENTS:
+            ach_title = misc.ACHIEVEMENTS[ach_key]['title']
+            title_priority = {'Slayer': 1, 'Hunter': 2, 'Slayer II': 3, 'Boss Slayer': 4, 'Boss Master': 5, 'Millionaire': 6, 'Arcane Master': 7, 'Artisan': 8, 'Collector': 9, 'Immortal': 10, 'Perfect': 11, 'Legendary': 12, 'Deity': 13, 'Treasure King': 14, "Fortune's Favorite": 15}
+            if best_achievement_title is None or title_priority.get(ach_title, 0) > title_priority.get(best_achievement_title, 0):
+                best_achievement_title = ach_title
+    return best_achievement_title if best_achievement_title else level_title
+
+def check_achievements(username):
+    try:
+        user_data = load_user_data(username)
+        if not user_data:
+            return []
+        player_data = user_data.get('player_data', {})
+        stats = player_data.get('stats', {})
+        unlocked = stats.get('achievements', [])
+        new_achievements = []
+        for ach_key in misc.ACHIEVEMENTS:
+            achievement = misc.ACHIEVEMENTS[ach_key]
+        if ach_key not in unlocked and achievement['condition'](stats):
+            unlocked.append(ach_key)
+            new_achievements.append(ach_key)
+            print(f"🏆 Achievement Unlocked: {achievement['name']} - '{achievement['title']}'!")
+            print(f" {achievement['desc']}")
+        if new_achievements:
+            stats['achievements'] = unlocked
+            old_title = stats.get('title')
+            new_title = get_title(stats.get('level', 1), unlocked)
+            if new_title != old_title:
+                stats['title'] = new_title
+                title_key = None
+                for k, v in misc.misc.TITLES.items():
+                    if v['name'] == new_title:
+                        title_key = k
+                        break
+                if title_key and title_key not in stats.get('available_titles', []):
+                    stats['available_titles'].append(title_key)
+                print(f"🎉 New title unlocked: '{new_title}'!")
+            player_data['stats'] = stats
+            user_data['player_data'] = player_data
+            save_user_data(username, user_data)
+        return new_achievements
+    except Exception as e:
+        print(f'Error checking achievements: {e}')
+        return []
+MAX_LEVEL = 1500
+AREAS_COUNT = 100
+LEVELS_PER_AREA = MAX_LEVEL // AREAS_COUNT
+
+def level_to_area(level):
+    if level < 1:
+        level = 1
+    area = (level - 1) // LEVELS_PER_AREA + 1
+    if area > AREAS_COUNT:
+        area = AREAS_COUNT
+    return area
+
+def exp_to_next(level):
+    if level >= MAX_LEVEL:
+        return float('inf')
+    base_exp = 100
+    growth_factor = 1.25
+    return int(base_exp * level ** 1.5 * growth_factor ** (level - 1))
+
+def create_exp_bar(current_exp, next_exp):
+    if next_exp == 'MAX':
+        return '[██████████] MAX LEVEL'
+    bar_length = 10
+    if next_exp > 0:
+        progress = min(current_exp / next_exp, 1.0)
+        filled = int(progress * bar_length)
+        bar = '█' * filled + '░' * (bar_length - filled)
+        percentage = int(progress * 100)
+        return f'[{bar}] {percentage}%'
+    return '[░░░░░░░░░░] 0%'
+
+def grant_exp(username, amount):
+    try:
+        user_data = load_user_data(username)
+        if not user_data:
+            return 0
+        player_data = user_data.get('player_data', {})
+        stats = player_data['stats']
+        lvls_gained = []
+        granted = amount
+        if stats.get('level', 1) >= MAX_LEVEL:
+            return granted
+        exp_boost = stats.get('perm_exp_boost', 0)
+        title_exp_boost = stats.get('title_exp_boost', 0)
+        total_exp_boost = exp_boost + title_exp_boost
+        if total_exp_boost > 0:
+            boosted_amount = round(amount * (total_exp_boost / 100.0))
+            print(f'Experience boost applied! +{boosted_amount} bonus EXP')
+            granted += boosted_amount
+        stats['exp'] = stats.get('exp', 0) + granted
+        old_title = stats.get('title')
+        while stats['level'] < MAX_LEVEL and stats['exp'] >= exp_to_next(stats['level']):
+            req = exp_to_next(stats['level'])
+            stats['exp'] -= req
+            old_level = stats['level']
+            stats['level'] += 1
+            hp_increase = 10
+            atk_increase = 1 + stats['level'] // 5
+            mana_increase = 10
+            stats['max_dodge'] = min(10, stats.get('max_dodge', 3) + 1)
+            default_stats = default_player_data()['stats']
+            if not stats['stats_manually_set']['hp_max']:
+                stats['hp_max'] = stats.get('hp_max', 10) + hp_increase
+            if not stats['stats_manually_set']['hp']:
+                stats['hp'] = min(stats.get('hp', stats['hp_max']) + stats['hp_max'] // 4, stats['hp_max'])
+            if not stats['stats_manually_set']['atk']:
+                stats['atk'] = stats.get('atk', 10) + atk_increase
+            if not stats['stats_manually_set']['mana_max']:
+                stats['mana_max'] = stats.get('mana_max', 10) + mana_increase
+            if not stats['stats_manually_set']['mana']:
+                stats['mana'] = min(stats.get('mana', stats['mana_max']) + stats['mana_max'] // 3, stats['mana_max'])
+            if not stats['stats_manually_set']['defense']:
+                stats['defense'] = stats.get('defense', 10) + 1
+            lvls_gained.append(stats['level'])
+            print(f"You leveled up to level {stats['level']}!")
+        player_data['stats'] = stats
+        user_data['player_data'] = player_data
+        save_user_data(username, user_data)
+        apply_permanent_upgrades(username)
+        auto_equip_items(username)
+        auto_equip_spells(username)
+    except Exception as e:
+        print(f'Error granting experience: {e}')
+        return 0
+    return granted
+    return lvls_gained
+
+def save_all_data():
+    dungeon_functions.save_dungeon_treasure()
+
+def autosave():
+    """Perform autosave and show a brief notification"""
+    global last_autosave_time
+    if save_all_data():
+        last_autosave_time = time.time()
+        print('\n💾 Game auto-saved!')
+    else:
+        print('\n⚠️ Autosave failed! Check console for details.')
+
+def schedule_autosave():
+    """Schedule the next autosave"""
+    global autosave_timer
+    if autosave_timer is not None:
+        autosave_timer.cancel()
+    autosave_timer = threading.Timer(misc.AUTOSAVE_INTERVAL, autosave)
+    autosave_timer.daemon = True
+    autosave_timer.start()
+adminQanswers = ['31,10,2011', '31\x08\x811', '31/10/2011', '31.10.2011']
+
+def stop_autosave():
+    """Stop the autosave timer"""
+    global autosave_timer
+    if autosave_timer is not None:
+        autosave_timer.cancel()
+        autosave_timer = None
+
+def setup_db():
+    """Create users.txt file if it doesn't exist and migrate old data"""
+    if os.path.isdir(misc.USERS_DIR):
+        users = {}
+        if os.path.exists('users'):
+            for filename in os.listdir('users'):
+                if filename.endswith('.json'):
+                    username = filename[:-5]
+                    with open(os.path.join('users', filename), 'r') as f:
+                        users[username] = json.load(f)
+        with open(misc.USERS_DIR, 'w') as f:
+            json.dump(users, f, indent=4)
+        import shutil
+        shutil.rmtree('users')
+    elif not os.path.exists(misc.USERS_DIR):
+        with open(misc.USERS_DIR, 'w') as f:
+            json.dump({}, f)
+
+def load_all_users():
+    """Load all user data from users.txt"""
+    if not os.path.exists(misc.USERS_DIR):
+        return {}
+    try:
+        with open(misc.USERS_DIR, 'r') as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return {}
+
+def save_all_users(users):
+    """Save all user data to users.txt atomically with locking"""
+    lock_file = misc.USERS_DIR + '.lock'
+    try:
+        while os.path.exists(lock_file):
+            time.sleep(0.01)
+        with open(lock_file, 'w') as f:
+            f.write('')
+        temp_file = misc.USERS_DIR + '.tmp'
+        with open(temp_file, 'w') as f:
+            json.dump(users, f, indent=4)
+        os.replace(temp_file, misc.USERS_DIR)
+        return True
+    except PermissionError as e:
+        print(f'Save failed due to permission error: {e}. Data not saved.')
+        return False
+    except Exception as e:
+        print(f'Save failed: {e}. Data not saved.')
+        return False
+    finally:
+        try:
+            os.remove(lock_file)
+        except:
+            pass
+
+def load_user_data(username):
+    """Load user data from the users dict"""
+    users = load_all_users()
+    return users.get(username)
+
+def save_user_data(username, user_data):
+    """Save user data by updating the users dict and saving to file atomically"""
+    users = load_all_users()
+    users[username] = user_data
+    success = save_all_users(users)
+    if not success:
+        print(f'Warning: Failed to save data for {username}. Inventory changes may not persist.')
+    return success
+
+def signup(username, password):
+    users = load_all_users()
+    if username in users:
+        print('Username already exists!')
+        return False
+    user_data = {'username': username, 'password': password, 'score': 0, 'money': 40, 'player_data': default_player_data(), 'machine_homes': []}
+    users[username] = user_data
+    save_all_users(users)
+    set_machine_home(username)
+    print('Signup successful!')
+    return True
+
+def signin(username, password):
+    user_data = load_user_data(username)
+    if user_data and user_data.get('password') == password:
+        return (user_data.get('score', 0), user_data.get('money', 40), user_data.get('player_data', default_player_data()))
+    else:
+        return (None, None, None)
+
+def set_machine_home(username, machine_id=None):
+    """Set this machine as a home machine for the account"""
+    if not machine_id:
+        machine_id = get_machine_id()
+    users = load_all_users()
+    if username in users:
+        if 'machine_homes' not in users[username]:
+            users[username]['machine_homes'] = []
+        if machine_id not in users[username]['machine_homes']:
+            users[username]['machine_homes'].append(machine_id)
+            save_all_users(users)
+            print(f'This machine ({machine_id}) is now set as a home machine for {username}.')
+        else:
+            print(f'This machine is already set as a home machine for {username}.')
+    else:
+        print('User not found.')
+
+def get_home_accounts_for_machine(machine_id=None):
+    """Get list of accounts that have this machine set as home"""
+    if not machine_id:
+        machine_id = get_machine_id()
+    users = load_all_users()
+    home_accounts = []
+    for username, user_data in users.items():
+        if machine_id in user_data.get('machine_homes', []):
+            home_accounts.append(username)
+    return home_accounts
+
+def update_user(username, score=None, money=None, player_data=None):
+    users = load_all_users()
+    if username in users:
+        if score is not None:
+            users[username]['score'] = score
+        if money is not None:
+            users[username]['money'] = money
+        if player_data is not None:
+            users[username]['player_data'] = player_data
+        save_all_users(users)
+
+def default_player_data():
+    inv = {'potion': 1, 'strong_potion': 0, 'ultra_potion': 0, 'strength_boost': 0, 'defense_boost': 0, 'regen_potion': 0, 'crit_boost': 0, 'wooden_sword': 1, 'leather_armor': 1, 'mana_upgrade_potion': 0, 'mana_regen_potion': 0, 'instant_mana': 0, 'slime_gel': 0, 'goblin_tooth': 0, 'wolf_pelt': 0, 'skeleton_bone': 0, 'orc_iron': 0, 'bandit_cloth': 0, 'troll_core': 0, 'dark_essence': 0, 'prism_fragment': 0, 'void_fragment': 0, 'infinitium_piece': 0, 'soul_shard': 0, 'transcendent_heart': 0, 'dragon_scale': 0, 'phoenix_feather': 0, 'frozen_heart': 0, 'thunder_core': 0, 'holy_light': 0, 'demon_horn': 0, 'crystal_shard': 0, 'star_dust': 0, 'moon_rock': 0, 'sun_stone': 0, 'common_magic_pack': 0, 'rare_magic_pack': 0, 'mythical_magic_pack': 0, 'prismatic_magic_pack': 0, 'divine_magic_pack': 0, 'transcendent_magic_pack': 0, 'perm_strength_upgrade': 0, 'perm_defense_upgrade': 0, 'perm_health_upgrade': 0, 'perm_mana_upgrade': 0, 'perm_crit_chance_upgrade': 0, 'perm_mana_regen_upgrade': 0, 'perm_lifesteal_upgrade': 0, 'perm_lifesteal_chance_upgrade': 0, 'perm_magic_def_upgrade': 0, 'perm_exp_upgrade': 0}
+    return {'money': 40, 'score': 0, 'stats': {'hp_max': 100, 'hp': 100, 'atk': 5, 'defense': 0, 'level': 1, 'exp': 0, 'mana_max': 100, 'mana': 100, 'current_area': 1, 'equipped': {'weapon': None, 'armor': None, 'wand': None, 'robe': None, 'necklace': None},
+    'settings': {'call_including_title': True, 'show_exp_bar': False, 'auto_equip_best': False, 'auto_equip_spells': False, 'auto_equip_titles': False, 'auto_equip_everything': False},
+    'perm_atk': 0, 'perm_def': 0, 'perm_hp_max': 0, 'perm_mana_max': 0, 'perm_magic_def': 0, 'perm_crit_chance': 0, 'perm_mana_regen': 0, 'perm_lifesteal': 0, 'perm_lifesteal_chance': 0, 'perm_exp_boost': 0, 'title': get_title(1), 'achievements': [], 'monsters_defeated': 0, 'bosses_defeated': 0, 'total_money_earned': 0, 'items_crafted': 0, 'materials_collected': 0, 'times_died': 0, 'dungeon_treasure_collected': 0, 'critical_hits': 0, 'stats_manually_set': {'hp': False, 'hp_max': False, 'atk': False, 'defense': False, 'mana': False, 'mana_max': False},
+    'dodge_points': 3, 'max_dodge': 3, 'learned_spells': [], 'equipped_spells': [None, None, None, None], 'available_titles': ['novice'], 'equipped_titles': [None, None, None, None, None], 'title_atk_boost': 0, 'title_def_boost': 0, 'title_hp_boost': 0, 'title_mana_boost': 0, 'title_exp_boost': 0},
+    'inventory': inv}
+
+def magic_spell_interface(username):
+    user_data = load_user_data(username)
+    if not user_data:
+        print('User data not found.')
+        return
+    player_data = user_data.get('player_data', {})
+    stats = player_data.get('stats', {})
+    learned_spells = stats.get('learned_spells', [])
+    equipped_spells = stats.get('equipped_spells', [None, None, None, None])
+    while True:
+        print('\n--- Magic Spells ---')
+        print('Equipped Spells:')
+        for i in range(4):
+            spell = equipped_spells[i]
+            if spell and spell in misc.SPELLS_BY_KEY:
+                s = misc.SPELLS_BY_KEY[spell]
+                print(f"{i + 1}. Slot {i + 1}: {s['name']} ({s['mana']} mana)")
+            else:
+                print(f'{i + 1}. Slot {i + 1}: None')
+        print('\nLearned Spells:')
+        for i, spell_key in enumerate(learned_spells, start=1):
+            s = misc.SPELLS_BY_KEY.get(spell_key, {})
+            print(f"{i + 4}. {s.get('name', 'Unknown')} (lvl {s.get('lvl', '?')},{s.get('mana', '?')} mana) - {s.get('desc', '')}")
+        print('\nQuick Equip:')
+        print('b. Equip best spells automatically')
+        print('0. Back')
+        choice = input('Choose slot to equip/unequip, spell to equip, or "b" for auto-equip best: ').strip()
+        if choice == '0':
+            break
+        elif choice == 'b':
+            heal_spells = [s for s in learned_spells if misc.SPELLS_BY_KEY.get(s, {}).get('type') == 'heal']
+            non_heal_spells = [s for s in learned_spells if misc.SPELLS_BY_KEY.get(s, {}).get('type') != 'heal']
+            heal_spells_sorted = sorted(heal_spells, key=lambda s: misc.SPELLS_BY_KEY.get(s, {}).get('lvl', 0), reverse=True)
+            non_heal_sorted = sorted(non_heal_spells, key=lambda s: misc.SPELLS_BY_KEY.get(s, {}).get('lvl', 0), reverse=True)
+            equipped_spells = [None] * 4
+            for i in range(min(3, len(non_heal_sorted))):
+                equipped_spells[i] = non_heal_sorted[i]
+            if heal_spells_sorted:
+                equipped_spells[3] = heal_spells_sorted[0]
+            print('Auto-equipped best spells.')
+        elif choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < 4:
+                equipped_spells[idx] = None
+                print(f'Unequipped slot {idx + 1}.')
+            elif 4 <= idx < 4 + len(learned_spells):
+                spell_idx = idx - 4
+                spell_key = learned_spells[spell_idx]
+                s = misc.SPELLS_BY_KEY.get(spell_key, {})
+                empty_slots = [i for i, sp in enumerate(equipped_spells) if sp is None]
+                if empty_slots:
+                    slot = empty_slots[0]
+                    equipped_spells[slot] = spell_key
+                    print(f"Equipped {s.get('name', 'Unknown')} in slot {slot + 1}.")
+                else:
+                    print('No empty slots. Unequip a slot first.')
+            else:
+                print('Invalid choice.')
+        else:
+            print('Invalid choice.')
+    stats['equipped_spells'] = equipped_spells
+    player_data['stats'] = stats
+    user_data['player_data'] = player_data
+    save_user_data(username, user_data)
+
+def parse_qty_from_choice(choice_str):
+    try:
+        return int(choice_str)
+    except ValueError:
+        return 1
+
 def permanent_upgrades_interface(username):
     try:
         user_data = load_user_data(username)
@@ -322,29 +865,29 @@ def permanent_upgrades_interface(username):
     upgrade_aliases = {'str': 'perm_strength_upgrade', 'def': 'perm_defense_upgrade', 'hp': 'perm_health_upgrade', 'mana': 'perm_mana_upgrade', 'crit': 'perm_crit_chance_upgrade', 'magic_def': 'perm_magic_def_upgrade', 'lifesteal': 'perm_lifesteal_upgrade', 'lifesteal_chance': 'perm_lifesteal_chance_upgrade', 'exp': 'perm_exp_upgrade', 'perm_def': 'perm_defense_upgrade'}
 
     def apply_single_upgrade(stats, up_key):
-        if 'atk_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
-            stats['perm_atk'] = stats.get('perm_atk', 0) + dungeon_functions.PERM_UPGRADES[up_key]['atk_increase']
-        elif 'def_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
-            stats['perm_def'] = stats.get('perm_def', 0) + dungeon_functions.PERM_UPGRADES[up_key]['def_increase']
-        elif 'hp_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
-            stats['perm_hp_max'] = stats.get('perm_hp_max', 0) + dungeon_functions.PERM_UPGRADES[up_key]['hp_increase']
-        elif 'magic_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
-            stats['perm_mana_max'] = stats.get('perm_mana_max', 0) + dungeon_functions.PERM_UPGRADES[up_key]['magic_increase']
-        elif 'crit_chance_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
-            stats['perm_crit_chance'] = stats.get('perm_crit_chance', 0) + dungeon_functions.PERM_UPGRADES[up_key]['crit_chance_increase']
-        elif 'mana_regen_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
-            stats['perm_mana_regen'] = stats.get('perm_mana_regen', 0) + dungeon_functions.PERM_UPGRADES[up_key]['mana_regen_increase']
-        elif 'max_lifesteal_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
-            stats['perm_lifesteal'] = stats.get('perm_lifesteal', 0) + dungeon_functions.PERM_UPGRADES[up_key]['max_lifesteal_increase']
-        elif 'lifesteal_chance_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
-            stats['perm_lifesteal_chance'] = stats.get('perm_lifesteal_chance', 0) + dungeon_functions.PERM_UPGRADES[up_key]['lifesteal_chance_increase']
-        elif 'exp_increase' in dungeon_functions.PERM_UPGRADES[up_key]:
+        if 'atk_increase' in misc.PERM_UPGRADES[up_key]:
+            stats['perm_atk'] = stats.get('perm_atk', 0) + misc.PERM_UPGRADES[up_key]['atk_increase']
+        elif 'def_increase' in misc.PERM_UPGRADES[up_key]:
+            stats['perm_def'] = stats.get('perm_def', 0) + misc.PERM_UPGRADES[up_key]['def_increase']
+        elif 'hp_increase' in misc.PERM_UPGRADES[up_key]:
+            stats['perm_hp_max'] = stats.get('perm_hp_max', 0) + misc.PERM_UPGRADES[up_key]['hp_increase']
+        elif 'magic_increase' in misc.PERM_UPGRADES[up_key]:
+            stats['perm_mana_max'] = stats.get('perm_mana_max', 0) + misc.PERM_UPGRADES[up_key]['magic_increase']
+        elif 'crit_chance_increase' in misc.PERM_UPGRADES[up_key]:
+            stats['perm_crit_chance'] = stats.get('perm_crit_chance', 0) + misc.PERM_UPGRADES[up_key]['crit_chance_increase']
+        elif 'mana_regen_increase' in misc.PERM_UPGRADES[up_key]:
+            stats['perm_mana_regen'] = stats.get('perm_mana_regen', 0) + misc.PERM_UPGRADES[up_key]['mana_regen_increase']
+        elif 'max_lifesteal_increase' in misc.PERM_UPGRADES[up_key]:
+            stats['perm_lifesteal'] = stats.get('perm_lifesteal', 0) + misc.PERM_UPGRADES[up_key]['max_lifesteal_increase']
+        elif 'lifesteal_chance_increase' in misc.PERM_UPGRADES[up_key]:
+            stats['perm_lifesteal_chance'] = stats.get('perm_lifesteal_chance', 0) + misc.PERM_UPGRADES[up_key]['lifesteal_chance_increase']
+        elif 'exp_increase' in misc.PERM_UPGRADES[up_key]:
             old_boost = stats.get('perm_exp_boost', 0)
-            stats['perm_exp_boost'] = old_boost + dungeon_functions.PERM_UPGRADES[up_key]['exp_increase']
+            stats['perm_exp_boost'] = old_boost + misc.PERM_UPGRADES[up_key]['exp_increase']
     while True:
         print('\n--- Permanent Upgrades ---')
         print('Available upgrades (use permanent upgrade items from inventory):')
-        for key, upgrade in dungeon_functions.PERM_UPGRADES.items():
+        for key, upgrade in misc.PERM_UPGRADES.items():
             count = inventory.get(key, 0)
             if count > 0:
                 print(f"{key}: {upgrade['name']} (x{count})")
@@ -362,9 +905,9 @@ def permanent_upgrades_interface(username):
             qty = 1
         if opt in upgrade_aliases:
             opt = upgrade_aliases[opt]
-        if opt == 'all':
+        if opt in ['all', 'full']:
             total_applied = 0
-            for up_key in dungeon_functions.PERM_UPGRADES:
+            for up_key in misc.PERM_UPGRADES:
                 qty_owned = inventory.get(up_key, 0)
                 if qty_owned > 0:
                     inventory[up_key] -= qty_owned
@@ -380,7 +923,7 @@ def permanent_upgrades_interface(username):
                 print(f'Used {total_applied} permanent upgrades!')
             else:
                 print('No permanent upgrades to use.')
-        elif opt in dungeon_functions.PERM_UPGRADES and inventory.get(opt, 0) >= qty:
+        elif opt in misc.PERM_UPGRADES and inventory.get(opt, 0) >= qty:
             inventory[opt] -= qty
             for _ in range(qty):
                 apply_single_upgrade(stats, opt)
@@ -389,7 +932,7 @@ def permanent_upgrades_interface(username):
             user_data['player_data'] = player_data
             save_user_data(username, user_data)
             check_achievements(username)
-            print(f"Used {qty}x {dungeon_functions.PERM_UPGRADES[opt]['name']}!")
+            print(f"Used {qty}x {misc.PERM_UPGRADES[opt]['name']}!")
         else:
             print('Invalid choice or not enough owned.')
 
@@ -463,6 +1006,21 @@ def magic_pack_interface(username):
         else:
             print('Invalid choice or not enough owned.')
 
+def apply_permanent_upgrades(username):
+    try:
+        user_data = load_user_data(username)
+        if not user_data:
+            return
+        player_data = user_data['player_data']
+        stats = player_data['stats']
+        inventory = player_data['inventory']
+        apply_title_boosts(username)
+        player_data['stats'] = stats
+        user_data['player_data'] = player_data
+        save_user_data(username, user_data)
+    except Exception as e:
+        print(f'Error applying permanent upgrades: {e}')
+
 def crafting_interface(username):
     try:
         user_data = load_user_data(username)
@@ -479,7 +1037,7 @@ def crafting_interface(username):
         print('\n--- Crafting Interface ---')
         print('Available recipes:')
         recipe_list = []
-        for recipe_key, recipe in RECIPES.items():
+        for recipe_key, recipe in misc.RECIPES.items():
             can_craft = True
             materials_needed = recipe['materials']
             for mat, qty in materials_needed.items():
@@ -489,10 +1047,20 @@ def crafting_interface(username):
             status = '✓' if can_craft else '✗'
             result_item = recipe['result']
             result_name = 'Unknown'
-            if result_item in POTIONS:
-                result_name = POTIONS[result_item]['name']
-            elif result_item in dungeon_functions.PERM_UPGRADES:
-                result_name = dungeon_functions.PERM_UPGRADES[result_item]['name']
+            if result_item in misc.POTIONS:
+                result_name = misc.POTIONS[result_item]['name']
+            elif result_item in misc.PERM_UPGRADES:
+                result_name = misc.PERM_UPGRADES[result_item]['name']
+            elif result_item in misc.CRAFTABLE_WEAPONS:
+                result_name = misc.CRAFTABLE_WEAPONS[result_item]['name']
+            elif result_item in misc.CRAFTABLE_WANDS:
+                result_name = misc.CRAFTABLE_WANDS[result_item]['name']
+            elif result_item in misc.CRAFTABLE_NECKLACES:
+                result_name = misc.CRAFTABLE_NECKLACES[result_item]['name']
+            elif result_item in misc.CRAFTABLE_ROBES:
+                result_name = misc.CRAFTABLE_ROBES[result_item]['name']
+            elif result_item in misc.CRAFTABLE_misc.ARMORS:
+                result_name = misc.CRAFTABLE_misc.ARMORS[result_item]['name']
             recipe_list.append((recipe_key, result_name, can_craft))
             materials_str = ', '.join([f"{mat} x{qty}" for mat, qty in materials_needed.items()])
             print(f"{len(recipe_list)}. {status} {result_name} - Requires: {materials_str}")
@@ -510,7 +1078,7 @@ def crafting_interface(username):
             if 0 <= idx < len(recipe_list):
                 recipe_key, result_name, can_craft = recipe_list[idx]
                 if can_craft:
-                    recipe = RECIPES[recipe_key]
+                    recipe = misc.RECIPES[recipe_key]
                     materials_needed = recipe['materials']
                     result = recipe['result']
                     result_qty = recipe['qty']
@@ -565,7 +1133,7 @@ def open_magic_pack(username, pack_key, quantity=1):
             spell_key = random.choice(spells_pool)
             if spell_key not in stats['learned_spells']:
                 stats['learned_spells'].append(spell_key)
-                new_spells.append(SPELLS_BY_KEY[spell_key]['name'])
+                new_spells.append(misc.SPELLS_BY_KEY[spell_key]['name'])
     player_data['inventory'] = inventory
     player_data['stats'] = stats
     user_data['player_data'] = player_data
@@ -699,10 +1267,10 @@ def equip_titles_menu(username, player_data, cursor):
         print('\n--- Equip Titles ---')
         for i in range(5):
             title = equipped_titles[i]
-            print(f"{i + 1}. Slot {i + 1}: {(TITLES.get(title, {}).get('name', 'None') if title else 'None')}")
+            print(f"{i + 1}. Slot {i + 1}: {(misc.TITLES.get(title, {}).get('name', 'None') if title else 'None')}")
         print('\nAvailable Titles:')
         for i, title_key in enumerate(available_titles, start=1):
-            title_name = TITLES.get(title_key, {}).get('name', title_key)
+            title_name = misc.TITLES.get(title_key, {}).get('name', title_key)
             print(f'{i + 5}. {title_name}')
         print('0. Back')
         choice = input('Choose slot to equip/unequip or title to equip: ').strip()
@@ -720,7 +1288,7 @@ def equip_titles_menu(username, player_data, cursor):
                 if empty_slots:
                     slot = empty_slots[0]
                     equipped_titles[slot] = title_key
-                    print(f"Equipped {TITLES[title_key]['name']} in slot {slot + 1}.")
+                    print(f"Equipped {misc.TITLES[title_key]['name']} in slot {slot + 1}.")
                 else:
                     print('No empty slots. Unequip a slot first.')
             else:
@@ -743,8 +1311,8 @@ def apply_title_boosts(username):
         stats['title_exp_boost'] = 0
         stats['title_magic_def_boost'] = 0
         for title_id in stats.get('equipped_titles', []):
-            if title_id and title_id in TITLES:
-                title = TITLES[title_id]
+            if title_id and title_id in misc.TITLES:
+                title = misc.TITLES[title_id]
                 stats['title_atk_boost'] += title.get('atk_boost', 0)
                 stats['title_def_boost'] += title.get('def_boost', 0)
                 stats['title_hp_boost'] += title.get('hp_boost', 0)
@@ -770,10 +1338,10 @@ def auto_equip_spells(username):
         learned_spells = stats.get('learned_spells', [])
         if not learned_spells:
             return
-        heal_spells = [s for s in learned_spells if SPELLS_BY_KEY.get(s, {}).get('type') == 'heal']
-        non_heal_spells = [s for s in learned_spells if SPELLS_BY_KEY.get(s, {}).get('type') != 'heal']
-        heal_spells_sorted = sorted(heal_spells, key=lambda s: SPELLS_BY_KEY.get(s, {}).get('lvl', 0), reverse=True)
-        non_heal_sorted = sorted(non_heal_spells, key=lambda s: SPELLS_BY_KEY.get(s, {}).get('lvl', 0), reverse=True)
+        heal_spells = [s for s in learned_spells if misc.SPELLS_BY_KEY.get(s, {}).get('type') == 'heal']
+        non_heal_spells = [s for s in learned_spells if misc.SPELLS_BY_KEY.get(s, {}).get('type') != 'heal']
+        heal_spells_sorted = sorted(heal_spells, key=lambda s: misc.SPELLS_BY_KEY.get(s, {}).get('lvl', 0), reverse=True)
+        non_heal_sorted = sorted(non_heal_spells, key=lambda s: misc.SPELLS_BY_KEY.get(s, {}).get('lvl', 0), reverse=True)
         equipped_spells = [None] * 4
         for i in range(min(3, len(non_heal_sorted))):
             equipped_spells[i] = non_heal_sorted[i]
@@ -800,8 +1368,8 @@ def auto_equip_items(username):
         best_weapon = None
         best_weapon_atk = 0
         for weapon_id, count in inventory.items():
-            if count > 0 and weapon_id in WEAPONS:
-                weapon_atk = WEAPONS[weapon_id]['atk']
+            if count > 0 and weapon_id in misc.WEAPONS:
+                weapon_atk = misc.WEAPONS[weapon_id]['atk']
                 if weapon_atk > best_weapon_atk:
                     best_weapon = weapon_id
                     best_weapon_atk = weapon_atk
@@ -810,8 +1378,8 @@ def auto_equip_items(username):
         best_armor = None
         best_armor_def = 0
         for armor_id, count in inventory.items():
-            if count > 0 and armor_id in ARMORS:
-                armor_def = ARMORS[armor_id]['def']
+            if count > 0 and armor_id in misc.ARMORS:
+                armor_def = misc.ARMORS[armor_id]['def']
                 if armor_def > best_armor_def:
                     best_armor = armor_id
                     best_armor_def = armor_def
@@ -821,8 +1389,8 @@ def auto_equip_items(username):
             best_wand = None
             best_wand_magic_atk = 0
             for wand_id, count in inventory.items():
-                if count > 0 and wand_id in WANDS:
-                    wand_magic_atk = WANDS[wand_id]['magic_atk']
+                if count > 0 and wand_id in misc.WANDS:
+                    wand_magic_atk = misc.WANDS[wand_id]['magic_atk']
                     if wand_magic_atk > best_wand_magic_atk:
                         best_wand = wand_id
                         best_wand_magic_atk = wand_magic_atk
@@ -831,8 +1399,8 @@ def auto_equip_items(username):
             best_robe = None
             best_robe_magic_def = 0
             for robe_id, count in inventory.items():
-                if count > 0 and robe_id in ROBES:
-                    robe_magic_def = ROBES[robe_id]['magic_def']
+                if count > 0 and robe_id in misc.ROBES:
+                    robe_magic_def = misc.ROBES[robe_id]['magic_def']
                     if robe_magic_def > best_robe_magic_def:
                         best_robe = robe_id
                         best_robe_magic_def = robe_magic_def
@@ -841,8 +1409,8 @@ def auto_equip_items(username):
             best_necklace = None
             best_necklace_value = 0
             for necklace_id, count in inventory.items():
-                if count > 0 and necklace_id in NECKLACES:
-                    necklace = NECKLACES[necklace_id]
+                if count > 0 and necklace_id in misc.NECKLACES:
+                    necklace = misc.NECKLACES[necklace_id]
                     total_value = necklace.get('hp_bonus', 0) * 1 + necklace.get('mana_bonus', 0) * 1 + necklace.get('atk_bonus', 0) * 2 + necklace.get('def_bonus', 0) * 2 + necklace.get('magic_atk_bonus', 0) * 2 + necklace.get('magic_def_bonus', 0) * 2 + necklace.get('crit_bonus', 0) * 3 + necklace.get('lifesteal_bonus', 0) * 3
                     if total_value > best_necklace_value:
                         best_necklace = necklace_id
@@ -868,30 +1436,30 @@ def manage_inventory_menu(username, player_data, cursor):
         print(f'Money: {money}')
         print('Equipped:')
         weapon = equipped.get('weapon')
-        print(f"  Weapon: {(WEAPONS.get(weapon, {}).get('name', 'None') if weapon else 'None')}")
+        print(f"  Weapon: {(misc.WEAPONS.get(weapon, {}).get('name', 'None') if weapon else 'None')}")
         armor = equipped.get('armor')
-        print(f"  Armor: {(ARMORS.get(armor, {}).get('name', 'None') if armor else 'None')}")
+        print(f"  Armor: {(misc.ARMORS.get(armor, {}).get('name', 'None') if armor else 'None')}")
         wand = equipped.get('wand')
-        print(f"  Wand: {(WANDS.get(wand, {}).get('name', 'None') if wand else 'None')}")
+        print(f"  Wand: {(misc.WANDS.get(wand, {}).get('name', 'None') if wand else 'None')}")
         robe = equipped.get('robe')
-        print(f"  Robe: {(ROBES.get(robe, {}).get('name', 'None') if robe else 'None')}")
+        print(f"  Robe: {(misc.ROBES.get(robe, {}).get('name', 'None') if robe else 'None')}")
         necklace = equipped.get('necklace')
-        print(f"  Necklace: {(NECKLACES.get(necklace, {}).get('name', 'None') if necklace else 'None')}")
+        print(f"  Necklace: {(misc.NECKLACES.get(necklace, {}).get('name', 'None') if necklace else 'None')}")
         print('\nInventory:')
         item_list = []
         for key, count in inventory.items():
             if count > 0:
                 name = 'Unknown'
-                if key in WEAPONS:
-                    name = WEAPONS[key]['name']
-                elif key in ARMORS:
-                    name = ARMORS[key]['name']
-                elif key in WANDS:
-                    name = WANDS[key]['name']
-                elif key in ROBES:
-                    name = ROBES[key]['name']
-                elif key in NECKLACES:
-                    name = NECKLACES[key]['name']
+                if key in misc.WEAPONS:
+                    name = misc.WEAPONS[key]['name']
+                elif key in misc.ARMORS:
+                    name = misc.ARMORS[key]['name']
+                elif key in misc.WANDS:
+                    name = misc.WANDS[key]['name']
+                elif key in misc.ROBES:
+                    name = misc.ROBES[key]['name']
+                elif key in misc.NECKLACES:
+                    name = misc.NECKLACES[key]['name']
                 else:
                     continue
                 item_list.append((key, name, count))
@@ -910,71 +1478,71 @@ def manage_inventory_menu(username, player_data, cursor):
             best_weapon = None
             best_weapon_atk = 0
             for weapon_id, count in inventory.items():
-                if count > 0 and weapon_id in WEAPONS:
-                    weapon_atk = WEAPONS[weapon_id]['atk']
+                if count > 0 and weapon_id in misc.WEAPONS:
+                    weapon_atk = misc.WEAPONS[weapon_id]['atk']
                     if weapon_atk > best_weapon_atk:
                         best_weapon = weapon_id
                         best_weapon_atk = weapon_atk
             if best_weapon:
                 equipped['weapon'] = best_weapon
-                print(f'Equipped best weapon: {WEAPONS[best_weapon]["name"]}')
+                print(f'Equipped best weapon: {misc.WEAPONS[best_weapon]["name"]}')
             else:
                 print('No weapons to equip.')
         elif choice == 'a':
             best_armor = None
             best_armor_def = 0
             for armor_id, count in inventory.items():
-                if count > 0 and armor_id in ARMORS:
-                    armor_def = ARMORS[armor_id]['def']
+                if count > 0 and armor_id in misc.ARMORS:
+                    armor_def = misc.ARMORS[armor_id]['def']
                     if armor_def > best_armor_def:
                         best_armor = armor_id
                         best_armor_def = armor_def
             if best_armor:
                 equipped['armor'] = best_armor
-                print(f'Equipped best armor: {ARMORS[best_armor]["name"]}')
+                print(f'Equipped best armor: {misc.ARMORS[best_armor]["name"]}')
             else:
                 print('No armors to equip.')
         elif choice == 'm':
             best_wand = None
             best_wand_magic_atk = 0
             for wand_id, count in inventory.items():
-                if count > 0 and wand_id in WANDS:
-                    wand_magic_atk = WANDS[wand_id]['magic_atk']
+                if count > 0 and wand_id in misc.WANDS:
+                    wand_magic_atk = misc.WANDS[wand_id]['magic_atk']
                     if wand_magic_atk > best_wand_magic_atk:
                         best_wand = wand_id
                         best_wand_magic_atk = wand_magic_atk
             if best_wand:
                 equipped['wand'] = best_wand
-                print(f'Equipped best wand: {WANDS[best_wand]["name"]}')
+                print(f'Equipped best wand: {misc.WANDS[best_wand]["name"]}')
             else:
                 print('No wands to equip.')
         elif choice == 'r':
             best_robe = None
             best_robe_magic_def = 0
             for robe_id, count in inventory.items():
-                if count > 0 and robe_id in ROBES:
-                    robe_magic_def = ROBES[robe_id]['magic_def']
+                if count > 0 and robe_id in misc.ROBES:
+                    robe_magic_def = misc.ROBES[robe_id]['magic_def']
                     if robe_magic_def > best_robe_magic_def:
                         best_robe = robe_id
                         best_robe_magic_def = robe_magic_def
             if best_robe:
                 equipped['robe'] = best_robe
-                print(f'Equipped best robe: {ROBES[best_robe]["name"]}')
+                print(f'Equipped best robe: {misc.ROBES[best_robe]["name"]}')
             else:
                 print('No robes to equip.')
         elif choice == 'n':
             best_necklace = None
             best_necklace_value = 0
             for necklace_id, count in inventory.items():
-                if count > 0 and necklace_id in NECKLACES:
-                    necklace = NECKLACES[necklace_id]
+                if count > 0 and necklace_id in misc.NECKLACES:
+                    necklace = misc.NECKLACES[necklace_id]
                     total_value = necklace.get('hp_bonus', 0) * 1 + necklace.get('mana_bonus', 0) * 1 + necklace.get('atk_bonus', 0) * 2 + necklace.get('def_bonus', 0) * 2 + necklace.get('magic_atk_bonus', 0) * 2 + necklace.get('magic_def_bonus', 0) * 2 + necklace.get('crit_bonus', 0) * 3 + necklace.get('lifesteal_bonus', 0) * 3
                     if total_value > best_necklace_value:
                         best_necklace = necklace_id
                         best_necklace_value = total_value
             if best_necklace:
                 equipped['necklace'] = best_necklace
-                print(f'Equipped best necklace: {NECKLACES[best_necklace]["name"]}')
+                print(f'Equipped best necklace: {misc.NECKLACES[best_necklace]["name"]}')
             else:
                 print('No necklaces to equip.')
         elif choice.startswith('u'):
@@ -1000,19 +1568,19 @@ def manage_inventory_menu(username, player_data, cursor):
             idx = int(choice) - 1
             if 0 <= idx < len(item_list):
                 item_key, item_name, count = item_list[idx]
-                if item_key in WEAPONS:
+                if item_key in misc.WEAPONS:
                     equipped['weapon'] = item_key
                     print(f'Equipped {item_name} as weapon.')
-                elif item_key in ARMORS:
+                elif item_key in misc.ARMORS:
                     equipped['armor'] = item_key
                     print(f'Equipped {item_name} as armor.')
-                elif item_key in WANDS:
+                elif item_key in misc.WANDS:
                     equipped['wand'] = item_key
                     print(f'Equipped {item_name} as wand.')
-                elif item_key in ROBES:
+                elif item_key in misc.ROBES:
                     equipped['robe'] = item_key
                     print(f'Equipped {item_name} as robe.')
-                elif item_key in NECKLACES:
+                elif item_key in misc.NECKLACES:
                     equipped['necklace'] = item_key
                     print(f'Equipped {item_name} as necklace.')
             else:
@@ -1048,18 +1616,18 @@ def compute_effective_stats(stats, active_buffs):
     wand = stats.get('equipped', {}).get('wand')
     robe = stats.get('equipped', {}).get('robe')
     necklace = stats.get('equipped', {}).get('necklace')
-    w_atk = WEAPONS.get(weapon, {}).get('atk', 0) if weapon else 0
-    a_def = ARMORS.get(armor, {}).get('def', 0) if armor else 0
-    wand_magic = WANDS.get(wand, {}).get('magic_atk', 0) if wand else 0
-    robe_def = ROBES.get(robe, {}).get('magic_def', 0) if robe else 0
-    n_atk = NECKLACES.get(necklace, {}).get('atk_bonus', 0) if necklace else 0
-    n_def = NECKLACES.get(necklace, {}).get('def_bonus', 0) if necklace else 0
-    n_hp = NECKLACES.get(necklace, {}).get('hp_bonus', 0) if necklace else 0
-    n_mana = NECKLACES.get(necklace, {}).get('mana_bonus', 0) if necklace else 0
-    n_crit = NECKLACES.get(necklace, {}).get('crit_bonus', 0) if necklace else 0
-    n_lifesteal = NECKLACES.get(necklace, {}).get('lifesteal_bonus', 0) if necklace else 0
-    n_magic_atk = NECKLACES.get(necklace, {}).get('magic_atk_bonus', 0) if necklace else 0
-    n_magic_def = NECKLACES.get(necklace, {}).get('magic_def_bonus', 0) if necklace else 0
+    w_atk = misc.WEAPONS.get(weapon, {}).get('atk', 0) if weapon else 0
+    a_def = misc.ARMORS.get(armor, {}).get('def', 0) if armor else 0
+    wand_magic = misc.WANDS.get(wand, {}).get('magic_atk', 0) if wand else 0
+    robe_def = misc.ROBES.get(robe, {}).get('magic_def', 0) if robe else 0
+    n_atk = misc.NECKLACES.get(necklace, {}).get('atk_bonus', 0) if necklace else 0
+    n_def = misc.NECKLACES.get(necklace, {}).get('def_bonus', 0) if necklace else 0
+    n_hp = misc.NECKLACES.get(necklace, {}).get('hp_bonus', 0) if necklace else 0
+    n_mana = misc.NECKLACES.get(necklace, {}).get('mana_bonus', 0) if necklace else 0
+    n_crit = misc.NECKLACES.get(necklace, {}).get('crit_bonus', 0) if necklace else 0
+    n_lifesteal = misc.NECKLACES.get(necklace, {}).get('lifesteal_bonus', 0) if necklace else 0
+    n_magic_atk = misc.NECKLACES.get(necklace, {}).get('magic_atk_bonus', 0) if necklace else 0
+    n_magic_def = misc.NECKLACES.get(necklace, {}).get('magic_def_bonus', 0) if necklace else 0
     t_atk = stats.get('title_atk_boost', 0)
     t_def = stats.get('title_def_boost', 0)
     t_hp = stats.get('title_hp_boost', 0)
@@ -1089,67 +1657,596 @@ def compute_effective_stats(stats, active_buffs):
     effective_mana_bonus += stats.get('perm_mana_max', 0)
     return (effective_atk, effective_def, effective_magic_atk, effective_magic_def, effective_hp_bonus, effective_mana_bonus, n_crit, n_lifesteal)
 
-def magic_spell_interface(username):
-    user_data = load_user_data(username)
-    if not user_data:
-        print('User data not found.')
-        return
-    player_data = user_data.get('player_data', {})
-    stats = player_data.get('stats', {})
-    learned_spells = stats.get('learned_spells', [])
-    equipped_spells = stats.get('equipped_spells', [None, None, None, None])
+def get_leaderboard():
+    """Get leaderboard from users.txt"""
+    users_data = []
+    users = load_all_users()
+    for username, user_data in users.items():
+        score = user_data.get('score', 0)
+        users_data.append((username, score))
+    users_data.sort(key=lambda x: x[1], reverse=True)
+    return users_data[:10]
+
+def guessing_game(current_user, score):
+    number = random.randint(1, 100)
+    attempts = 0
+    print('Welcome to the Number Guessing Game!')
+    print("I'm thinking of a number between 1 and 100.")
     while True:
-        print('\n--- Magic Spells ---')
-        print('Equipped Spells:')
-        for i in range(4):
-            spell = equipped_spells[i]
-            if spell and spell in SPELLS_BY_KEY:
-                s = SPELLS_BY_KEY[spell]
-                print(f"{i + 1}. Slot {i + 1}: {s['name']} ({s['mana']} mana)")
+        try:
+            guess = int(input('Enter your guess: '))
+            attempts += 1
+            if guess < number:
+                print('Too low!')
+            elif guess > number:
+                print('Too high!')
             else:
-                print(f'{i + 1}. Slot {i + 1}: None')
-        print('\nLearned Spells:')
-        for i, spell_key in enumerate(learned_spells, start=1):
-            s = SPELLS_BY_KEY.get(spell_key, {})
-            print(f"{i + 4}. {s.get('name', 'Unknown')} (lvl {s.get('lvl', '?')},{s.get('mana', '?')} mana) - {s.get('desc', '')}")
-        print('\nQuick Equip:')
-        print('b. Equip best spells automatically')
-        print('0. Back')
-        choice = input('Choose slot to equip/unequip, spell to equip, or "b" for auto-equip best: ').strip()
-        if choice == '0':
-            break
-        elif choice == 'b':
-            heal_spells = [s for s in learned_spells if SPELLS_BY_KEY.get(s, {}).get('type') == 'heal']
-            non_heal_spells = [s for s in learned_spells if SPELLS_BY_KEY.get(s, {}).get('type') != 'heal']
-            heal_spells_sorted = sorted(heal_spells, key=lambda s: SPELLS_BY_KEY.get(s, {}).get('lvl', 0), reverse=True)
-            non_heal_sorted = sorted(non_heal_spells, key=lambda s: SPELLS_BY_KEY.get(s, {}).get('lvl', 0), reverse=True)
-            equipped_spells = [None] * 4
-            for i in range(min(3, len(non_heal_sorted))):
-                equipped_spells[i] = non_heal_sorted[i]
-            if heal_spells_sorted:
-                equipped_spells[3] = heal_spells_sorted[0]
-            print('Auto-equipped best spells.')
-        elif choice.isdigit():
-            idx = int(choice) - 1
-            if 0 <= idx < 4:
-                equipped_spells[idx] = None
-                print(f'Unequipped slot {idx + 1}.')
-            elif 4 <= idx < 4 + len(learned_spells):
-                spell_idx = idx - 4
-                spell_key = learned_spells[spell_idx]
-                s = SPELLS_BY_KEY.get(spell_key, {})
-                empty_slots = [i for i, sp in enumerate(equipped_spells) if sp is None]
-                if empty_slots:
-                    slot = empty_slots[0]
-                    equipped_spells[slot] = spell_key
-                    print(f"Equipped {s.get('name', 'Unknown')} in slot {slot + 1}.")
-                else:
-                    print('No empty slots. Unequip a slot first.')
-            else:
-                print('Invalid choice.')
+                print(f'Correct! You guessed it in {attempts} attempts.')
+                score += max(0, 10 - attempts)
+                print(f'Score updated. New score: {score}')
+                update_user(current_user, score=score)
+                return score
+        except ValueError:
+            print('Please enter a valid number.')
+
+def debug_console(current_user, score, money, player_data, USERS_DIR):
+    debugconsoleaccess = 'accepted' if current_user == 'tester01' else None
+    if current_user != 'tester01':
+        adminQ = input("When is the game developer's bestfriends BOD?: ")
+        if adminQ in adminQanswers:
+            print('Access Accepted')
+            debugconsoleaccess = 'accepted'
         else:
-            print('Invalid choice.')
-    stats['equipped_spells'] = equipped_spells
-    player_data['stats'] = stats
-    user_data['player_data'] = player_data
-    save_user_data(username, user_data)
+            print('Access Denied')
+            debugconsoleaccess = 'denied'
+    if debugconsoleaccess != 'denied':
+        print('[BOOTSEQ://DEBUG_CONSOLE]')
+        time.sleep(round(random.uniform(0, 1.5), 2))
+        print('→ Linking subsystems...')
+        time.sleep(round(random.uniform(0, 1.5), 2))
+        print('→ Bypassing safety locks...')
+        time.sleep(round(random.uniform(0, 1.5), 2))
+        print('→ Syncing I/O...')
+        time.sleep(round(random.uniform(0, 1.5), 2))
+        print(':: DEBUG MODE ENGAGED ::')
+    while True:
+        if debugconsoleaccess == 'denied':
+            break
+        else:
+            pass
+        command_executed = False
+        success = False
+        cmd = input('>> ').strip().lower().split(' ', 1)
+        cmd_base = cmd[0] if cmd else ''
+        args = cmd[1] if len(cmd) > 1 else ''
+        if cmd_base == 'help' or cmd_base == 'h' or cmd_base == '?':
+            command_executed = True
+            success = True
+            print('\n--- Debug Commands ---')
+            print('users - display all registered users (limited info)')
+            print('current - display current user and score')
+            print('numbers - display generated random numbers (if any)')
+            print('play - play the number guessing game')
+            print('adduser <u> <p> - create a new user account with password')
+            print('deluser <u> - delete a user account')
+            print('reset - reset all users and highscores')
+            print('resetplayer <u> - reset a single user to default stats')
+            print('setdmoney <n> - set dungeon treasure amount to n')
+            print("setscore <u> <n> - set a user's score to n")
+            print("setmoney <u> <n> - set a user's money to n")
+            print("setexp <u> <n> - set a user's experience to n")
+            print("setlvl <u> <n> - set a user's level to n")
+            print('setdefeated <u> <type> <n> - set defeated count for type (monsters, bosses, etc.)')
+            print("set <u> <stat> <n> - set a user's stat to n (hp, mana, atk, def, etc.)")
+            print('showfull <u> - display full data for user u')
+            print('give <u> <item> [qty] - grant an item to user (saves automatically)')
+            print(' (items: potion, strong_potion, ultra_potion, etc.)')
+            print(' (upgrades: perm_strength_upgrade, perm_defense_upgrade, etc.)')
+            print(' (aliases: str, def, hp, mana, crit, etc.)')
+            print('ruinthefun(username) - grant all achievements, items (500x usable), max stats')
+            print("setdodge <u> <n> - set a user's dodge points to n")
+            print('exit - close debug console')
+            print('-----------------------\n')
+        elif cmd_base == 'users' or cmd_base == 'usrs' or cmd_base == 'u':
+            command_executed = True
+            success = True
+            leaderboard = get_leaderboard()
+            simulate_cmd_execution('users', success=True)
+            time.sleep(round(random.uniform(2, 5), 2))
+            collect_user_database()
+            print('\n--- Top 10 Users ---')
+            for uname, uscore in leaderboard:
+                user_data = load_user_data(uname)
+                umoney = user_data.get('money', 0) if user_data else 0
+                print(f'{uname}: Score {uscore}, Money ${umoney}')
+            print('---\n')
+        elif cmd_base == 'current' or cmd_base == 'curr' or cmd_base == 'c':
+            command_executed = True
+            if current_user:
+                success = True
+                print(f'Current user: {current_user}, Score: {score}, Money: ${money}')
+            else:
+                success = False
+                print('No current user logged in.')
+            simulate_cmd_execution('current', success=success)
+            if success:
+                show_memory_patch()
+        elif cmd_base == 'play':
+            command_executed = True
+            if current_user:
+                simulate_cmd_execution('play number guessing game', success=success)
+                score = guessing_game(current_user, score)
+                success = True
+                print(f'Game over. Updated score: {score}')
+            else:
+                success = False
+                print('No current user logged in.')
+            if success:
+                show_memory_patch()
+        elif cmd_base == 'numbers':
+            command_executed = True
+            success = True
+            print('Random numbers generated this session: (not tracked)')
+            simulate_cmd_execution('numbers', success=True)
+            show_memory_patch()
+        elif cmd_base == 'adduser':
+            command_executed = True
+            if args:
+                parts = args.split(' ', 1)
+                if len(parts) == 2:
+                    u, p = parts
+                    if signup(u, p):
+                        success = True
+                        show_adduser(u)
+                    else:
+                        success = False
+                        print('Failed to create user.')
+                else:
+                    success = False
+                    print('Usage: adduser <username> <password>')
+            else:
+                success = False
+                print('Usage: adduser <username> <password>')
+            simulate_cmd_execution('adduser', success=success)
+        elif cmd_base == 'deluser':
+            command_executed = True
+            if args:
+                u = args.strip()
+                users = load_all_users()
+                if u in users:
+                    del users[u]
+                    save_all_users(users)
+                    success = True
+                    show_deluser(u)
+                else:
+                    success = False
+                    print('User not found.')
+            else:
+                success = False
+                print('Usage: deluser <username>')
+            simulate_cmd_execution('deluser', success=success)
+        elif cmd_base == 'reset':
+            command_executed = True
+            success = True
+            save_all_users({})
+            print('All users reset.')
+            simulate_cmd_execution('reset', success=success)
+        elif cmd_base == 'resetplayer':
+            command_executed = True
+            if args:
+                u = args.strip()
+                user_data = load_user_data(u)
+                if user_data:
+                    print('\n[SYS://ACCOUNT_RESET]')
+                    print('High-security operation detected.')
+                    time.sleep()
+                    print('Action → reset.account')
+                    print('> Initializing identity module...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
+                    print('> Verifying authorization token...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
+                    print('> Syncing with user registry...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
+                    print()
+                    print('!! CRITICAL OPERATION WARNING !!')
+                    print('Target account flagged for full removal.')
+                    print()
+                    print('> Executing purge protocol...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
+                    print('> Revoking linked credentials...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
+                    print('> Dropping session keys...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
+                    print('> Anonymizing residual metadata...')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
+                    print()
+                    print('[DELETE REPORT]')
+                    print(f' • TARGET      : {u}')
+                    print(' • MODE        : irreversible purge')
+                    print(' • STATUS      : Complete')
+                    print(' • TRACE       : all identifiers wiped')
+                    print()
+                    print('> Finalizing cleanup...')
+                    print('   → Scrubbing data blocks.........OK')
+                    print('   → Flushing cache entries........OK')
+                    time.sleep(round(random.uniform(0, 1.5), 2))
+                    print('   → Seal-locking registry path....OK')
+                    print()
+                    print('[✓] ACCOUNT DELETED — NO RECOVERY')
+                    print()
+                    show_memory_patch()
+                    player_data = default_player_data()
+                    user_data['score'] = 0
+                    user_data['money'] = 40
+                    user_data['player_data'] = player_data
+                    save_user_data(u, user_data)
+                    success = True
+                    print(f'Player {u} reset to defaults.')
+                else:
+                    success = False
+                    print('User not found.')
+            else:
+                success = False
+                print('Usage: resetplayer <username>')
+            simulate_cmd_execution('resetplayer', success=success)
+            if success:
+                show_memory_patch()
+        elif cmd_base == 'setdmoney':
+            command_executed = True
+            success = False
+            if args:
+                try:
+                    global dungeon_treasure
+                    dungeon_treasure = int(args.strip())
+                    other_functions.save_dungeon_treasure()
+                    print(f'Dungeon treasure set to ${dungeon_treasure}')
+                    success = True
+                except ValueError:
+                    print('Invalid number.')
+            else:
+                print('Usage: setdmoney <n>')
+            simulate_cmd_execution('setdmoney', success=success)
+            if success:
+                show_memory_patch()
+        elif cmd_base == 'setscore':
+            command_executed = True
+            if args:
+                parts = args.split(' ', 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data['score'] = n
+                            save_user_data(u, user_data)
+                            success = True
+                            print(f'Score for {u} set to {n}.')
+                        else:
+                            success = False
+                            print('User not found.')
+                    except ValueError:
+                        success = False
+                        print('Invalid score.')
+                else:
+                    success = False
+                    print('Usage: setscore <username> <score>')
+            else:
+                success = False
+                print('Usage: setscore <username> <score>')
+            simulate_cmd_execution('setscore', success=success)
+            if success == True:
+                show_memory_patch()
+        elif cmd_base == 'setmoney':
+            command_executed = True
+            success = False
+            if args:
+                parts = args.split(' ', 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data['money'] = n
+                            save_user_data(u, user_data)
+                            print(f'Money for {u} set to ${n}.')
+                            success = True
+                        else:
+                            print('User not found.')
+                    except ValueError:
+                        print('Invalid money.')
+                else:
+                    print('Usage: setmoney <username> <money>')
+            else:
+                print('Usage: setmoney <username> <money>')
+            simulate_cmd_execution('setmoney', success=success)
+            if success:
+                show_memory_patch()
+        elif cmd_base == 'setexp':
+            command_executed = True
+            if args:
+                parts = args.split(' ', 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data['player_data']['stats']['exp'] = n
+                            save_user_data(u, user_data)
+                            success = True
+                            print(f'EXP for {u} set to {n}.')
+                        else:
+                            success = False
+                            print('User not found.')
+                    except ValueError:
+                        success = False
+                        print('Invalid EXP.')
+                else:
+                    success = False
+                    print('Usage: setexp <username> <exp>')
+            else:
+                success = False
+                print('Usage: setexp <username> <exp>')
+            simulate_cmd_execution('setexp', success=success)
+            if success == True:
+                show_memory_patch()
+        elif cmd_base == 'setlvl':
+            command_executed = True
+            if args:
+                parts = args.split(' ', 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data['player_data']['stats']['level'] = n
+                            save_user_data(u, user_data)
+                            success = True
+                            print(f'Level for {u} set to {n}.')
+                        else:
+                            success = False
+                            print('User not found.')
+                    except ValueError:
+                        success = False
+                        print('Invalid level.')
+                else:
+                    success = False
+                    print('Usage: setlvl <username> <level>')
+            else:
+                success = False
+                print('Usage: setlvl <username> <level>')
+            simulate_cmd_execution('setlvl', success=success)
+            if success:
+                show_memory_patch()
+        elif cmd_base == 'setdefeated':
+            command_executed = True
+            success = False
+            if args:
+                parts = args.split(' ', 2)
+                if len(parts) == 3:
+                    u, typ, n = parts
+                    try:
+                        n = int(n)
+                        user_data = load_user_data(u)
+                        if user_data:
+                            stats = user_data['player_data']['stats']
+                            if typ.lower() in ['monsters', 'monster']:
+                                stats['monsters_defeated'] = n
+                            elif typ.lower() in ['bosses', 'boss']:
+                                stats['bosses_defeated'] = n
+                            else:
+                                print(f'Invalid type: {typ}')
+                            success = True
+                            save_user_data(u, user_data)
+                            print(f'{typ} defeated for {u} set to {n}.')
+                        else:
+                            print('User not found.')
+                    except ValueError:
+                        print('Invalid number.')
+                else:
+                    print('Usage: setdefeated <username> <type> <n>')
+            else:
+                print('Usage: setdefeated <username> <type> <n>')
+            simulate_cmd_execution('setdefeated', success=success)
+            if success:
+                show_memory_patch()
+        elif cmd_base == 'set':
+            command_executed = True
+            if args:
+                parts = args.split(' ', 2)
+                if len(parts) == 3:
+                    u, stat, n = parts
+                    try:
+                        n = int(n)
+                        user_data = load_user_data(u)
+                        if user_data:
+                            stats = user_data['player_data']['stats']
+                            if stat in stats:
+                                stats[stat] = n
+                                save_user_data(u, user_data)
+                                success = True
+                                print(f'{stat} for {u} set to {n}.')
+                            else:
+                                success = False
+                                print(f'Invalid stat: {stat}')
+                        else:
+                            success = False
+                            print('User not found.')
+                    except ValueError:
+                        success = False
+                        print('Invalid number.')
+                else:
+                    success = False
+                    print('Usage: set <username> <stat> <n>')
+            else:
+                success = False
+                print('Usage: set <username> <stat> <n>')
+            simulate_cmd_execution('set', success=success)
+            if success == True:
+                show_memory_patch()
+        elif cmd_base == 'showfull':
+            command_executed = True
+            collect_user_database()
+            if args:
+                u = args.strip()
+                user_data = load_user_data(u)
+                if user_data:
+                    success = True
+                    simulate_cmd_execution('showfull', success=success)
+                    player_data = user_data.get('player_data', {})
+                    print(f'\nFull data for {u}:')
+                    for key, value in player_data.items():
+                        if isinstance(value, dict):
+                            print(f'{key}:')
+                            for subkey, subvalue in value.items():
+                                print(f'  {subkey}: {subvalue}')
+                        else:
+                            print(f'{key}: {value}')
+                    print('---')
+                else:
+                    success = False
+                    print('User not found.')
+            else:
+                success = False
+                print('Usage: showfull <username>')
+        elif cmd_base == 'give':
+            command_executed = True
+            success = False
+            if args:
+                parts = args.split(' ', 2)
+                if len(parts) >= 2:
+                    u, item = (parts[0], parts[1])
+                    qty_str = parts[2] if len(parts) > 2 else '1'
+                    try:
+                        qty = int(qty_str)
+                        if qty < 1:
+                            qty = 1
+                        upgrade_aliases = {'str': 'perm_strength_upgrade', 'def': 'perm_defense_upgrade', 'hp': 'perm_health_upgrade', 'mana': 'perm_mana_upgrade', 'crit': 'perm_crit_chance_upgrade', 'magic_def': 'perm_magic_def_upgrade', 'lifesteal': 'perm_lifesteal_upgrade', 'lifesteal_chance': 'perm_lifesteal_chance_upgrade', 'exp': 'perm_exp_upgrade', 'perm_str': 'perm_strength_upgrade', 'perm_def': 'perm_defense_upgrade', 'perm_hp': 'perm_health_upgrade', 'perm_mana': 'perm_mana_upgrade', 'perm_crit': 'perm_crit_chance_upgrade', 'perm_magic_def': 'perm_magic_def_upgrade', 'perm_lifesteal': 'perm_lifesteal_upgrade', 'perm_lifesteal_chance': 'perm_lifesteal_chance_upgrade', 'perm_exp': 'perm_exp_upgrade', 'perm_strength_upgrade': 'perm_strength_upgrade', 'perm_defense_upgrade': 'perm_defense_upgrade', 'perm_health_upgrade': 'perm_health_upgrade', 'perm_mana_upgrade': 'perm_mana_upgrade', 'perm_crit_chance_upgrade': 'perm_crit_chance_upgrade', 'perm_magic_def_upgrade': 'perm_magic_def_upgrade', 'perm_lifesteal_upgrade': 'perm_lifesteal_upgrade', 'perm_lifesteal_chance_upgrade': 'perm_lifesteal_chance_upgrade', 'perm_exp_upgrade': 'perm_exp_upgrade'}
+                        if item in upgrade_aliases:
+                            item = upgrade_aliases[item]
+                        user_data = load_user_data(u)
+                        if user_data:
+                            inventory = user_data['player_data'].get('inventory', {})
+                            inventory[item] = inventory.get(item, 0) + qty
+                            user_data['player_data']['inventory'] = inventory
+                            save_user_data(u, user_data)
+                            success = True
+                            simulate_cmd_execution('give', success=success)
+                            if success == True:
+                                show_memory_patch()
+                            print(f'Gave {qty}x {item} to {u}.')
+                        else:
+                            print('User not found.')
+                    except ValueError:
+                        print('Invalid quantity. Quantity must be a positive integer.')
+                else:
+                    print('Usage: give <username> <item> [qty]')
+            else:
+                print('Usage: give <username> <item> [qty]')
+            if success:
+                show_memory_patch()
+        elif cmd_base == 'setdodge':
+            command_executed = True
+            success = False
+            if args:
+                parts = args.split(' ', 1)
+                if len(parts) == 2:
+                    u, n = parts
+                    try:
+                        n = int(n)
+                        user_data = load_user_data(u)
+                        if user_data:
+                            user_data['player_data']['stats']['dodge_points'] = n
+                            user_data['player_data']['stats']['max_dodge'] = n
+                            save_user_data(u, user_data)
+                            print(f'Dodge points for {u} set to {n}.')
+                            success = True
+                        else:
+                            print('User not found.')
+                    except ValueError:
+                        print('Invalid number.')
+                else:
+                    print('Usage: setdodge <username> <n>')
+            else:
+                print('Usage: setdodge <username> <n>')
+            simulate_cmd_execution('setdodge', success=success)
+            if success == True:
+                show_memory_patch
+        elif cmd_base == 'ruinthefun' or (cmd_base.startswith('ruinthefun(') and cmd_base.endswith(')')):
+            command_executed = True
+            if cmd_base.startswith('ruinthefun(') and cmd_base.endswith(')'):
+                u = cmd_base[11:-1]
+            elif args:
+                u = args.strip()
+            else:
+                success = False
+                print('Usage: ruinthefun(username)')
+                simulate_cmd_execution('ruinthefun', success=False)
+                continue
+            user_data = load_user_data(u)
+            if user_data:
+                success = True
+                player_data = user_data['player_data']
+                stats = player_data['stats']
+                inventory = player_data['inventory']
+                stats['level'] = MAX_LEVEL
+                stats['exp'] = exp_to_next(MAX_LEVEL) - 1
+                stats['hp_max'] = 1000
+                stats['mana_max'] = 500
+                stats['atk'] = 100
+                stats['defense'] = 50
+                stats['perm_atk'] = 50
+                stats['perm_def'] = 25
+                stats['perm_hp_max'] = 500
+                stats['perm_mana_max'] = 250
+                stats['perm_crit_chance'] = 50
+                stats['perm_mana_regen'] = 20
+                stats['perm_lifesteal'] = 20
+                stats['perm_lifesteal_chance'] = 20
+                stats['perm_exp_boost'] = 50
+                stats['achievements'] = list(misc.ACHIEVEMENTS.keys())
+                stats['available_titles'] = list(misc.TITLES.keys())
+                stats['equipped_titles'] = list(misc.TITLES.keys())
+                inventory['potion'] = 500
+                inventory['strong_potion'] = 500
+                inventory['ultra_potion'] = 500
+                inventory['mana_regen_potion'] = 500
+                inventory['instant_mana'] = 500
+                inventory['strength_boost'] = 500
+                inventory['defense_boost'] = 500
+                inventory['regen_potion'] = 500
+                inventory['crit_boost'] = 500
+                inventory['mana_upgrade_potion'] = 500
+                for eq in [misc.WEAPONS, misc.ARMORS, misc.WANDS, misc.ROBES, misc.NECKLACES]:
+                    for item in eq:
+                        inventory[item] = 1
+                for mat in misc.MATERIALS:
+                    inventory[mat] = 500
+                for up in misc.PERM_UPGRADES:
+                    inventory[up] = 250
+                for mp in misc.MAGIC_PACKS:
+                    inventory[mp] = 500
+                apply_title_boosts(u)
+                user_data['score'] = 1000000
+                user_data['money'] = 1000000
+                save_user_data(u, user_data)
+                print(f'Ruin the fun activated for {u}.')
+            else:
+                success = False
+                print('User not found.')
+            simulate_cmd_execution('ruinthefun', success=success)
+            if success == True:
+                show_memory_patch()
+        elif cmd_base in ['exit', '.', 'dilsaf', 'get out', 'getout', 'out', 'quit']:
+            command_executed = True
+            success = True
+            print('Exiting debug console.')
+            break
+        else:
+            command_executed = True
+            success = False
+            print("Unknown command. Type 'help' for commands.")
+

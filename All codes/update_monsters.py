@@ -20,7 +20,7 @@ def get_exp(area, is_boss, is_super_boss, name):
         scale = 1.5 ** (area - 1)
         return int(base_min * scale), int(base_max * scale)
 
-# Parse the AST to find and modify MONSTERS
+# Parse the AST to find and modify misc.MONSTERS
 with open('app.py', 'r', encoding='utf-8') as f:
     content = f.read()
 
@@ -93,4 +93,4 @@ new_content = ast.unparse(new_tree)
 with open('app.py', 'w', encoding='utf-8') as f:
     f.write(new_content)
 
-print("Updated MONSTERS")
+print("Updated misc.MONSTERS")
