@@ -1,5 +1,5 @@
 # The Dunes Intred
-This game is inspired by Dungeons & Dragons (D&D). It is a simple text based game that allows the user to login and signup whenever they want, which inturn keeps all their data(ingame) and allows them to login and change the data by playing whenever they want.
+This game is inspired by Dungeons & Dragons (D&D). It is a simple text based game that allows the user to login and signup whenever they want, which inturn keeps all their data(ingame) and allows them to login and change the data by playing whenever they want!
 ## For just playing:
 * If you just want to play the game, then inside 'All codes' folder, just download 1filecode(full).py.
 * This is a huge code so I wouldn't recommend working on it.
