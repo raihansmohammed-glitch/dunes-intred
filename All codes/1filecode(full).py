@@ -1253,7 +1253,7 @@ def update_user(username, score=None, money=None, player_data=None):
 def default_player_data():
     inv = {'potion': 1, 'strong_potion': 0, 'ultra_potion': 0, 'strength_boost': 0, 'defense_boost': 0, 'regen_potion': 0, 'crit_boost': 0, 'wooden_sword': 1, 'leather_armor': 1, 'mana_upgrade_potion': 0, 'mana_regen_potion': 0, 'instant_mana': 0, 'slime_gel': 0, 'goblin_tooth': 0, 'wolf_pelt': 0, 'skeleton_bone': 0, 'orc_iron': 0, 'bandit_cloth': 0, 'troll_core': 0, 'dark_essence': 0, 'prism_fragment': 0, 'void_fragment': 0, 'infinitium_piece': 0, 'soul_shard': 0, 'transcendent_heart': 0, 'dragon_scale': 0, 'phoenix_feather': 0, 'frozen_heart': 0, 'thunder_core': 0, 'holy_light': 0, 'demon_horn': 0, 'crystal_shard': 0, 'star_dust': 0, 'moon_rock': 0, 'sun_stone': 0, 'common_magic_pack': 0, 'rare_magic_pack': 0, 'mythical_magic_pack': 0, 'prismatic_magic_pack': 0, 'divine_magic_pack': 0, 'transcendent_magic_pack': 0, 'perm_strength_upgrade': 0, 'perm_defense_upgrade': 0, 'perm_health_upgrade': 0, 'perm_mana_upgrade': 0, 'perm_crit_chance_upgrade': 0, 'perm_mana_regen_upgrade': 0, 'perm_lifesteal_upgrade': 0, 'perm_lifesteal_chance_upgrade': 0, 'perm_magic_def_upgrade': 0, 'perm_exp_upgrade': 0}
     return {'money': 40, 'score': 0, 'stats': {'hp_max': 100, 'hp': 100, 'atk': 5, 'defense': 0, 'level': 1, 'exp': 0, 'mana_max': 100, 'mana': 100, 'current_area': 1, 'equipped': {'weapon': None, 'armor': None, 'wand': None, 'robe': None, 'necklace': None},
-    'settings': {'call_including_title': True, 'show_exp_bar': False, 'auto_equip_best': False, 'auto_equip_spells': False, 'auto_equip_titles': False, 'auto_equip_everything': False},
+    'settings': {'call_including_title': True, 'show_exp_bar': False, 'auto_equip_spells': False, 'auto_equip_titles': False, 'auto_equip_everything': False},
     'perm_atk': 0, 'perm_def': 0, 'perm_hp_max': 0, 'perm_mana_max': 0, 'perm_magic_def': 0, 'perm_crit_chance': 0, 'perm_mana_regen': 0, 'perm_lifesteal': 0, 'perm_lifesteal_chance': 0, 'perm_exp_boost': 0, 'title': get_title(1), 'achievements': [], 'monsters_defeated': 0, 'bosses_defeated': 0, 'total_money_earned': 0, 'items_crafted': 0, 'materials_collected': 0, 'times_died': 0, 'dungeon_treasure_collected': 0, 'critical_hits': 0, 'stats_manually_set': {'hp': False, 'hp_max': False, 'atk': False, 'defense': False, 'mana': False, 'mana_max': False},
     'dodge_points': 3, 'max_dodge': 3, 'learned_spells': [], 'equipped_spells': [None, None, None, None], 'available_titles': ['novice'], 'equipped_titles': [None, None, None, None, None], 'title_atk_boost': 0, 'title_def_boost': 0, 'title_hp_boost': 0, 'title_mana_boost': 0, 'title_exp_boost': 0},
     'inventory': inv}
@@ -2250,16 +2250,7 @@ def dungeon(username):
     money = user_data.get('money', 40)
     stats = player_data.get('stats', {})
     inventory = player_data.get('inventory', {})
-    settings = stats.get('settings', {})
-    if settings.get('auto_equip_best', False) or settings.get('auto_equip_everything', False):
-        try:
-            auto_equip_items(username)
-            user_data = load_user_data(username)
-            player_data = user_data.get('player_data', {})
-            stats = player_data.get('stats', {})
-            inventory = player_data.get('inventory', {})
-        except Exception:
-            pass
+    settings = player_data.get('settings',{})
     if settings.get('auto_equip_spells', False) or settings.get('auto_equip_everything', False):
         try:
             auto_equip_spells(username)
@@ -3687,22 +3678,18 @@ def settings_menu(username):
     while True:
         print('\n--- Settings ---')
         print(f"1. Show EXP bar: {('ON' if settings.get('show_exp_bar', False) else 'OFF')}")
-        print(f"2. Auto-equip best items: {('ON' if settings.get('auto_equip_best', False) else 'OFF')}")
-        print(f"3. Auto-equip spells: {('ON' if settings.get('auto_equip_spells', False) else 'OFF')}")
-        print(f"4. Auto-equip titles: {('ON' if settings.get('auto_equip_titles', False) else 'OFF')}")
-        print(f"5. Auto-equip everything: {('ON' if settings.get('auto_equip_everything', False) else 'OFF')}")
-        print(f"6. Call including title: {('ON' if settings.get('call_including_title', True) else 'OFF')}")
-        print('7. Equip Titles')
-        print('8. Set this machine as home')
-        print('9. Back to Main Menu')
+        print(f"2. Auto-equip spells: {('ON' if settings.get('auto_equip_spells', False) else 'OFF')}")
+        print(f"3. Auto-equip titles: {('ON' if settings.get('auto_equip_titles', False) else 'OFF')}")
+        print(f"4. Auto-equip everything: {('ON' if settings.get('auto_equip_everything', False) else 'OFF')}")
+        print(f"5. Call including title: {('ON' if settings.get('call_including_title', True) else 'OFF')}")
+        print('6. Equip Titles')
+        print('7. Set this machine as home')
+        print('8. Back to Main Menu')
         choice = input('Choose setting: ').strip()
         if choice == '1':
             settings['show_exp_bar'] = not settings.get('show_exp_bar', False)
             print(f"EXP bar display {('enabled' if settings['show_exp_bar'] else 'disabled')}.")
         elif choice == '2':
-            settings['auto_equip_best'] = not settings.get('auto_equip_best', False)
-            print(f"Auto-equip best items {('enabled' if settings['auto_equip_best'] else 'disabled')}.")
-        elif choice == '3':
             settings['auto_equip_spells'] = not settings.get('auto_equip_spells', False)
             print(f"Auto-equip spells {('enabled' if settings['auto_equip_spells'] else 'disabled')}.")
             if settings['auto_equip_spells']:
@@ -3836,7 +3823,7 @@ def auto_equip_items(username):
         stats = player_data['stats']
         inventory = player_data['inventory']
         equipped = stats['equipped']
-        if not (stats['settings'].get('auto_equip_best', False) or stats['settings'].get('auto_equip_everything', False)):
+        if not stats['settings'].get('auto_equip_everything', False):
             return
         best_weapon = None
         best_weapon_atk = 0
@@ -3938,6 +3925,8 @@ def manage_inventory_menu(username, player_data, cursor):
                 item_list.append((key, name, count))
                 print(f'  {len(item_list)}. {name} x{count}')
         print('\nQuick Equip:')
+        print('best. Equip best weapon and armor')
+        print('all. Equip best of all equipment')
         print('w. Equip best weapon')
         print('a. Equip best armor')
         print('m. Equip best wand')

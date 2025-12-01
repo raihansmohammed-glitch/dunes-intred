@@ -411,3 +411,6 @@ CRAFTABLE_NECKLACES = {
     "forged_cosmic_necklace": {"name": "Forged Cosmic Necklace", "magic_atk_bonus": 30, "magic_def_bonus": 25, "mana_bonus": 50, "price": 24000, "score_price": 2400, "recipe": {"star_dust": 3, "void_fragment": 2, "infinitium_piece": 1}, "type": "necklace", "desc": "Necklace forged from cosmic materials."},
     "forged_transcendent_necklace": {"name": "Forged Transcendent Necklace", "atk_bonus": 50, "def_bonus": 40, "hp_bonus": 150, "mana_bonus": 100, "crit_bonus": 20, "lifesteal_bonus": 10, "price": 80000, "score_price": 8000, "recipe": {"transcendent_heart": 1, "void_fragment": 3, "infinitium_piece": 2, "soul_shard": 1}, "type": "necklace", "desc": "Necklace beyond mortal comprehension."},
     }
+MAX_LEVEL = 7500
+AREAS_COUNT = 100
+LEVELS_PER_AREA = MAX_LEVEL // AREAS_COUNT

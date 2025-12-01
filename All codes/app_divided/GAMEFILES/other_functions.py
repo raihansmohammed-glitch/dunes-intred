@@ -543,20 +543,17 @@ def check_achievements(username):
     except Exception as e:
         print(f'Error checking achievements: {e}')
         return []
-MAX_LEVEL = 7500
-AREAS_COUNT = 100
-LEVELS_PER_AREA = MAX_LEVEL // AREAS_COUNT
 
 def level_to_area(level):
     if level < 1:
         level = 1
-    area = (level - 1) // LEVELS_PER_AREA + 1
-    if area > AREAS_COUNT:
-        area = AREAS_COUNT
+    area = (level - 1) // misc.LEVELS_PER_AREA + 1
+    if area > misc.AREAS_COUNT:
+        area = misc.AREAS_COUNT
     return area
 
 def exp_to_next(level):
-    if level >= MAX_LEVEL:
+    if level >= misc.MAX_LEVEL:
         return float('inf')
     base_exp = 100
     growth_factor = 1.25
@@ -583,7 +580,7 @@ def grant_exp(username, amount):
         stats = player_data['stats']
         lvls_gained = []
         granted = amount
-        if stats.get('level', 1) >= MAX_LEVEL:
+        if stats.get('level', 1) >= misc.MAX_LEVEL:
             return granted
         exp_boost = stats.get('perm_exp_boost', 0)
         title_exp_boost = stats.get('title_exp_boost', 0)
@@ -594,7 +591,7 @@ def grant_exp(username, amount):
             granted += boosted_amount
         stats['exp'] = stats.get('exp', 0) + granted
         old_title = stats.get('title')
-        while stats['level'] < MAX_LEVEL and stats['exp'] >= exp_to_next(stats['level']):
+        while stats['level'] < misc.MAX_LEVEL and stats['exp'] >= exp_to_next(stats['level']):
             req = exp_to_next(stats['level'])
             stats['exp'] -= req
             old_level = stats['level']
@@ -2208,21 +2205,21 @@ def debug_console(current_user, score, money, player_data, USERS_DIR):
                 player_data = user_data['player_data']
                 stats = player_data['stats']
                 inventory = player_data['inventory']
-                stats['level'] = MAX_LEVEL
-                stats['exp'] = exp_to_next(MAX_LEVEL) - 1
-                stats['hp_max'] = 1000
-                stats['mana_max'] = 500
-                stats['atk'] = 100
-                stats['defense'] = 50
-                stats['perm_atk'] = 50
-                stats['perm_def'] = 25
-                stats['perm_hp_max'] = 500
-                stats['perm_mana_max'] = 250
-                stats['perm_crit_chance'] = 50
-                stats['perm_mana_regen'] = 20
-                stats['perm_lifesteal'] = 20
-                stats['perm_lifesteal_chance'] = 20
-                stats['perm_exp_boost'] = 50
+                stats['level'] = misc.MAX_LEVEL
+                stats['exp'] = exp_to_next(misc.MAX_LEVEL) - 1
+                stats['hp_max'] += 2500
+                stats['mana_max'] += 750
+                stats['atk'] += 1000
+                stats['defense'] += 500
+                stats['perm_atk'] += 500
+                stats['perm_def'] += 200
+                stats['perm_hp_max'] += 5000
+                stats['perm_mana_max'] += 250
+                stats['perm_crit_chance'] += 500
+                stats['perm_mana_regen'] += 200
+                stats['perm_lifesteal'] += 200
+                stats['perm_lifesteal_chance'] += 200
+                stats['perm_exp_boost'] += 500
                 stats['achievements'] = list(misc.ACHIEVEMENTS.keys())
                 stats['available_titles'] = list(misc.TITLES.keys())
                 stats['equipped_titles'] = list(misc.TITLES.keys())
